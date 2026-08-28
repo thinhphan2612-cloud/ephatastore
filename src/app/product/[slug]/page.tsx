@@ -2,6 +2,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getProductBySlug, getRelated } from "@/data/products";
 import { CATEGORY_BY_ID } from "@/data/categories";
+import { getCurrentUser } from "@/lib/auth";
+import { isOwned } from "@/data/store-user";
+import { claimProduct } from "@/lib/actions/store";
 import { discountPercent } from "@/lib/types";
 import { formatPrice, formatDate } from "@/lib/format";
 import { TYPE_ICON, TYPE_LABEL } from "@/lib/labels";
@@ -33,6 +36,9 @@ export default async function ProductPage({
   const category = CATEGORY_BY_ID.get(product.categoryId);
   const discount = discountPercent(product);
   const related = await getRelated(product);
+
+  const user = await getCurrentUser();
+  const owned = user ? await isOwned(user.id, product.id) : false;
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8">
@@ -137,15 +143,30 @@ export default async function ProductPage({
               </div>
             </div>
 
-            <button
-              type="button"
-              className="mt-4 w-full rounded-md bg-accent px-4 py-2.5 font-semibold text-accent-contrast hover:bg-accent-hover"
-            >
-              {product.price > 0 ? "Thêm vào giỏ" : "Nhận miễn phí"}
-            </button>
-            <p className="mt-2 text-center text-xs text-text-faint">
-              Thanh toán &amp; SSO sẽ nối ở bước sau
-            </p>
+            {owned ? (
+              <Link
+                href="/library"
+                className="mt-4 block w-full rounded-md border border-success/50 bg-success/10 px-4 py-2.5 text-center font-semibold text-success"
+              >
+                ✓ Đã sở hữu — mở Thư viện
+              </Link>
+            ) : (
+              <form action={claimProduct} className="mt-4">
+                <input type="hidden" name="product_id" value={product.id} />
+                <input type="hidden" name="slug" value={product.slug} />
+                <button
+                  type="submit"
+                  className="w-full rounded-md bg-accent px-4 py-2.5 font-semibold text-accent-contrast hover:bg-accent-hover"
+                >
+                  {product.price > 0 ? "Mua ngay" : "Nhận miễn phí"}
+                </button>
+              </form>
+            )}
+            {!user && (
+              <p className="mt-2 text-center text-xs text-text-faint">
+                Cần đăng nhập để mua / nhận sản phẩm.
+              </p>
+            )}
           </div>
 
           <div className="rounded-xl border border-border bg-surface p-5 text-sm">
