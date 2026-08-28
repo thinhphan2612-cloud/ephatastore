@@ -1,7 +1,12 @@
 import Link from "next/link";
 import { CATEGORIES } from "@/data/categories";
+import { getCurrentUser, isAdminEmail } from "@/lib/auth";
+import { signOut } from "@/lib/actions/auth";
 
-export function SiteHeader() {
+export async function SiteHeader() {
+  const user = await getCurrentUser();
+  const isAdmin = isAdminEmail(user?.email);
+
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-bg-elevated/95 backdrop-blur">
       <div className="mx-auto flex h-14 max-w-7xl items-center gap-4 px-4">
@@ -32,7 +37,7 @@ export function SiteHeader() {
           />
         </form>
 
-        {/* phải: plan + đăng nhập (mock, nối SSO sau) */}
+        {/* phải: giỏ + tài khoản */}
         <div className="flex items-center gap-2">
           <Link
             href="/library"
@@ -40,12 +45,41 @@ export function SiteHeader() {
           >
             🛒
           </Link>
-          <Link
-            href="/login"
-            className="rounded-md bg-accent px-3 py-1.5 text-sm font-semibold text-accent-contrast hover:bg-accent-hover"
-          >
-            Đăng nhập
-          </Link>
+
+          {isAdmin && (
+            <Link
+              href="/admin"
+              className="hidden rounded-md border border-accent/50 px-3 py-1.5 text-sm text-accent hover:bg-accent/10 sm:block"
+            >
+              Admin
+            </Link>
+          )}
+
+          {user ? (
+            <>
+              <span
+                className="hidden max-w-[10rem] truncate text-sm text-text-muted md:block"
+                title={user.email ?? undefined}
+              >
+                {user.email}
+              </span>
+              <form action={signOut}>
+                <button
+                  type="submit"
+                  className="rounded-md border border-border px-3 py-1.5 text-sm text-text-muted hover:border-accent/50 hover:text-text"
+                >
+                  Đăng xuất
+                </button>
+              </form>
+            </>
+          ) : (
+            <Link
+              href="/login"
+              className="rounded-md bg-accent px-3 py-1.5 text-sm font-semibold text-accent-contrast hover:bg-accent-hover"
+            >
+              Đăng nhập
+            </Link>
+          )}
         </div>
       </div>
 

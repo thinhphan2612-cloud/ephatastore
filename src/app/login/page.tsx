@@ -1,15 +1,26 @@
+import { Suspense } from "react";
+import { redirect } from "next/navigation";
+import { getCurrentUser } from "@/lib/auth";
+import { LoginForm } from "@/components/login-form";
+
 export const metadata = { title: "Đăng nhập" };
 
-export default function LoginPage() {
+export default async function LoginPage() {
+  const user = await getCurrentUser();
+  if (user) redirect("/");
+
   return (
-    <div className="mx-auto max-w-md px-4 py-16 text-center">
-      <h1 className="text-2xl font-bold">Đăng nhập</h1>
-      <p className="mt-3 text-text-muted">
-        Đăng nhập sẽ dùng chung tài khoản với{" "}
-        <span className="text-text">app.giaoly.com.vn</span> qua SSO.
+    <div className="mx-auto max-w-md px-4 py-16">
+      <h1 className="text-center text-2xl font-bold">Đăng nhập</h1>
+      <p className="mt-2 text-center text-sm text-text-muted">
+        Dùng chung tài khoản với{" "}
+        <span className="text-text">app.giaoly.com.vn</span>.
       </p>
-      <div className="mt-6 rounded-lg border border-border bg-surface p-6 text-sm text-text-muted">
-        Luồng SSO cross-domain đang được xây dựng.
+
+      <div className="mt-8 rounded-xl border border-border bg-bg-elevated p-6">
+        <Suspense>
+          <LoginForm />
+        </Suspense>
       </div>
     </div>
   );
