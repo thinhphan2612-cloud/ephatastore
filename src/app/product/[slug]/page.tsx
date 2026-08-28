@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { getProductBySlug, getRelated } from "@/data/products";
 import { CATEGORY_BY_ID } from "@/data/categories";
 import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUserPlan } from "@/lib/plan";
 import { isOwned } from "@/data/store-user";
 import { claimProduct } from "@/lib/actions/store";
 import { discountPercent } from "@/lib/types";
@@ -39,6 +40,8 @@ export default async function ProductPage({
 
   const user = await getCurrentUser();
   const owned = user ? await isOwned(user.id, product.id) : false;
+  const plan = user ? await getCurrentUserPlan() : "free";
+  const needsPro = product.minPlan === "pro";
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8">
@@ -121,11 +124,17 @@ export default async function ProductPage({
               </span>
             </div>
 
-            {product.minPlan === "pro" && (
-              <div className="mt-4 rounded-md border border-accent/40 bg-accent/10 px-3 py-2 text-sm text-accent">
-                Cần gói <strong>Pro</strong> để sử dụng sản phẩm này.
-              </div>
-            )}
+            {needsPro &&
+              (plan === "pro" ? (
+                <div className="mt-4 rounded-md border border-success/40 bg-success/10 px-3 py-2 text-sm text-success">
+                  Giáo xứ của bạn có gói <strong>Pro</strong> — dùng được ngay.
+                </div>
+              ) : (
+                <div className="mt-4 rounded-md border border-accent/40 bg-accent/10 px-3 py-2 text-sm text-accent">
+                  Cần gói <strong>Pro</strong> để sử dụng.
+                  {user && " Giáo xứ của bạn đang ở gói Khởi động."}
+                </div>
+              ))}
 
             <div className="mt-5 flex items-center gap-3">
               {discount > 0 && (

@@ -1,11 +1,13 @@
 import Link from "next/link";
 import { CATEGORIES } from "@/data/categories";
 import { getCurrentUser, isAdminEmail } from "@/lib/auth";
+import { getCurrentUserPlan } from "@/lib/plan";
 import { signOut } from "@/lib/actions/auth";
 
 export async function SiteHeader() {
   const user = await getCurrentUser();
   const isAdmin = isAdminEmail(user?.email);
+  const plan = user ? await getCurrentUserPlan() : "free";
 
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-bg-elevated/95 backdrop-blur">
@@ -57,6 +59,11 @@ export async function SiteHeader() {
 
           {user ? (
             <>
+              {plan === "pro" && (
+                <span className="hidden rounded bg-accent px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-accent-contrast sm:block">
+                  Pro
+                </span>
+              )}
               <span
                 className="hidden max-w-[10rem] truncate text-sm text-text-muted md:block"
                 title={user.email ?? undefined}
