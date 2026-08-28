@@ -1,26 +1,85 @@
 @import "tailwindcss";
 
+/*
+  Ephata Store — design tokens
+  Theme tối cố định kiểu storefront (Steam-like), accent vàng liturgical.
+*/
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* nền & bề mặt */
+  --bg: #0d1117;
+  --bg-elevated: #131a23;
+  --surface: #182230;
+  --surface-hover: #1f2c3d;
+  --border: #24313f;
+
+  /* chữ */
+  --text: #e6edf3;
+  --text-muted: #9fb0c0;
+  --text-faint: #66788a;
+
+  /* thương hiệu */
+  --accent: #e0b25c;         /* vàng liturgical */
+  --accent-hover: #eec378;
+  --accent-contrast: #1a1205;
+  --brand: #4a90d9;          /* xanh phụ */
+  --brand-hover: #63a5e6;
+
+  /* trạng thái */
+  --success: #57b894;
+  --danger: #e5687a;
+  --discount: #4c9f38;       /* nền badge giảm giá */
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --color-bg: var(--bg);
+  --color-bg-elevated: var(--bg-elevated);
+  --color-surface: var(--surface);
+  --color-surface-hover: var(--surface-hover);
+  --color-border: var(--border);
+  --color-text: var(--text);
+  --color-text-muted: var(--text-muted);
+  --color-text-faint: var(--text-faint);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-contrast: var(--accent-contrast);
+  --color-brand: var(--brand);
+  --color-brand-hover: var(--brand-hover);
+  --color-success: var(--success);
+  --color-danger: var(--danger);
+  --color-discount: var(--discount);
+
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  color-scheme: dark;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans), system-ui, -apple-system, Segoe UI, Roboto, Arial,
+    sans-serif;
+}
+
+/* thanh cuộn tối cho các hàng cuộn ngang */
+.scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+.scrollbar-thin::-webkit-scrollbar {
+  height: 8px;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 999px;
+}
+
+/* ẩn thanh cuộn nhưng vẫn cuộn được */
+.no-scrollbar {
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
 }
