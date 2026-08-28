@@ -1,10 +1,10 @@
 import { cache } from "react";
 import type { User } from "@supabase/supabase-js";
-import { createGiaolyServerClient } from "@/lib/supabase/giaoly-server";
+import { createStoreAuthServerClient } from "@/lib/supabase/store-auth-server";
 
-/** User đăng nhập hiện tại (từ giaoly), hoặc null. Cache theo request. */
+/** User đăng nhập hiện tại (tài khoản STORE), hoặc null. Cache theo request. */
 export const getCurrentUser = cache(async (): Promise<User | null> => {
-  const supabase = await createGiaolyServerClient();
+  const supabase = await createStoreAuthServerClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();

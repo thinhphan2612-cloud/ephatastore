@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createStoreAuthBrowserClient } from "@/lib/supabase/store-auth-browser";
 
-export function LoginForm() {
+export function SignupForm() {
   const router = useRouter();
   const params = useSearchParams();
   const next = params.get("next") || "/";
@@ -18,17 +18,29 @@ export function LoginForm() {
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+
+    if (password.length < 6) {
+      setError("Mật khẩu tối thiểu 6 ký tự.");
+      return;
+    }
     setLoading(true);
 
     const supabase = createStoreAuthBrowserClient();
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { data, error } = await supabase.auth.signUp({ email, password });
 
     if (error) {
       setError(
-        error.message === "Invalid login credentials"
-          ? "Email hoặc mật khẩu không đúng."
+        error.message.includes("already registered")
+          ? "Email này đã có tài khoản. Hãy đăng nhập."
           : error.message
       );
+      setLoading(false);
+      return;
+    }
+
+    // Confirm email đã tắt → có session ngay. Nếu vì lý do nào đó chưa có session:
+    if (!data.session) {
+      setError("Tài khoản đã tạo. Vui lòng đăng nhập.");
       setLoading(false);
       return;
     }
@@ -46,7 +58,7 @@ export function LoginForm() {
           required
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="w-full rounded-md border border-border bg-surface px-3 py-2 text-text focus:border-accent focus:outline-none"
+          className="w-full rounded-md border border-border bg-surface px-3 py-2 text-text placeholder:text-text-faint focus:border-accent focus:outline-none"
           placeholder="email@example.com"
         />
       </div>
@@ -57,8 +69,8 @@ export function LoginForm() {
           required
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="w-full rounded-md border border-border bg-surface px-3 py-2 text-text focus:border-accent focus:outline-none"
-          placeholder="••••••••"
+          className="w-full rounded-md border border-border bg-surface px-3 py-2 text-text placeholder:text-text-faint focus:border-accent focus:outline-none"
+          placeholder="Tối thiểu 6 ký tự"
         />
       </div>
 
@@ -73,16 +85,16 @@ export function LoginForm() {
         disabled={loading}
         className="w-full rounded-md bg-accent px-4 py-2.5 font-semibold text-accent-contrast hover:bg-accent-hover disabled:opacity-60"
       >
-        {loading ? "Đang đăng nhập…" : "Đăng nhập"}
+        {loading ? "Đang tạo tài khoản…" : "Đăng ký"}
       </button>
 
       <p className="text-center text-sm text-text-muted">
-        Chưa có tài khoản?{" "}
+        Đã có tài khoản?{" "}
         <Link
-          href={`/signup${next !== "/" ? `?next=${encodeURIComponent(next)}` : ""}`}
+          href={`/login${next !== "/" ? `?next=${encodeURIComponent(next)}` : ""}`}
           className="text-brand hover:text-brand-hover"
         >
-          Đăng ký
+          Đăng nhập
         </Link>
       </p>
     </form>

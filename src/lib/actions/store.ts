@@ -7,7 +7,7 @@ import { createStoreAdminClient } from "@/lib/supabase/store-admin";
 
 /**
  * Nhận (free) hoặc bắt đầu mua (paid) một sản phẩm.
- * Danh tính lấy từ session giaoly đã xác thực — không tin productId về giá.
+ * Danh tính lấy từ tài khoản STORE đã xác thực — không tin productId về giá.
  */
 export async function claimProduct(formData: FormData) {
   const user = await getCurrentUser();
@@ -34,8 +34,8 @@ export async function claimProduct(formData: FormData) {
     const { error } = await supabase
       .from("entitlements")
       .upsert(
-        { giaoly_user_id: user.id, product_id: product.id },
-        { onConflict: "giaoly_user_id,product_id", ignoreDuplicates: true }
+        { store_user_id: user.id, product_id: product.id },
+        { onConflict: "store_user_id,product_id", ignoreDuplicates: true }
       );
     if (error) throw new Error(error.message);
     revalidatePath("/library");
@@ -45,7 +45,7 @@ export async function claimProduct(formData: FormData) {
   // Có phí → tạo đơn pending + item, chuyển sang trang thanh toán.
   const { data: order, error: oErr } = await supabase
     .from("orders")
-    .insert({ giaoly_user_id: user.id, status: "pending", total_vnd: product.price_vnd })
+    .insert({ store_user_id: user.id, status: "pending", total_vnd: product.price_vnd })
     .select("id")
     .single();
   if (oErr) throw new Error(oErr.message);

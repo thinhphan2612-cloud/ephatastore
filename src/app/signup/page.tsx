@@ -1,24 +1,24 @@
 import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
-import { LoginForm } from "@/components/login-form";
+import { SignupForm } from "@/components/signup-form";
 
-export const metadata = { title: "Đăng nhập" };
+export const metadata = { title: "Đăng ký" };
 
-export default async function LoginPage() {
+export default async function SignupPage() {
   const user = await getCurrentUser();
   if (user) redirect("/");
 
   return (
     <div className="mx-auto max-w-md px-4 py-16">
-      <h1 className="text-center text-2xl font-bold">Đăng nhập</h1>
+      <h1 className="text-center text-2xl font-bold">Tạo tài khoản</h1>
       <p className="mt-2 text-center text-sm text-text-muted">
-        Tài khoản Ephata Store.
+        Đăng ký để mua sản phẩm tải về và game trên Ephata Store.
       </p>
 
       <div className="mt-8 rounded-xl border border-border bg-bg-elevated p-6">
         <Suspense>
-          <LoginForm />
+          <SignupForm />
         </Suspense>
       </div>
     </div>

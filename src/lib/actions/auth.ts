@@ -1,10 +1,10 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { createGiaolyServerClient } from "@/lib/supabase/giaoly-server";
+import { createStoreAuthServerClient } from "@/lib/supabase/store-auth-server";
 
 export async function signOut() {
-  const supabase = await createGiaolyServerClient();
+  const supabase = await createStoreAuthServerClient();
   await supabase.auth.signOut();
   redirect("/");
 }

@@ -2,15 +2,15 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 /**
- * Refresh session giaoly trên mỗi request (đọc/ghi cookie).
+ * Refresh session STORE (danh tính gốc) trên mỗi request (đọc/ghi cookie).
  * Next 16: file convention "proxy" (thay cho "middleware").
  */
 export async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request });
 
   const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_GIAOLY_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_GIAOLY_SUPABASE_ANON_KEY!,
+    process.env.NEXT_PUBLIC_STORE_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_STORE_SUPABASE_ANON_KEY!,
     {
       cookies: {
         getAll() {

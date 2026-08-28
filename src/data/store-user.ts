@@ -4,7 +4,7 @@ import type { Product } from "@/lib/types";
 
 /**
  * Truy cập dữ liệu gắn với user đăng nhập (đơn hàng, sở hữu).
- * Luôn nhận giaoly_user_id đã xác thực từ getCurrentUser() ở phía gọi.
+ * Luôn nhận store_user_id đã xác thực từ getCurrentUser() ở phía gọi.
  * Dùng service_role (bypass RLS) — KHÔNG bao giờ nhận userId từ input client.
  */
 
@@ -76,7 +76,7 @@ export async function getMyLibrary(userId: string): Promise<Product[]> {
   const { data, error } = await supabase
     .from("entitlements")
     .select(`product:products(${PRODUCT_SELECT})`)
-    .eq("giaoly_user_id", userId)
+    .eq("store_user_id", userId)
     .order("granted_at", { ascending: false });
   if (error) throw new Error(error.message);
   return (data ?? [])
@@ -102,12 +102,12 @@ export async function getOrderForUser(
   const { data, error } = await supabase
     .from("orders")
     .select(
-      "id,status,total_vnd,created_at,giaoly_user_id,order_items(unit_price_vnd,product:products(title,slug))"
+      "id,status,total_vnd,created_at,store_user_id,order_items(unit_price_vnd,product:products(title,slug))"
     )
     .eq("id", orderId)
     .maybeSingle();
   if (error) throw new Error(error.message);
-  if (!data || data.giaoly_user_id !== userId) return null;
+  if (!data || data.store_user_id !== userId) return null;
 
   type ItemRow = {
     unit_price_vnd: number;
@@ -132,7 +132,7 @@ export async function isOwned(userId: string, productId: string): Promise<boolea
   const { count, error } = await supabase
     .from("entitlements")
     .select("id", { count: "exact", head: true })
-    .eq("giaoly_user_id", userId)
+    .eq("store_user_id", userId)
     .eq("product_id", productId);
   if (error) throw new Error(error.message);
   return (count ?? 0) > 0;
