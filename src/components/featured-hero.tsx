@@ -16,9 +16,18 @@ export function FeaturedHero({ product }: { product: Product }) {
       {/* ảnh lớn */}
       <div
         className="flex aspect-video items-center justify-center md:aspect-auto"
-        style={{ background: gradientFor(product.id) }}
+        style={{ background: product.coverUrl ? undefined : gradientFor(product.id) }}
       >
-        <span className="text-7xl opacity-80">{TYPE_ICON[product.type]}</span>
+        {product.coverUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={product.coverUrl}
+            alt={product.title}
+            className="h-full w-full object-cover"
+          />
+        ) : (
+          <span className="text-7xl opacity-80">{TYPE_ICON[product.type]}</span>
+        )}
       </div>
 
       {/* nội dung */}

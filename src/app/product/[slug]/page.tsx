@@ -57,10 +57,19 @@ export default async function ProductPage({
         {/* cột trái: media + mô tả */}
         <div className="space-y-6 lg:col-span-2">
           <div
-            className="flex aspect-video items-center justify-center rounded-xl border border-border"
-            style={{ background: gradientFor(product.id) }}
+            className="flex aspect-video items-center justify-center overflow-hidden rounded-xl border border-border"
+            style={{ background: product.coverUrl ? undefined : gradientFor(product.id) }}
           >
-            <span className="text-8xl opacity-80">{TYPE_ICON[product.type]}</span>
+            {product.coverUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={product.coverUrl}
+                alt={product.title}
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              <span className="text-8xl opacity-80">{TYPE_ICON[product.type]}</span>
+            )}
           </div>
 
           <div className="space-y-3">

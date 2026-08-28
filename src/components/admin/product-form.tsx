@@ -108,8 +108,28 @@ export function ProductForm({
         </Field>
       </div>
 
-      <Field label="URL ảnh bìa (để trống = dùng gradient)">
-        <input name="cover_url" defaultValue={p?.cover_url ?? ""} className={input} placeholder="https://…" />
+      <Field label="Ảnh bìa">
+        {p?.cover_url && (
+          <div className="mb-2">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={p.cover_url}
+              alt="Ảnh bìa hiện tại"
+              className="h-32 rounded-md border border-border object-cover"
+            />
+            <span className="mt-1 block text-xs text-text-faint">Ảnh hiện tại</span>
+          </div>
+        )}
+        <input
+          type="file"
+          name="cover_file"
+          accept="image/png,image/jpeg,image/webp,image/gif"
+          className="block w-full text-sm text-text-muted file:mr-3 file:rounded-md file:border-0 file:bg-surface file:px-3 file:py-1.5 file:text-text hover:file:bg-surface-hover"
+        />
+        <span className="mt-1 block text-xs text-text-faint">
+          Tối đa 5MB. Bỏ trống nếu giữ ảnh cũ / dùng gradient.
+        </span>
+        <input type="hidden" name="cover_url" value={p?.cover_url ?? ""} />
       </Field>
 
       <div className="flex flex-wrap gap-5">

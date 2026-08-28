@@ -11,6 +11,21 @@ async function assertAdmin() {
   if (!admin) throw new Error("Không có quyền admin.");
 }
 
+const COVER_BUCKET = "product-covers";
+
+/** Upload ảnh bìa lên Storage, trả về public URL. */
+async function uploadCover(file: File): Promise<string> {
+  const supabase = createStoreAdminClient();
+  const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
+  const path = `${crypto.randomUUID()}.${ext}`;
+  const { error } = await supabase.storage.from(COVER_BUCKET).upload(path, file, {
+    contentType: file.type || "image/jpeg",
+    upsert: false,
+  });
+  if (error) throw new Error(`Lỗi upload ảnh: ${error.message}`);
+  return supabase.storage.from(COVER_BUCKET).getPublicUrl(path).data.publicUrl;
+}
+
 export interface SaveState {
   error?: string;
 }
@@ -59,6 +74,16 @@ export async function saveProduct(
   if (!row.title) return { error: "Thiếu tiêu đề." };
   if (!row.category_id) return { error: "Chưa chọn danh mục." };
   if (!row.publisher_id) return { error: "Chưa chọn nhà phát hành." };
+
+  // Ảnh bìa upload (nếu có) ghi đè cover_url từ text field.
+  const file = formData.get("cover_file");
+  if (file instanceof File && file.size > 0) {
+    try {
+      row.cover_url = await uploadCover(file);
+    } catch (e) {
+      return { error: e instanceof Error ? e.message : "Lỗi upload ảnh." };
+    }
+  }
 
   const supabase = createStoreAdminClient();
   const { error } = id
