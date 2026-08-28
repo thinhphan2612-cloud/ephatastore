@@ -20,7 +20,9 @@ export function normalizePlan(raw: string | null | undefined): Plan {
 
 /**
  * Gói hiệu lực của user hiện tại = gói của giáo xứ họ thuộc về.
- * Đọc qua session giaoly (RLS tự chủ). Lỗi/không có → 'free'.
+ * Gọi RPC get_my_plan() bên giaoly (hàm SECURITY DEFINER, tự lọc theo auth.uid()).
+ * Store KHÔNG chạm trực tiếp bảng profiles/parishes → tách khỏi schema giaoly.
+ * Lỗi/chưa có RPC → 'free'.
  */
 export const getCurrentUserPlan = cache(async (): Promise<Plan> => {
   const user = await getCurrentUser();
@@ -28,21 +30,9 @@ export const getCurrentUserPlan = cache(async (): Promise<Plan> => {
 
   try {
     const supabase = await createGiaolyServerClient();
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("parish_id")
-      .eq("id", user.id)
-      .maybeSingle();
-
-    if (!profile?.parish_id) return "free";
-
-    const { data: parish } = await supabase
-      .from("parishes")
-      .select("plan")
-      .eq("id", profile.parish_id)
-      .maybeSingle();
-
-    return normalizePlan(parish?.plan);
+    const { data, error } = await supabase.rpc("get_my_plan");
+    if (error) return "free";
+    return normalizePlan(data as string | null);
   } catch {
     return "free";
   }
