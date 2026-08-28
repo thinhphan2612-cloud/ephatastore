@@ -5,11 +5,17 @@ import { createGiaolyServerClient } from "@/lib/supabase/giaoly-server";
 export type Plan = "free" | "pro";
 
 /**
- * Chuẩn hoá giá trị parishes.plan (vd 'khoi_dong'/'pro') về 'free' | 'pro'.
- * Chỉ coi là 'pro' khi khớp rõ ràng; còn lại (Khởi động, null…) là 'free'.
+ * Chuẩn hoá giá trị parishes.plan về 'free' | 'pro'.
+ * Hai tầng giaoly: "Khởi động" (free) và "Pro" (theo quy mô).
+ * Chỉ coi là 'pro' khi khớp 'pro'; các giá trị Khởi động/khởi tạo/null → 'free'.
  */
 export function normalizePlan(raw: string | null | undefined): Plan {
-  return raw && /pro/i.test(raw) ? "pro" : "free";
+  if (!raw) return "free";
+  const v = raw.trim().toLowerCase();
+  const freeAliases = ["free", "khoi_dong", "khởi động", "khoi dong", "starter", "basic"];
+  if (freeAliases.includes(v)) return "free";
+  if (v.includes("pro")) return "pro";
+  return "free";
 }
 
 /**

@@ -133,6 +133,12 @@ export default async function ProductPage({
                 <div className="mt-4 rounded-md border border-accent/40 bg-accent/10 px-3 py-2 text-sm text-accent">
                   Cần gói <strong>Pro</strong> để sử dụng.
                   {user && " Giáo xứ của bạn đang ở gói Khởi động."}
+                  <a
+                    href={process.env.NEXT_PUBLIC_APP_GIAOLY_URL ?? "#"}
+                    className="ml-1 font-medium underline hover:text-accent-hover"
+                  >
+                    Nâng cấp Pro →
+                  </a>
                 </div>
               ))}
 
