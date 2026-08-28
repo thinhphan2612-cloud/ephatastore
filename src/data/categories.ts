@@ -1,37 +1,40 @@
 import type { Category } from "@/lib/types";
 
-/** Danh mục gốc của marketplace (MVP). */
+/**
+ * Danh mục gốc (tĩnh, dùng cho nav). Trùng slug với bảng categories trong DB store.
+ * id = slug để khớp với Product.categoryId (lấy từ category.slug khi join).
+ */
 export const CATEGORIES: Category[] = [
   {
-    id: "cat-tool",
+    id: "cong-cu",
     slug: "cong-cu",
     name: "Công cụ",
     icon: "🛠️",
     description: "Công cụ hỗ trợ mục vụ, quản lý, phụng vụ cho giáo xứ.",
   },
   {
-    id: "cat-game",
+    id: "game-giao-ly",
     slug: "game-giao-ly",
     name: "Game giáo lý",
     icon: "🎮",
     description: "Trò chơi học hỏi Kinh Thánh và giáo lý cho mọi lứa tuổi.",
   },
   {
-    id: "cat-asset",
+    id: "asset-thiet-ke",
     slug: "asset-thiet-ke",
     name: "Asset thiết kế",
     icon: "🎨",
     description: "Template, font, đồ hoạ dùng cho ấn phẩm Công giáo.",
   },
   {
-    id: "cat-image",
+    id: "hinh-anh",
     slug: "hinh-anh",
     name: "Hình ảnh",
     icon: "🖼️",
     description: "Kho ảnh thánh, tranh, hình nền chất lượng cao.",
   },
   {
-    id: "cat-feature",
+    id: "tinh-nang",
     slug: "tinh-nang",
     name: "Tính năng tích hợp",
     icon: "🧩",

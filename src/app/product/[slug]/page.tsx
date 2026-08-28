@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getAllProducts, getProductBySlug, getRelated } from "@/data/products";
+import { getProductBySlug, getRelated } from "@/data/products";
 import { CATEGORY_BY_ID } from "@/data/categories";
 import { discountPercent } from "@/lib/types";
 import { formatPrice, formatDate } from "@/lib/format";
@@ -8,17 +8,13 @@ import { TYPE_ICON, TYPE_LABEL } from "@/lib/labels";
 import { gradientFor } from "@/lib/placeholder";
 import { ProductRow } from "@/components/product-row";
 
-export function generateStaticParams() {
-  return getAllProducts().map((p) => ({ slug: p.slug }));
-}
-
 export async function generateMetadata({
   params,
 }: {
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const product = getProductBySlug(slug);
+  const product = await getProductBySlug(slug);
   return {
     title: product?.title ?? "Sản phẩm",
     description: product?.tagline,
@@ -31,12 +27,12 @@ export default async function ProductPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const product = getProductBySlug(slug);
+  const product = await getProductBySlug(slug);
   if (!product) notFound();
 
   const category = CATEGORY_BY_ID.get(product.categoryId);
   const discount = discountPercent(product);
-  const related = getRelated(product);
+  const related = await getRelated(product);
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8">

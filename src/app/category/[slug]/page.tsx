@@ -26,7 +26,7 @@ export default async function CategoryPage({
   const category = CATEGORY_BY_SLUG.get(slug);
   if (!category) notFound();
 
-  const products = getProductsByCategory(category.id);
+  const products = await getProductsByCategory(category.slug);
 
   return (
     <div className="mx-auto max-w-7xl space-y-6 px-4 py-8">

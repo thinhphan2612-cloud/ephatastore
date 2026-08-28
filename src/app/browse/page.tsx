@@ -16,7 +16,7 @@ export default async function BrowsePage({
   const { q = "", type = "" } = await searchParams;
   const query = q.trim().toLowerCase();
 
-  let products = getAllProducts();
+  let products = await getAllProducts();
   if (type) products = products.filter((p) => p.type === type);
   if (query) {
     products = products.filter(

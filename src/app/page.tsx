@@ -9,8 +9,13 @@ import {
 import { FeaturedHero } from "@/components/featured-hero";
 import { ProductRow } from "@/components/product-row";
 
-export default function HomePage() {
-  const featured = getFeatured();
+export default async function HomePage() {
+  const [featured, newReleases, popular, games] = await Promise.all([
+    getFeatured(),
+    getNewReleases(),
+    getPopular(),
+    getProductsByCategory("game-giao-ly"),
+  ]);
   const hero = featured[0];
 
   return (
@@ -32,14 +37,14 @@ export default function HomePage() {
         ))}
       </div>
 
-      <ProductRow title="Mới phát hành" products={getNewReleases()} moreHref="/browse" />
-      <ProductRow title="Phổ biến" products={getPopular()} moreHref="/browse" />
-      <ProductRow title="Nổi bật" products={getFeatured()} moreHref="/browse" />
+      <ProductRow title="Mới phát hành" products={newReleases} moreHref="/browse" />
+      <ProductRow title="Phổ biến" products={popular} moreHref="/browse" />
+      <ProductRow title="Nổi bật" products={featured} moreHref="/browse" />
 
       {/* một hàng theo danh mục game để làm mẫu */}
       <ProductRow
         title="Game giáo lý"
-        products={getProductsByCategory("cat-game")}
+        products={games}
         moreHref="/category/game-giao-ly"
       />
     </div>
