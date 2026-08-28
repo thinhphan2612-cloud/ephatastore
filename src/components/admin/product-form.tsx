@@ -1,0 +1,171 @@
+"use client";
+
+import { useActionState } from "react";
+import Link from "next/link";
+import { saveProduct, type SaveState } from "@/lib/actions/admin";
+import type { AdminProductDetail } from "@/data/admin";
+import { TYPE_LABEL } from "@/lib/labels";
+import type { ProductType } from "@/lib/types";
+
+const TYPES: ProductType[] = ["tool", "game", "asset", "image", "feature"];
+
+export function ProductForm({
+  categories,
+  publishers,
+  product,
+}: {
+  categories: { id: string; name: string }[];
+  publishers: { id: string; name: string }[];
+  product?: AdminProductDetail | null;
+}) {
+  const [state, formAction, pending] = useActionState<SaveState, FormData>(
+    saveProduct,
+    {}
+  );
+
+  const p = product;
+
+  return (
+    <form action={formAction} className="space-y-5">
+      {p && <input type="hidden" name="id" value={p.id} />}
+
+      <Field label="Tiêu đề *">
+        <input name="title" required defaultValue={p?.title} className={input} />
+      </Field>
+
+      <div className="grid gap-5 sm:grid-cols-2">
+        <Field label="Slug (để trống = tự tạo từ tiêu đề)">
+          <input name="slug" defaultValue={p?.slug} className={input} placeholder="tu-dong" />
+        </Field>
+        <Field label="Loại *">
+          <select name="type" defaultValue={p?.type ?? "tool"} className={input}>
+            {TYPES.map((t) => (
+              <option key={t} value={t}>
+                {TYPE_LABEL[t]}
+              </option>
+            ))}
+          </select>
+        </Field>
+      </div>
+
+      <Field label="Mô tả ngắn (tagline)">
+        <input name="tagline" defaultValue={p?.tagline} className={input} />
+      </Field>
+
+      <Field label="Mô tả chi tiết">
+        <textarea name="description" rows={4} defaultValue={p?.description} className={input} />
+      </Field>
+
+      <div className="grid gap-5 sm:grid-cols-2">
+        <Field label="Danh mục *">
+          <select name="category_id" required defaultValue={p?.category_id ?? ""} className={input}>
+            <option value="" disabled>
+              — Chọn —
+            </option>
+            {categories.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+        </Field>
+        <Field label="Nhà phát hành *">
+          <select name="publisher_id" required defaultValue={p?.publisher_id ?? ""} className={input}>
+            <option value="" disabled>
+              — Chọn —
+            </option>
+            {publishers.map((pub) => (
+              <option key={pub.id} value={pub.id}>
+                {pub.name}
+              </option>
+            ))}
+          </select>
+        </Field>
+      </div>
+
+      <div className="grid gap-5 sm:grid-cols-3">
+        <Field label="Giá (VND)">
+          <input type="number" name="price_vnd" min={0} defaultValue={p?.price_vnd ?? 0} className={input} />
+        </Field>
+        <Field label="Giá gốc (nếu giảm)">
+          <input type="number" name="original_price_vnd" min={0} defaultValue={p?.original_price_vnd ?? ""} className={input} />
+        </Field>
+        <Field label="Gói yêu cầu">
+          <select name="min_plan" defaultValue={p?.min_plan ?? ""} className={input}>
+            <option value="">Không (ai cũng mua)</option>
+            <option value="free">Free</option>
+            <option value="pro">Pro</option>
+          </select>
+        </Field>
+      </div>
+
+      <div className="grid gap-5 sm:grid-cols-2">
+        <Field label="Tags (cách nhau bằng dấu phẩy)">
+          <input name="tags" defaultValue={p?.tags?.join(", ")} className={input} placeholder="giáo lý, quản lý" />
+        </Field>
+        <Field label="Ngày phát hành">
+          <input type="date" name="released_at" defaultValue={p?.released_at ?? ""} className={input} />
+        </Field>
+      </div>
+
+      <Field label="URL ảnh bìa (để trống = dùng gradient)">
+        <input name="cover_url" defaultValue={p?.cover_url ?? ""} className={input} placeholder="https://…" />
+      </Field>
+
+      <div className="flex flex-wrap gap-5">
+        <Check name="published" label="Đang bán" defaultChecked={p ? p.published : true} />
+        <Check name="featured" label="Nổi bật" defaultChecked={p?.featured} />
+        <Check name="is_new" label="Mới" defaultChecked={p?.is_new} />
+        <Check name="is_popular" label="Phổ biến" defaultChecked={p?.is_popular} />
+      </div>
+
+      {state.error && (
+        <p className="rounded-md border border-danger/40 bg-danger/10 px-3 py-2 text-sm text-danger">
+          {state.error}
+        </p>
+      )}
+
+      <div className="flex items-center gap-3 border-t border-border pt-4">
+        <button
+          type="submit"
+          disabled={pending}
+          className="rounded-md bg-accent px-5 py-2 font-semibold text-accent-contrast hover:bg-accent-hover disabled:opacity-60"
+        >
+          {pending ? "Đang lưu…" : "Lưu"}
+        </button>
+        <Link href="/admin" className="text-sm text-text-muted hover:text-text">
+          Huỷ
+        </Link>
+      </div>
+    </form>
+  );
+}
+
+const input =
+  "w-full rounded-md border border-border bg-surface px-3 py-2 text-text focus:border-accent focus:outline-none";
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <label className="block">
+      <span className="mb-1 block text-sm text-text-muted">{label}</span>
+      {children}
+    </label>
+  );
+}
+
+function Check({
+  name,
+  label,
+  defaultChecked,
+}: {
+  name: string;
+  label: string;
+  defaultChecked?: boolean;
+}) {
+  return (
+    <label className="flex items-center gap-2 text-sm text-text">
+      <input type="checkbox" name={name} defaultChecked={defaultChecked} className="h-4 w-4" />
+      {label}
+    </label>
+  );
+}
