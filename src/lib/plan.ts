@@ -1,6 +1,5 @@
 import { cache } from "react";
-import { getCurrentUser } from "@/lib/auth";
-import { createGiaolyServerClient } from "@/lib/supabase/giaoly-server";
+import { getGiaolyContext } from "@/lib/giaoly-context";
 
 export type Plan = "free" | "pro";
 
@@ -20,20 +19,9 @@ export function normalizePlan(raw: string | null | undefined): Plan {
 
 /**
  * Gói hiệu lực của user hiện tại = gói của giáo xứ họ thuộc về.
- * Gọi RPC get_my_plan() bên giaoly (hàm SECURITY DEFINER, tự lọc theo auth.uid()).
- * Store KHÔNG chạm trực tiếp bảng profiles/parishes → tách khỏi schema giaoly.
- * Lỗi/chưa có RPC → 'free'.
+ * Đọc từ ngữ cảnh giaoly (RPC get_my_context). Không chạm schema bảng.
  */
 export const getCurrentUserPlan = cache(async (): Promise<Plan> => {
-  const user = await getCurrentUser();
-  if (!user) return "free";
-
-  try {
-    const supabase = await createGiaolyServerClient();
-    const { data, error } = await supabase.rpc("get_my_plan");
-    if (error) return "free";
-    return normalizePlan(data as string | null);
-  } catch {
-    return "free";
-  }
+  const ctx = await getGiaolyContext();
+  return normalizePlan(ctx?.planRaw);
 });
