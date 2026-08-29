@@ -1,21 +1,44 @@
+import { cache } from "react";
+import { getCurrentUser } from "@/lib/auth";
+import { createStoreAdminClient } from "@/lib/supabase/store-admin";
+
 /**
- * Ngữ cảnh giaoly của user (giáo xứ, vai trò, gói).
- *
- * PHASE 1: danh tính gốc là tài khoản STORE, chưa có liên kết giaoly → luôn null
- * (mọi user coi như chưa gắn giaoly, plan = free).
- * PHASE 2 sẽ đọc từ liên kết đã lưu (profiles.giaoly_user_id + cache context).
+ * Ngữ cảnh giaoly của user store (từ liên kết đã lưu trong profiles).
+ * Giá trị được cache tại thời điểm liên kết (Phase 2). null nếu chưa liên kết.
+ * Lưu ý: plan có thể lệch nếu giáo xứ đổi gói sau khi liên kết — user liên kết lại để đồng bộ.
  */
 export interface GiaolyContext {
+  giaolyUserId: string;
   parishId: string | null;
   role: string | null;
   planRaw: string | null;
 }
 
-export async function getGiaolyContext(): Promise<GiaolyContext | null> {
-  return null;
-}
+export const getGiaolyContext = cache(async (): Promise<GiaolyContext | null> => {
+  const user = await getCurrentUser();
+  if (!user) return null;
 
-/** true nếu user là admin giáo xứ (Phase 2). */
+  try {
+    const admin = createStoreAdminClient();
+    const { data } = await admin
+      .from("profiles")
+      .select("giaoly_user_id,parish_id,role,plan")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    if (!data?.giaoly_user_id) return null;
+    return {
+      giaolyUserId: data.giaoly_user_id,
+      parishId: data.parish_id ?? null,
+      role: data.role ?? null,
+      planRaw: data.plan ?? null,
+    };
+  } catch {
+    return null;
+  }
+});
+
+/** true nếu user đã liên kết giaoly và là admin giáo xứ (được mua tính năng). */
 export async function isParishAdmin(): Promise<boolean> {
   const ctx = await getGiaolyContext();
   return ctx?.role === "admin" && !!ctx.parishId;

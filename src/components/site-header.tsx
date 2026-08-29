@@ -64,12 +64,13 @@ export async function SiteHeader() {
                   Pro
                 </span>
               )}
-              <span
-                className="hidden max-w-[10rem] truncate text-sm text-text-muted md:block"
+              <Link
+                href="/account"
+                className="hidden max-w-[10rem] truncate text-sm text-text-muted hover:text-text md:block"
                 title={user.email ?? undefined}
               >
                 {user.email}
-              </span>
+              </Link>
               <form action={signOut}>
                 <button
                   type="submit"
