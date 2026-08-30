@@ -88,6 +88,10 @@ export async function getMyLibrary(userId: string): Promise<Product[]> {
 export interface OrderView {
   id: string;
   status: string;
+  order_code: string | null;
+  subtotal_vnd: number;
+  discount_code: string | null;
+  discount_vnd: number;
   total_vnd: number;
   created_at: string;
   items: { title: string; slug: string; unit_price_vnd: number }[];
@@ -102,7 +106,7 @@ export async function getOrderForUser(
   const { data, error } = await supabase
     .from("orders")
     .select(
-      "id,status,total_vnd,created_at,store_user_id,order_items(unit_price_vnd,product:products(title,slug))"
+      "id,status,order_code,subtotal_vnd,discount_code,discount_vnd,total_vnd,created_at,store_user_id,order_items(unit_price_vnd,product:products(title,slug))"
     )
     .eq("id", orderId)
     .maybeSingle();
@@ -116,6 +120,10 @@ export async function getOrderForUser(
   return {
     id: data.id,
     status: data.status,
+    order_code: data.order_code ?? null,
+    subtotal_vnd: data.subtotal_vnd ?? data.total_vnd,
+    discount_code: data.discount_code ?? null,
+    discount_vnd: data.discount_vnd ?? 0,
     total_vnd: data.total_vnd,
     created_at: data.created_at,
     items: ((data.order_items ?? []) as unknown as ItemRow[]).map((it) => ({

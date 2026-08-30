@@ -49,9 +49,17 @@ export async function claimProduct(formData: FormData) {
   }
 
   // Có phí → tạo đơn pending + item, chuyển sang trang thanh toán.
+  const orderCode = "DH" + crypto.randomUUID().replace(/-/g, "").slice(0, 8).toUpperCase();
   const { data: order, error: oErr } = await supabase
     .from("orders")
-    .insert({ store_user_id: user.id, status: "pending", total_vnd: product.price_vnd })
+    .insert({
+      store_user_id: user.id,
+      status: "pending",
+      subtotal_vnd: product.price_vnd,
+      discount_vnd: 0,
+      total_vnd: product.price_vnd,
+      order_code: orderCode,
+    })
     .select("id")
     .single();
   if (oErr) throw new Error(oErr.message);
