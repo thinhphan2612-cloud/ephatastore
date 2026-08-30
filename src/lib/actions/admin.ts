@@ -141,6 +141,98 @@ export async function deleteProduct(formData: FormData) {
   redirect("/admin");
 }
 
+// ---- Đơn hàng ----
+
+/** Duyệt đơn: đánh dấu đã thanh toán + cấp sở hữu các sản phẩm trong đơn. */
+export async function approveOrder(formData: FormData) {
+  await assertAdmin();
+  const id = String(formData.get("id") ?? "").trim();
+  if (!id) return;
+
+  const supabase = createStoreAdminClient();
+  const { data: order } = await supabase
+    .from("orders")
+    .select("id,store_user_id,status,order_items(product_id)")
+    .eq("id", id)
+    .maybeSingle();
+  if (!order) throw new Error("Không tìm thấy đơn.");
+
+  const items = (order.order_items ?? []) as { product_id: string }[];
+  if (items.length) {
+    const rows = items.map((it) => ({
+      store_user_id: order.store_user_id,
+      product_id: it.product_id,
+    }));
+    const { error: eErr } = await supabase
+      .from("entitlements")
+      .upsert(rows, { onConflict: "store_user_id,product_id", ignoreDuplicates: true });
+    if (eErr) throw new Error(eErr.message);
+  }
+
+  const { error } = await supabase
+    .from("orders")
+    .update({ status: "paid", paid_at: new Date().toISOString() })
+    .eq("id", id);
+  if (error) throw new Error(error.message);
+
+  revalidatePath("/admin/orders");
+}
+
+/** Huỷ đơn (không cấp sở hữu). */
+export async function cancelOrder(formData: FormData) {
+  await assertAdmin();
+  const id = String(formData.get("id") ?? "").trim();
+  if (!id) return;
+
+  const supabase = createStoreAdminClient();
+  const { error } = await supabase
+    .from("orders")
+    .update({ status: "cancelled" })
+    .eq("id", id);
+  if (error) throw new Error(error.message);
+
+  revalidatePath("/admin/orders");
+}
+
+// ---- Quyền sở hữu của user ----
+
+/** Cấp một sản phẩm cho user (thủ công). */
+export async function grantEntitlement(formData: FormData) {
+  await assertAdmin();
+  const userId = String(formData.get("user_id") ?? "").trim();
+  const productId = String(formData.get("product_id") ?? "").trim();
+  if (!userId || !productId) return;
+
+  const supabase = createStoreAdminClient();
+  const { error } = await supabase
+    .from("entitlements")
+    .upsert(
+      { store_user_id: userId, product_id: productId },
+      { onConflict: "store_user_id,product_id", ignoreDuplicates: true }
+    );
+  if (error) throw new Error(error.message);
+
+  revalidatePath(`/admin/users/${userId}`);
+}
+
+/** Thu hồi một sản phẩm khỏi user. */
+export async function revokeEntitlement(formData: FormData) {
+  await assertAdmin();
+  const userId = String(formData.get("user_id") ?? "").trim();
+  const productId = String(formData.get("product_id") ?? "").trim();
+  if (!userId || !productId) return;
+
+  const supabase = createStoreAdminClient();
+  const { error } = await supabase
+    .from("entitlements")
+    .delete()
+    .eq("store_user_id", userId)
+    .eq("product_id", productId);
+  if (error) throw new Error(error.message);
+
+  revalidatePath(`/admin/users/${userId}`);
+}
+
 export async function togglePublish(formData: FormData) {
   await assertAdmin();
   const id = String(formData.get("id") ?? "").trim();
