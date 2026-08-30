@@ -13,8 +13,10 @@ export interface Category {
   id: string;
   slug: string;
   name: string;
-  /** tên emoji/icon đơn giản để hiển thị nhanh ở MVP */
+  /** ký hiệu/emoji hiển thị nhanh */
   icon: string;
+  /** nhãn nhỏ phía trên tên (eyebrow) */
+  eyebrow?: string;
   description?: string;
 }
 

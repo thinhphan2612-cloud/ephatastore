@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { CATEGORIES } from "@/data/categories";
 import { getCurrentUser, isAdminEmail } from "@/lib/auth";
 import { getCurrentUserPlan } from "@/lib/plan";
 import { signOut } from "@/lib/actions/auth";
@@ -10,48 +9,37 @@ export async function SiteHeader() {
   const plan = user ? await getCurrentUserPlan() : "free";
 
   return (
-    <header className="sticky top-0 z-40 border-b border-border bg-bg-elevated/95 backdrop-blur">
-      <div className="mx-auto flex h-14 max-w-7xl items-center gap-4 px-4">
-        {/* logo */}
-        <Link href="/" className="flex items-center gap-2 shrink-0">
-          <span className="grid h-8 w-8 place-items-center rounded-md bg-accent font-bold text-accent-contrast">
-            E
-          </span>
-          <span className="text-lg font-bold tracking-tight">
-            Ephata<span className="text-accent">Store</span>
-          </span>
+    <nav className="sticky top-0 z-40 border-b border-border bg-bg/80 backdrop-blur-xl">
+      <div className="mx-auto flex h-[70px] w-[min(1180px,calc(100%-40px))] items-center justify-between gap-4">
+        <Link href="/" className="shrink-0">
+          <div className="text-[10px] font-extrabold tracking-[0.24em] text-accent">
+            CATHOLIC DIGITAL
+          </div>
+          <div className="font-display text-lg font-bold tracking-tight">
+            EPHATA <span className="font-normal text-white/40">STORE</span>
+          </div>
         </Link>
 
-        {/* nav chính */}
-        <nav className="hidden items-center gap-1 md:flex">
-          <NavLink href="/">Cửa hàng</NavLink>
-          <NavLink href="/browse">Khám phá</NavLink>
-          <NavLink href="/library">Thư viện</NavLink>
-        </nav>
-
-        {/* tìm kiếm */}
-        <form action="/browse" className="ml-auto hidden max-w-xs flex-1 sm:block">
-          <input
-            type="search"
-            name="q"
-            placeholder="Tìm sản phẩm…"
-            className="w-full rounded-md border border-border bg-surface px-3 py-1.5 text-sm text-text placeholder:text-text-faint focus:border-accent focus:outline-none"
-          />
-        </form>
-
-        {/* phải: giỏ + tài khoản */}
-        <div className="flex items-center gap-2">
-          <Link
-            href="/library"
-            className="hidden rounded-md border border-border px-3 py-1.5 text-sm text-text-muted hover:border-accent/50 hover:text-text sm:block"
-          >
-            🛒
+        <div className="hidden items-center gap-6 text-sm text-white/70 md:flex">
+          <Link href="/#categories" className="hover:text-text">
+            Danh mục
           </Link>
+          <Link href="/category/game-store" className="hover:text-text">
+            Game Store
+          </Link>
+          <Link href="/category/thiet-ke-cong-giao" className="hover:text-text">
+            Thiết kế
+          </Link>
+          <Link href="/#about" className="hover:text-text">
+            Giới thiệu
+          </Link>
+        </div>
 
+        <div className="flex items-center gap-2">
           {isAdmin && (
             <Link
               href="/admin"
-              className="hidden rounded-md border border-accent/50 px-3 py-1.5 text-sm text-accent hover:bg-accent/10 sm:block"
+              className="hidden rounded-xl border border-accent/50 px-3 py-2 text-sm text-accent hover:bg-accent/10 sm:block"
             >
               Admin
             </Link>
@@ -60,63 +48,44 @@ export async function SiteHeader() {
           {user ? (
             <>
               {plan === "pro" && (
-                <span className="hidden rounded bg-accent px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-accent-contrast sm:block">
+                <span className="hidden rounded bg-accent px-1.5 py-1 text-[10px] font-black uppercase tracking-wide text-accent-contrast sm:block">
                   Pro
                 </span>
               )}
               <Link
                 href="/account"
-                className="hidden max-w-[10rem] truncate text-sm text-text-muted hover:text-text md:block"
+                className="max-w-[150px] truncate rounded-xl border border-border-strong bg-white/5 px-3.5 py-2.5 text-sm font-extrabold text-text hover:border-accent/50 hover:bg-accent/10"
                 title={user.email ?? undefined}
               >
-                {user.email}
+                ◉ {user.email}
               </Link>
               <form action={signOut}>
                 <button
                   type="submit"
-                  className="rounded-md border border-border px-3 py-1.5 text-sm text-text-muted hover:border-accent/50 hover:text-text"
+                  className="hidden rounded-xl border border-border px-3 py-2.5 text-sm text-text-muted hover:text-text sm:block"
                 >
-                  Đăng xuất
+                  Thoát
                 </button>
               </form>
             </>
           ) : (
-            <Link
-              href="/login"
-              className="rounded-md bg-accent px-3 py-1.5 text-sm font-semibold text-accent-contrast hover:bg-accent-hover"
-            >
-              Đăng nhập
-            </Link>
+            <>
+              <Link
+                href="/login"
+                className="rounded-xl border border-border-strong bg-white/5 px-3.5 py-2.5 text-sm font-extrabold text-text hover:border-accent/50"
+              >
+                Đăng nhập
+              </Link>
+              <Link
+                href="/signup"
+                className="hidden rounded-xl bg-accent px-4 py-2.5 text-sm font-extrabold text-accent-contrast hover:bg-accent-hover sm:inline-flex"
+              >
+                Tạo tài khoản →
+              </Link>
+            </>
           )}
         </div>
       </div>
-
-      {/* thanh danh mục */}
-      <div className="border-t border-border bg-bg-elevated">
-        <div className="mx-auto flex max-w-7xl items-center gap-1 overflow-x-auto px-4 py-1.5 no-scrollbar">
-          {CATEGORIES.map((c) => (
-            <Link
-              key={c.id}
-              href={`/category/${c.slug}`}
-              className="whitespace-nowrap rounded px-2.5 py-1 text-sm text-text-muted hover:bg-surface hover:text-text"
-            >
-              <span className="mr-1">{c.icon}</span>
-              {c.name}
-            </Link>
-          ))}
-        </div>
-      </div>
-    </header>
-  );
-}
-
-function NavLink({ href, children }: { href: string; children: React.ReactNode }) {
-  return (
-    <Link
-      href={href}
-      className="rounded px-3 py-1.5 text-sm font-medium text-text-muted hover:bg-surface hover:text-text"
-    >
-      {children}
-    </Link>
+    </nav>
   );
 }

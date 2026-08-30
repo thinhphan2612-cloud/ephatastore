@@ -1,33 +1,34 @@
 @import "tailwindcss";
 
 /*
-  Ephata Store — design tokens
-  Theme tối cố định kiểu storefront (Steam-like), accent vàng liturgical.
+  Ephata Store — design system v3 (theo prototype).
+  Dark-first: nền đen ánh vàng liturgical, chữ ấm, accent gold.
 */
 :root {
   /* nền & bề mặt */
-  --bg: #0d1117;
-  --bg-elevated: #131a23;
-  --surface: #182230;
-  --surface-hover: #1f2c3d;
-  --border: #24313f;
+  --bg: #07090b;
+  --bg-elevated: #0d1115;
+  --surface: #12181d;
+  --surface-hover: #1a232a;
+  --border: rgba(255, 255, 255, 0.1);
+  --border-strong: rgba(255, 255, 255, 0.2);
 
   /* chữ */
-  --text: #e6edf3;
-  --text-muted: #9fb0c0;
-  --text-faint: #66788a;
+  --text: #f7f4ec;
+  --text-muted: #9aa4ac;
+  --text-faint: rgba(255, 255, 255, 0.42);
 
   /* thương hiệu */
-  --accent: #e0b25c;         /* vàng liturgical */
-  --accent-hover: #eec378;
-  --accent-contrast: #1a1205;
-  --brand: #4a90d9;          /* xanh phụ */
-  --brand-hover: #63a5e6;
+  --accent: #e0bf65; /* gold */
+  --accent-hover: #f0d98f;
+  --accent-contrast: #14110a;
+  --brand: #7db5c9; /* teal phụ */
+  --brand-hover: #9acbdb;
 
   /* trạng thái */
-  --success: #57b894;
+  --success: #8ed9aa;
   --danger: #e5687a;
-  --discount: #4c9f38;       /* nền badge giảm giá */
+  --discount: #4c9f38;
 }
 
 @theme inline {
@@ -36,6 +37,7 @@
   --color-surface: var(--surface);
   --color-surface-hover: var(--surface-hover);
   --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
   --color-text: var(--text);
   --color-text-muted: var(--text-muted);
   --color-text-faint: var(--text-faint);
@@ -48,22 +50,60 @@
   --color-danger: var(--danger);
   --color-discount: var(--discount);
 
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-ui);
+  --font-display: var(--font-display);
 }
 
 html {
   color-scheme: dark;
+  scroll-behavior: smooth;
 }
 
 body {
-  background: var(--bg);
+  background:
+    radial-gradient(circle at 70% 0, rgba(70, 106, 125, 0.18), transparent 30rem),
+    radial-gradient(circle at 10% 25%, rgba(196, 151, 54, 0.1), transparent 25rem),
+    var(--bg);
   color: var(--text);
-  font-family: var(--font-sans), system-ui, -apple-system, Segoe UI, Roboto, Arial,
-    sans-serif;
+  font-family: var(--font-ui), system-ui, -apple-system, "Segoe UI", sans-serif;
 }
 
-/* thanh cuộn tối cho các hàng cuộn ngang */
+/* lưới mờ nền */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px);
+  background-size: 36px 36px;
+  pointer-events: none;
+  mask-image: linear-gradient(#000, transparent 80%);
+}
+
+/* tiêu đề dùng font serif hiển thị */
+.font-display {
+  font-family: var(--font-display), Georgia, serif;
+  letter-spacing: -0.025em;
+}
+
+/* placeholder ảnh full-card kiểu prototype */
+.media-placeholder {
+  background: linear-gradient(135deg, #456574 0%, #8d7040 48%, #2d3c45 100%);
+}
+.media-placeholder::before {
+  content: "THÊM ẢNH SAU";
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: rgba(255, 255, 255, 0.42);
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.16em;
+}
+
 .scrollbar-thin {
   scrollbar-width: thin;
   scrollbar-color: var(--border) transparent;
@@ -75,8 +115,6 @@ body {
   background: var(--border);
   border-radius: 999px;
 }
-
-/* ẩn thanh cuộn nhưng vẫn cuộn được */
 .no-scrollbar {
   scrollbar-width: none;
 }

@@ -1,33 +1,37 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Be_Vietnam_Pro, Lora } from "next/font/google";
 import "./globals.css";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const beVietnam = Be_Vietnam_Pro({
+  variable: "--font-ui",
+  weight: ["400", "500", "600", "700", "800"],
   subsets: ["latin", "vietnamese"],
+  display: "swap",
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
+const lora = Lora({
+  variable: "--font-display",
+  weight: ["600", "700"],
+  subsets: ["latin", "vietnamese"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {
   title: {
-    default: "Ephata Store — Marketplace Công giáo",
+    default: "Ephata Store — Công cụ số cho cộng đồng Công giáo",
     template: "%s · Ephata Store",
   },
   description:
-    "Marketplace Công giáo: công cụ, game giáo lý, asset thiết kế, hình ảnh và tính năng tích hợp cho giáo xứ.",
+    "Kho công cụ số Công giáo: web app, biểu mẫu, thiết kế, tài liệu và game giáo lý — cho giáo xứ, giáo lý viên và cộng đoàn.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="vi"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${beVietnam.variable} ${lora.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
         <SiteHeader />
