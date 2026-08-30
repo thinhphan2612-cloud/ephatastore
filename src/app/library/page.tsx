@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { getCurrentUser } from "@/lib/auth";
 import { getMyLibrary } from "@/data/store-user";
-import { ProductGrid } from "@/components/product-grid";
+import { ProductCard } from "@/components/product-card";
+import { OwnedActions } from "@/components/owned-actions";
 
 export const metadata = { title: "Thư viện" };
 
@@ -44,7 +45,14 @@ export default async function LibraryPage() {
           </Link>
         </div>
       ) : (
-        <ProductGrid products={products} />
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {products.map((p) => (
+            <div key={p.id} className="space-y-2">
+              <ProductCard product={p} />
+              <OwnedActions product={p} className="w-full" />
+            </div>
+          ))}
+        </div>
       )}
     </div>
   );

@@ -13,7 +13,9 @@ async function assertAdmin() {
 
 const COVER_BUCKET = "product-covers";
 
-/** Upload ảnh bìa lên Storage, trả về public URL. */
+const FILES_BUCKET = "product-files";
+
+/** Upload ảnh bìa lên Storage public, trả về public URL. */
 async function uploadCover(file: File): Promise<string> {
   const supabase = createStoreAdminClient();
   const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
@@ -24,6 +26,19 @@ async function uploadCover(file: File): Promise<string> {
   });
   if (error) throw new Error(`Lỗi upload ảnh: ${error.message}`);
   return supabase.storage.from(COVER_BUCKET).getPublicUrl(path).data.publicUrl;
+}
+
+/** Upload file tải về lên bucket PRIVATE, trả về path (không phải URL). */
+async function uploadDownloadFile(file: File): Promise<string> {
+  const supabase = createStoreAdminClient();
+  const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+  const path = `${crypto.randomUUID()}/${safeName}`;
+  const { error } = await supabase.storage.from(FILES_BUCKET).upload(path, file, {
+    contentType: file.type || "application/octet-stream",
+    upsert: false,
+  });
+  if (error) throw new Error(`Lỗi upload file: ${error.message}`);
+  return path;
 }
 
 export interface SaveState {
@@ -55,6 +70,8 @@ function parseProduct(formData: FormData) {
     tags,
     min_plan: minPlan === "free" || minPlan === "pro" ? minPlan : null,
     released_at: releasedAt || null,
+    game_url: String(formData.get("game_url") ?? "").trim() || null,
+    giaoly_feature_key: String(formData.get("giaoly_feature_key") ?? "").trim() || null,
     featured: formData.get("featured") === "on",
     is_new: formData.get("is_new") === "on",
     is_popular: formData.get("is_popular") === "on",
@@ -85,10 +102,22 @@ export async function saveProduct(
     }
   }
 
+  const payload: Record<string, unknown> = { ...row };
+
+  // File tải về upload (nếu có) → path trong bucket private.
+  const dfile = formData.get("download_file");
+  if (dfile instanceof File && dfile.size > 0) {
+    try {
+      payload.download_path = await uploadDownloadFile(dfile);
+    } catch (e) {
+      return { error: e instanceof Error ? e.message : "Lỗi upload file." };
+    }
+  }
+
   const supabase = createStoreAdminClient();
   const { error } = id
-    ? await supabase.from("products").update(row).eq("id", id)
-    : await supabase.from("products").insert(row);
+    ? await supabase.from("products").update(payload).eq("id", id)
+    : await supabase.from("products").insert(payload);
 
   if (error) {
     if (error.code === "23505") return { error: `Slug "${row.slug}" đã tồn tại.` };

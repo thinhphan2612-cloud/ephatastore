@@ -132,6 +132,35 @@ export function ProductForm({
         <input type="hidden" name="cover_url" value={p?.cover_url ?? ""} />
       </Field>
 
+      <div className="rounded-lg border border-border bg-surface-hover/40 p-4">
+        <div className="mb-3 text-sm font-semibold text-text">Giao hàng (tuỳ loại)</div>
+
+        <Field label="File tải về (asset / ảnh / tool) — bucket riêng tư">
+          {p?.download_path && (
+            <div className="mb-2 text-xs text-text-muted">
+              File hiện tại: <code className="text-text">{p.download_path.split("/").pop()}</code>
+            </div>
+          )}
+          <input
+            type="file"
+            name="download_file"
+            className="block w-full text-sm text-text-muted file:mr-3 file:rounded-md file:border-0 file:bg-surface file:px-3 file:py-1.5 file:text-text hover:file:bg-surface-hover"
+          />
+          <span className="mt-1 block text-xs text-text-faint">
+            Tối đa 50MB. Chỉ người đã mua mới tải được (link ký có hạn).
+          </span>
+        </Field>
+
+        <div className="mt-4 grid gap-5 sm:grid-cols-2">
+          <Field label="URL game (loại game) — nhúng ở /play">
+            <input name="game_url" defaultValue={p?.game_url ?? ""} className={input} placeholder="https://…" />
+          </Field>
+          <Field label="Feature key (loại tính năng)">
+            <input name="giaoly_feature_key" defaultValue={p?.giaoly_feature_key ?? ""} className={input} placeholder="vd: lich_phung_vu" />
+          </Field>
+        </div>
+      </div>
+
       <div className="flex flex-wrap gap-5">
         <Check name="published" label="Đang bán" defaultChecked={p ? p.published : true} />
         <Check name="featured" label="Nổi bật" defaultChecked={p?.featured} />

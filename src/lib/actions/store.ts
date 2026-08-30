@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
+import { isParishAdmin } from "@/lib/giaoly-context";
 import { createStoreAdminClient } from "@/lib/supabase/store-admin";
 
 /**
@@ -23,11 +24,16 @@ export async function claimProduct(formData: FormData) {
   // Lấy giá từ DB (không tin client).
   const { data: product, error: pErr } = await supabase
     .from("products")
-    .select("id,price_vnd,published")
+    .select("id,price_vnd,published,type")
     .eq("id", productId)
     .maybeSingle();
   if (pErr) throw new Error(pErr.message);
   if (!product || !product.published) throw new Error("Sản phẩm không tồn tại.");
+
+  // Tính năng tích hợp: chỉ admin giáo xứ (đã liên kết giaoly) mới được mua.
+  if (product.type === "feature" && !(await isParishAdmin())) {
+    throw new Error("Chỉ admin giáo xứ mới mua được tính năng này.");
+  }
 
   // Miễn phí → cấp sở hữu ngay (idempotent).
   if (product.price_vnd <= 0) {

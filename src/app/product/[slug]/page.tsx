@@ -4,8 +4,10 @@ import { getProductBySlug, getRelated } from "@/data/products";
 import { CATEGORY_BY_ID } from "@/data/categories";
 import { getCurrentUser } from "@/lib/auth";
 import { getCurrentUserPlan } from "@/lib/plan";
+import { getGiaolyContext } from "@/lib/giaoly-context";
 import { isOwned } from "@/data/store-user";
 import { claimProduct } from "@/lib/actions/store";
+import { OwnedActions } from "@/components/owned-actions";
 import { discountPercent } from "@/lib/types";
 import { formatPrice, formatDate } from "@/lib/format";
 import { TYPE_ICON, TYPE_LABEL } from "@/lib/labels";
@@ -42,6 +44,19 @@ export default async function ProductPage({
   const owned = user ? await isOwned(user.id, product.id) : false;
   const plan = user ? await getCurrentUserPlan() : "free";
   const needsPro = product.minPlan === "pro";
+
+  // Tính năng tích hợp: cần liên kết giaoly + là admin giáo xứ mới mua được.
+  const isFeature = product.type === "feature";
+  const gctx = user && isFeature ? await getGiaolyContext() : null;
+  const featureGate: null | "login" | "link" | "admin" = !isFeature
+    ? null
+    : !user
+      ? "login"
+      : !gctx
+        ? "link"
+        : gctx.role !== "admin"
+          ? "admin"
+          : null;
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8">
@@ -159,12 +174,30 @@ export default async function ProductPage({
             </div>
 
             {owned ? (
-              <Link
-                href="/library"
-                className="mt-4 block w-full rounded-md border border-success/50 bg-success/10 px-4 py-2.5 text-center font-semibold text-success"
-              >
-                ✓ Đã sở hữu — mở Thư viện
-              </Link>
+              <div className="mt-4 space-y-2">
+                <OwnedActions product={product} className="w-full" />
+                <Link
+                  href="/library"
+                  className="block text-center text-xs text-text-faint hover:text-text"
+                >
+                  Mở Thư viện
+                </Link>
+              </div>
+            ) : featureGate ? (
+              <div className="mt-4 rounded-md border border-accent/40 bg-accent/10 px-3 py-2.5 text-sm text-accent">
+                {featureGate === "login" && "Đăng nhập để mua tính năng này."}
+                {featureGate === "link" && (
+                  <>
+                    Tính năng tích hợp — cần{" "}
+                    <Link href="/account" className="font-medium underline">
+                      liên kết tài khoản giaoly
+                    </Link>{" "}
+                    của giáo xứ.
+                  </>
+                )}
+                {featureGate === "admin" &&
+                  "Chỉ admin giáo xứ mới mua được tính năng cho giáo xứ."}
+              </div>
             ) : (
               <form action={claimProduct} className="mt-4">
                 <input type="hidden" name="product_id" value={product.id} />
@@ -177,7 +210,7 @@ export default async function ProductPage({
                 </button>
               </form>
             )}
-            {!user && (
+            {!user && !isFeature && (
               <p className="mt-2 text-center text-xs text-text-faint">
                 Cần đăng nhập để mua / nhận sản phẩm.
               </p>
