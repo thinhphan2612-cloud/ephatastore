@@ -147,6 +147,18 @@ export async function getOrderForUser(
   };
 }
 
+/** true nếu user đang có Full Topping (all-access) còn hạn. */
+export async function hasActiveTopping(userId: string): Promise<boolean> {
+  const supabase = createStoreAdminClient();
+  const { count, error } = await supabase
+    .from("subscriptions")
+    .select("id", { count: "exact", head: true })
+    .eq("store_user_id", userId)
+    .gt("expires_at", new Date().toISOString());
+  if (error) return false;
+  return (count ?? 0) > 0;
+}
+
 /** true nếu user đã sở hữu product. */
 export async function isOwned(userId: string, productId: string): Promise<boolean> {
   const supabase = createStoreAdminClient();

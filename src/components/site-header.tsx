@@ -31,8 +31,8 @@ export async function SiteHeader() {
           <Link href="/category/thiet-ke-cong-giao" className="hover:text-text">
             Thiết kế
           </Link>
-          <Link href="/#about" className="hover:text-text">
-            Giới thiệu
+          <Link href="/topping" className="font-semibold text-accent-hover hover:text-accent">
+            Full Topping
           </Link>
         </div>
 

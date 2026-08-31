@@ -157,22 +157,33 @@ export async function approveOrder(formData: FormData) {
     .maybeSingle();
   if (!order) throw new Error("Không tìm thấy đơn.");
 
-  const items = (order.order_items ?? []) as { product_id: string }[];
-  if (items.length) {
-    const expires =
-      order.access_days != null
-        ? new Date(Date.now() + order.access_days * 86400000).toISOString()
-        : null;
-    const rows = items.map((it) => ({
+  const expires =
+    order.access_days != null
+      ? new Date(Date.now() + order.access_days * 86400000).toISOString()
+      : null;
+
+  if (order.kind === "topping") {
+    // Full Topping → thuê bao all-access cấp user (không gắn sản phẩm).
+    const { error: sErr } = await supabase.from("subscriptions").insert({
       store_user_id: order.store_user_id,
-      product_id: it.product_id,
-      source: order.kind ?? "purchase",
-      expires_at: expires,
-    }));
-    const { error: eErr } = await supabase
-      .from("entitlements")
-      .upsert(rows, { onConflict: "store_user_id,product_id", ignoreDuplicates: false });
-    if (eErr) throw new Error(eErr.message);
+      kind: "topping",
+      expires_at: expires ?? new Date(Date.now() + 365 * 86400000).toISOString(),
+    });
+    if (sErr) throw new Error(sErr.message);
+  } else {
+    const items = (order.order_items ?? []) as { product_id: string }[];
+    if (items.length) {
+      const rows = items.map((it) => ({
+        store_user_id: order.store_user_id,
+        product_id: it.product_id,
+        source: order.kind ?? "purchase",
+        expires_at: expires,
+      }));
+      const { error: eErr } = await supabase
+        .from("entitlements")
+        .upsert(rows, { onConflict: "store_user_id,product_id", ignoreDuplicates: false });
+      if (eErr) throw new Error(eErr.message);
+    }
   }
 
   const { error } = await supabase

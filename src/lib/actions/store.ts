@@ -70,6 +70,34 @@ export async function claimProduct(formData: FormData) {
   redirect(`/checkout/${order.id}`);
 }
 
+/** Mua Full Topping (all-access) — gói năm, mở khoá mọi sản phẩm PRO. */
+export async function buyTopping() {
+  const user = await getCurrentUser();
+  if (!user) redirect(`/login?next=/topping`);
+
+  const { fullToppingPrice } = await getSettings();
+  const annual = fullToppingPrice * 12;
+  const supabase = createStoreAdminClient();
+  const orderCode = "TP" + crypto.randomUUID().replace(/-/g, "").slice(0, 8).toUpperCase();
+  const { data: order, error } = await supabase
+    .from("orders")
+    .insert({
+      store_user_id: user.id,
+      status: "pending",
+      kind: "topping",
+      access_days: YEAR_DAYS,
+      subtotal_vnd: annual,
+      discount_vnd: 0,
+      total_vnd: annual,
+      order_code: orderCode,
+    })
+    .select("id")
+    .single();
+  if (error) throw new Error(error.message);
+
+  redirect(`/checkout/${order.id}`);
+}
+
 /** Mua lẻ Freedom: dùng N ngày (theo cấu hình) với giá 1 tháng. */
 export async function claimFreedom(formData: FormData) {
   const user = await getCurrentUser();

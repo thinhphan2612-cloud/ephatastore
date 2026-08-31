@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { getProductBySlug, getRelated } from "@/data/products";
 import { CATEGORY_BY_ID } from "@/data/categories";
 import { getCurrentUser } from "@/lib/auth";
-import { isOwned } from "@/data/store-user";
+import { isOwned, hasActiveTopping } from "@/data/store-user";
 import { claimProduct, startTrial, claimFreedom } from "@/lib/actions/store";
 import { getSettings } from "@/data/settings";
 import { formatPrice } from "@/lib/format";
@@ -32,10 +32,12 @@ export default async function ProductPage({
 
   const category = CATEGORY_BY_ID.get(product.categoryId);
   const related = await getRelated(product);
-  const user = await getCurrentUser();
-  const owned = user ? await isOwned(user.id, product.id) : false;
-
   const isPro = product.tier === "pro";
+  const user = await getCurrentUser();
+  const hasTopping = user && isPro ? await hasActiveTopping(user.id) : false;
+  const owned =
+    (user ? await isOwned(user.id, product.id) : false) || hasTopping;
+
   const annual = product.priceMonth * 12;
   const { freedomDays } = await getSettings();
 
@@ -205,6 +207,14 @@ export default async function ProductPage({
                         Dùng thử {product.trialDays} ngày miễn phí
                       </button>
                     </form>
+                  )}
+                  {isPro && (
+                    <Link
+                      href="/topping"
+                      className="block pt-1 text-center text-xs text-accent-hover hover:underline"
+                    >
+                      hoặc mở khoá tất cả PRO với Full Topping →
+                    </Link>
                   )}
                 </>
               )}

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { getCurrentUser } from "@/lib/auth";
-import { getMyLibrary } from "@/data/store-user";
+import { getMyLibrary, hasActiveTopping } from "@/data/store-user";
 import { ProductCard } from "@/components/product-card";
 import { OwnedActions } from "@/components/owned-actions";
 
@@ -26,13 +26,27 @@ export default async function LibraryPage() {
     );
   }
 
-  const products = await getMyLibrary(user.id);
+  const [products, topping] = await Promise.all([
+    getMyLibrary(user.id),
+    hasActiveTopping(user.id),
+  ]);
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8">
       <h1 className="mb-6 text-2xl font-bold">
         Thư viện của tôi <span className="text-text-faint">({products.length})</span>
       </h1>
+
+      {topping && (
+        <div className="mb-6 flex items-center justify-between gap-3 rounded-xl border border-accent/40 bg-accent/10 px-4 py-3 text-sm">
+          <span className="font-semibold text-accent">
+            ✦ Full Topping đang bật — bạn mở khoá tất cả sản phẩm PRO
+          </span>
+          <Link href="/browse" className="shrink-0 text-brand hover:text-brand-hover">
+            Khám phá →
+          </Link>
+        </div>
+      )}
 
       {products.length === 0 ? (
         <div className="rounded-lg border border-border bg-surface p-10 text-center">
