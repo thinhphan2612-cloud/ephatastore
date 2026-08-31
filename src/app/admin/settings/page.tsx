@@ -13,6 +13,14 @@ export default async function AdminSettingsPage() {
 
       <form action={saveSettings} className="space-y-4 rounded-lg border border-border bg-surface p-5">
         <label className="block">
+          <span className="mb-1 block text-sm text-text-muted">Chế độ truy cập</span>
+          <select name="access_mode" defaultValue={s.accessMode} className={input}>
+            <option value="giaoly_pro">Gói Pro giaoly (giai đoạn đầu — cần Pro giaoly, không bán trên store)</option>
+            <option value="store">Bán trên store (gói năm / Freedom / Full Topping / Trial)</option>
+          </select>
+        </label>
+
+        <label className="block">
           <span className="mb-1 block text-sm text-text-muted">
             Giá Full Topping (all-access) / tháng — VND
           </span>

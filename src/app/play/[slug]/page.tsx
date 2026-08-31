@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect, notFound } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
-import { isOwned } from "@/data/store-user";
+import { canAccessProduct } from "@/lib/access";
 import { createStoreAdminClient } from "@/lib/supabase/store-admin";
 
 export const metadata = { title: "Chơi game" };
@@ -16,7 +16,7 @@ export default async function PlayPage({
   const supabase = createStoreAdminClient();
   const { data: product } = await supabase
     .from("products")
-    .select("id,title,type,game_url,published")
+    .select("id,title,type,tier,game_url,published")
     .eq("slug", slug)
     .maybeSingle();
 
@@ -25,7 +25,7 @@ export default async function PlayPage({
   const user = await getCurrentUser();
   if (!user) redirect(`/login?next=/play/${slug}`);
 
-  const owned = await isOwned(user.id, product.id);
+  const owned = await canAccessProduct(user.id, { id: product.id, tier: product.tier });
   if (!owned) {
     return (
       <div className="mx-auto max-w-md px-4 py-16 text-center">

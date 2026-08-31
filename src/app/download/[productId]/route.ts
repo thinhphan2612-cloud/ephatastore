@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
-import { isOwned } from "@/data/store-user";
+import { canAccessProduct } from "@/lib/access";
 import { createStoreAdminClient } from "@/lib/supabase/store-admin";
 
 const FILES_BUCKET = "product-files";
@@ -17,19 +17,21 @@ export async function GET(
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
-  const owned = await isOwned(user.id, productId);
-  if (!owned) {
-    return new NextResponse("Bạn chưa sở hữu sản phẩm này.", { status: 403 });
-  }
-
   const supabase = createStoreAdminClient();
   const { data: product } = await supabase
     .from("products")
-    .select("download_path")
+    .select("download_path,tier")
     .eq("id", productId)
     .maybeSingle();
+  if (!product) {
+    return new NextResponse("Sản phẩm không tồn tại.", { status: 404 });
+  }
 
-  if (!product?.download_path) {
+  if (!(await canAccessProduct(user.id, { id: productId, tier: product.tier }))) {
+    return new NextResponse("Bạn chưa có quyền dùng sản phẩm này.", { status: 403 });
+  }
+
+  if (!product.download_path) {
     return new NextResponse("Sản phẩm chưa có file tải về.", { status: 404 });
   }
 

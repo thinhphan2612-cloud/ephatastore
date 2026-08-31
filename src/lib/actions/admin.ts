@@ -315,12 +315,14 @@ export async function saveSettings(formData: FormData) {
   await assertAdmin();
   const fullToppingPrice = Number(formData.get("full_topping_price") ?? 0) || 0;
   const freedomDays = Number(formData.get("freedom_days") ?? 30) || 30;
+  const accessMode = formData.get("access_mode") === "store" ? "store" : "giaoly_pro";
 
   const supabase = createStoreAdminClient();
   const { error } = await supabase.from("store_settings").upsert(
     [
       { key: "full_topping_price", value: String(fullToppingPrice) },
       { key: "freedom_days", value: String(freedomDays) },
+      { key: "access_mode", value: accessMode },
     ],
     { onConflict: "key" }
   );
