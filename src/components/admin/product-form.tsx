@@ -155,6 +155,9 @@ export function ProductForm({
           <Field label="URL game (loại game) — nhúng ở /play">
             <input name="game_url" defaultValue={p?.game_url ?? ""} className={input} placeholder="https://…" />
           </Field>
+          <Field label="URL app (tool/feature) — mở khi đã sở hữu">
+            <input name="app_url" defaultValue={p?.app_url ?? ""} className={input} placeholder="https://…" />
+          </Field>
           <Field label="Feature key (loại tính năng)">
             <input name="giaoly_feature_key" defaultValue={p?.giaoly_feature_key ?? ""} className={input} placeholder="vd: lich_phung_vu" />
           </Field>

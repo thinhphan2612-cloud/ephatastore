@@ -67,6 +67,8 @@ export interface Product {
   active: boolean;
   /** ký hiệu hiển thị */
   icon?: string;
+  /** URL mở tiện ích web-app (tool/feature) khi đã sở hữu */
+  appUrl?: string;
 
   /** 0..5 */
   rating: number;

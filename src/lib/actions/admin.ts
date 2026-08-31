@@ -71,6 +71,7 @@ function parseProduct(formData: FormData) {
     min_plan: minPlan === "free" || minPlan === "pro" ? minPlan : null,
     released_at: releasedAt || null,
     game_url: String(formData.get("game_url") ?? "").trim() || null,
+    app_url: String(formData.get("app_url") ?? "").trim() || null,
     giaoly_feature_key: String(formData.get("giaoly_feature_key") ?? "").trim() || null,
     featured: formData.get("featured") === "on",
     is_new: formData.get("is_new") === "on",
