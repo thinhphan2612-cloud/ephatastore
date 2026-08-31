@@ -41,17 +41,41 @@ export async function proxy(request: NextRequest) {
 }
 
 function comingSoon() {
-  const html = `<!doctype html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Ephata Store — Sắp ra mắt</title><link rel="icon" href="/icon.png"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;600;800&family=Lora:wght@600&display=swap" rel="stylesheet"><style>
-*{box-sizing:border-box}html,body{margin:0;height:100%}
-body{background:radial-gradient(circle at 70% 0,rgba(70,106,125,.18),transparent 30rem),radial-gradient(circle at 10% 25%,rgba(196,151,54,.1),transparent 25rem),#07090b;color:#f7f4ec;font-family:"Be Vietnam Pro",system-ui,sans-serif;display:grid;place-items:center;text-align:center;padding:24px}
-body:before{content:"";position:fixed;inset:0;z-index:-1;background-image:linear-gradient(rgba(255,255,255,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.025) 1px,transparent 1px);background-size:36px 36px;mask-image:linear-gradient(#000,transparent 80%)}
-.wrap{max-width:560px}
-img{width:min(300px,72vw);height:auto;margin-bottom:34px}
-.badge{display:inline-block;border:1px solid #e0bf6538;background:#e0bf650c;color:#f0d98f;padding:9px 15px;border-radius:99px;font-size:11px;letter-spacing:.16em;font-weight:800;text-transform:uppercase}
-h1{font-family:"Lora",Georgia,serif;font-weight:600;font-size:clamp(34px,7vw,52px);letter-spacing:-.02em;margin:22px 0 14px}
-p{color:#ffffff8c;line-height:1.7;font-size:16px;margin:0 auto;max-width:440px}
-.foot{margin-top:40px;color:#ffffff55;font-size:13px}
-</style></head><body><div class="wrap"><img src="/logo.png" alt="Ephata Store"><div><span class="badge">● Sắp ra mắt</span></div><h1>Điều tuyệt vời đang đến.</h1><p>Ephata Store — kho công cụ số cho cộng đồng Công giáo: web app, biểu mẫu, thiết kế, tài liệu và game giáo lý. Chúng tôi đang hoàn thiện những khâu cuối.</p><div class="foot">© 2026 Ephata Store · hello@ephata.vn</div></div></body></html>`;
+  const html = `<!doctype html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Ephata Store — Sắp ra mắt</title><link rel="icon" href="/icon.png"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet"><link rel="stylesheet" href="https://db.onlinewebfonts.com/c/04e6981992c0e2e7642af2074ebe3901?family=Helvetica+Now+Display+Bold"><style>
+:root{--font-heading:'Helvetica Now Display Bold','Inter',sans-serif;--font-body:'Inter',sans-serif;--color-text:#192837;--color-accent:#7342E2;--color-login-bg:#F2F2EE}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{min-height:100%}
+body{font-family:var(--font-body);color:var(--color-text);position:relative;min-height:100vh;min-height:100dvh;overflow-x:hidden;background:var(--color-login-bg)}
+.bgvid{position:fixed;inset:0;width:100%;height:100%;object-fit:cover;z-index:-2}
+.scrim{position:fixed;inset:0;z-index:-1;background:linear-gradient(90deg,rgba(242,242,238,.95) 0%,rgba(242,242,238,.78) 42%,rgba(242,242,238,.34) 100%)}
+.wrap{max-width:1280px;margin:0 auto;padding:0 20px}
+@media(min-width:640px){.wrap{padding:0 32px}}
+.nav{position:relative;z-index:10;display:flex;align-items:center;justify-content:space-between;padding:16px 0}
+@media(min-width:640px){.nav{padding:20px 0}}
+.nav img{height:34px;width:auto;display:block}
+.navcta{background:var(--color-accent);color:#fff;border-radius:9999px;padding:10px 20px;font-weight:600;font-size:14px;text-decoration:none;box-shadow:0 4px 24px rgba(115,66,226,.26)}
+.hero{position:relative;z-index:5;padding-top:clamp(40px,8vw,72px);padding-bottom:64px}
+.heroin{max-width:560px}
+.badge{display:inline-block;border:1px solid rgba(115,66,226,.3);background:rgba(115,66,226,.08);color:var(--color-accent);padding:8px 14px;border-radius:9999px;font-size:11px;letter-spacing:.14em;font-weight:700;text-transform:uppercase;margin-bottom:22px;opacity:0;animation:fadeUp .6s cubic-bezier(.22,1,.36,1) forwards}
+h1{font-family:var(--font-heading);font-size:clamp(1.9rem,5.5vw,3.2rem);line-height:1.05;letter-spacing:-.01em;color:var(--color-text);margin-bottom:22px;opacity:0;animation:fadeUp .6s cubic-bezier(.22,1,.36,1) .15s forwards}
+.sub{font-size:clamp(.9rem,2.5vw,1.1rem);line-height:1.65;opacity:0;max-width:560px;color:#324556;animation:fadeUp .6s cubic-bezier(.22,1,.36,1) .3s forwards}
+.cta{margin-top:32px;display:inline-flex;align-items:center;justify-content:space-between;gap:32px;min-width:230px;background:var(--color-accent);color:#fff;border-radius:50px;padding:17px 24px;font-weight:600;font-size:clamp(.9rem,2vw,1rem);text-decoration:none;box-shadow:0 4px 24px rgba(115,66,226,.28);opacity:0;animation:fadeUp .6s cubic-bezier(.22,1,.36,1) .45s forwards;transition:transform .2s,filter .2s}
+.cta:hover{transform:scale(1.04);filter:brightness(1.1)}
+.cta svg{flex:0 0 auto}
+@keyframes fadeUp{from{opacity:0;transform:translateY(28px)}to{opacity:1;transform:translateY(0)}}
+</style></head><body>
+<video class="bgvid" autoplay muted loop playsinline><source src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260518_003132_8b7edcb6-c64d-4a52-a9ca-879942e122ad.mp4" type="video/mp4"></video>
+<div class="scrim"></div>
+<div class="wrap">
+<nav class="nav"><img src="/logo.png" alt="Ephata Store"><a class="navcta" href="mailto:hello@ephata.vn">Liên hệ</a></nav>
+<section class="hero"><div class="heroin">
+<span class="badge">● Sắp ra mắt</span>
+<h1>Kho công cụ số cho cộng đồng Công giáo — sắp mở ra.</h1>
+<p class="sub">Ephata Store gom ứng dụng, biểu mẫu, thiết kế, tài liệu và game giáo lý về một nơi — dễ tìm, dễ dùng, dễ triển khai cho giáo xứ và cộng đoàn. Chúng tôi đang hoàn thiện những khâu cuối.</p>
+<a class="cta" href="mailto:hello@ephata.vn">Liên hệ với chúng tôi<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 12h8M12 8l4 4-4 4"/></svg></a>
+</div></section>
+</div>
+</body></html>`;
   return new NextResponse(html, {
     status: 200,
     headers: { "content-type": "text/html; charset=utf-8" },
