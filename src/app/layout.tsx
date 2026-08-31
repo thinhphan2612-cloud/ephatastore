@@ -34,6 +34,12 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={`${beVietnam.variable} ${lora.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
+        <script
+          dangerouslySetInnerHTML={{
+            __html:
+              "try{if(localStorage.getItem('ephata_theme')==='light'){document.documentElement.dataset.theme='light';document.documentElement.style.colorScheme='light';}}catch(e){}",
+          }}
+        />
         <SiteHeader />
         <main className="flex-1">{children}</main>
         <SiteFooter />

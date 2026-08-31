@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getCurrentUser, isAdminEmail } from "@/lib/auth";
 import { getCurrentUserPlan } from "@/lib/plan";
 import { signOut } from "@/lib/actions/auth";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 export async function SiteHeader() {
   const user = await getCurrentUser();
@@ -16,11 +17,11 @@ export async function SiteHeader() {
             CATHOLIC DIGITAL
           </div>
           <div className="font-display text-lg font-bold tracking-tight">
-            EPHATA <span className="font-normal text-white/40">STORE</span>
+            EPHATA <span className="font-normal text-text-faint">STORE</span>
           </div>
         </Link>
 
-        <div className="hidden items-center gap-6 text-sm text-white/70 md:flex">
+        <div className="hidden items-center gap-6 text-sm text-text-muted md:flex">
           <Link href="/#categories" className="hover:text-text">
             Danh mục
           </Link>
@@ -36,6 +37,7 @@ export async function SiteHeader() {
         </div>
 
         <div className="flex items-center gap-2">
+          <ThemeToggle />
           {isAdmin && (
             <Link
               href="/admin"

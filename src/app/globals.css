@@ -31,6 +31,26 @@
   --discount: #4c9f38;
 }
 
+/* Theme SÁNG (opt-in qua nút chuyển) */
+:root[data-theme="light"] {
+  --bg: #f8f8f6;
+  --bg-elevated: #ffffff;
+  --surface: #ffffff;
+  --surface-hover: #f3f3ef;
+  --border: rgba(22, 28, 34, 0.1);
+  --border-strong: rgba(22, 28, 34, 0.18);
+  --text: #171a1d;
+  --text-muted: #5e6871;
+  --text-faint: rgba(22, 28, 34, 0.45);
+  --accent: #b48a28;
+  --accent-hover: #caa03a;
+  --accent-contrast: #ffffff;
+  --brand: #3f74b8;
+  --brand-hover: #2f5f9e;
+  --success: #2f7d5b;
+  --danger: #c94257;
+}
+
 @theme inline {
   --color-bg: var(--bg);
   --color-bg-elevated: var(--bg-elevated);
@@ -58,6 +78,9 @@ html {
   color-scheme: dark;
   scroll-behavior: smooth;
 }
+:root[data-theme="light"] {
+  color-scheme: light;
+}
 
 body {
   background:
@@ -66,6 +89,18 @@ body {
     var(--bg);
   color: var(--text);
   font-family: var(--font-ui), system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+:root[data-theme="light"] body {
+  background:
+    radial-gradient(circle at 72% 0, rgba(107, 151, 169, 0.1), transparent 31rem),
+    radial-gradient(circle at 9% 24%, rgba(196, 151, 54, 0.09), transparent 26rem),
+    var(--bg);
+}
+:root[data-theme="light"] body::before {
+  background-image:
+    linear-gradient(rgba(24, 31, 36, 0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(24, 31, 36, 0.025) 1px, transparent 1px);
+  mask-image: linear-gradient(#000, transparent 72%);
 }
 
 /* lưới mờ nền */

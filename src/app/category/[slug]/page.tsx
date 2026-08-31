@@ -33,7 +33,7 @@ export default async function CategoryPage({
     <div>
       <header className="border-b border-border">
         <div className="mx-auto w-[min(1180px,calc(100%-40px))] py-[clamp(40px,7vw,70px)]">
-          <Link href="/#categories" className="text-[13px] text-white/70 hover:text-text">
+          <Link href="/#categories" className="text-[13px] text-text-muted hover:text-text">
             ← Tất cả danh mục
           </Link>
           {category.eyebrow && (

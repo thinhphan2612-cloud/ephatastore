@@ -1,6 +1,6 @@
 export function SiteFooter() {
   return (
-    <footer className="border-t border-border py-11 text-[13px] text-white/65">
+    <footer className="border-t border-border py-11 text-[13px] text-text-muted">
       <div className="mx-auto grid w-[min(1180px,calc(100%-40px))] gap-6 sm:grid-cols-2 sm:items-end">
         <div>
           <b className="text-text">EPHATA STORE</b>
