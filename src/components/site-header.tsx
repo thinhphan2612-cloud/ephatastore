@@ -13,12 +13,14 @@ export async function SiteHeader() {
     <nav className="sticky top-0 z-40 border-b border-border bg-bg/80 backdrop-blur-xl">
       <div className="mx-auto flex h-[70px] w-[min(1180px,calc(100%-40px))] items-center justify-between gap-4">
         <Link href="/" className="shrink-0">
-          <div className="text-[10px] font-extrabold tracking-[0.24em] text-accent">
-            CATHOLIC DIGITAL
-          </div>
-          <div className="font-display text-lg font-bold tracking-tight">
-            EPHATA <span className="font-normal text-text-faint">STORE</span>
-          </div>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/logo.png"
+            alt="Ephata Store"
+            width={466}
+            height={200}
+            className="h-9 w-auto"
+          />
         </Link>
 
         <div className="hidden items-center gap-6 text-sm text-text-muted md:flex">
