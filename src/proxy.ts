@@ -53,26 +53,23 @@ body{font-family:var(--font-body);color:var(--color-text);position:relative;min-
 .nav{position:relative;z-index:10;display:flex;align-items:center;justify-content:space-between;padding:16px 0}
 @media(min-width:640px){.nav{padding:20px 0}}
 .nav img{height:34px;width:auto;display:block}
-.navcta{background:var(--color-accent);color:#fff;border-radius:9999px;padding:10px 20px;font-weight:600;font-size:14px;text-decoration:none;box-shadow:0 4px 24px rgba(115,66,226,.26)}
 .hero{position:relative;z-index:5;padding-top:clamp(40px,8vw,72px);padding-bottom:64px}
 .heroin{max-width:560px}
 .badge{display:inline-block;border:1px solid rgba(115,66,226,.3);background:rgba(115,66,226,.08);color:var(--color-accent);padding:8px 14px;border-radius:9999px;font-size:11px;letter-spacing:.14em;font-weight:700;text-transform:uppercase;margin-bottom:22px;opacity:0;animation:fadeUp .6s cubic-bezier(.22,1,.36,1) forwards}
 h1{font-family:var(--font-heading);font-size:clamp(1.9rem,5.5vw,3.2rem);line-height:1.05;letter-spacing:-.01em;color:var(--color-text);margin-bottom:22px;opacity:0;animation:fadeUp .6s cubic-bezier(.22,1,.36,1) .15s forwards}
 .sub{font-size:clamp(.9rem,2.5vw,1.1rem);line-height:1.65;opacity:0;max-width:560px;color:#324556;animation:fadeUp .6s cubic-bezier(.22,1,.36,1) .3s forwards}
-.cta{margin-top:32px;display:inline-flex;align-items:center;justify-content:space-between;gap:32px;min-width:230px;background:var(--color-accent);color:#fff;border-radius:50px;padding:17px 24px;font-weight:600;font-size:clamp(.9rem,2vw,1rem);text-decoration:none;box-shadow:0 4px 24px rgba(115,66,226,.28);opacity:0;animation:fadeUp .6s cubic-bezier(.22,1,.36,1) .45s forwards;transition:transform .2s,filter .2s}
-.cta:hover{transform:scale(1.04);filter:brightness(1.1)}
-.cta svg{flex:0 0 auto}
+.soon{margin-top:34px;font-family:var(--font-heading);font-size:clamp(1.15rem,3vw,1.6rem);font-weight:700;color:var(--color-accent);letter-spacing:.02em;opacity:0;animation:fadeUp .6s cubic-bezier(.22,1,.36,1) .45s forwards}
 @keyframes fadeUp{from{opacity:0;transform:translateY(28px)}to{opacity:1;transform:translateY(0)}}
 </style></head><body>
 <video class="bgvid" autoplay muted loop playsinline><source src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260518_003132_8b7edcb6-c64d-4a52-a9ca-879942e122ad.mp4" type="video/mp4"></video>
 <div class="scrim"></div>
 <div class="wrap">
-<nav class="nav"><img src="/logo.png" alt="Ephata Store"><a class="navcta" href="mailto:hello@ephata.vn">Liên hệ</a></nav>
+<nav class="nav"><img src="/logo.png" alt="Ephata Store"></nav>
 <section class="hero"><div class="heroin">
 <span class="badge">● Sắp ra mắt</span>
 <h1>Kho công cụ số cho cộng đồng Công giáo — sắp mở ra.</h1>
 <p class="sub">Ephata Store gom ứng dụng, biểu mẫu, thiết kế, tài liệu và game giáo lý về một nơi — dễ tìm, dễ dùng, dễ triển khai cho giáo xứ và cộng đoàn. Chúng tôi đang hoàn thiện những khâu cuối.</p>
-<a class="cta" href="mailto:hello@ephata.vn">Liên hệ với chúng tôi<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 12h8M12 8l4 4-4 4"/></svg></a>
+<div class="soon">Coming soon</div>
 </div></section>
 </div>
 </body></html>`;
