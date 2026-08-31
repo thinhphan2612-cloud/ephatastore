@@ -31,7 +31,7 @@ export function GiaolyLinkForm() {
     if (authErr || !data.session) {
       setError(
         authErr?.message === "Invalid login credentials"
-          ? "Email hoặc mật khẩu giaoly không đúng."
+          ? "Email hoặc mật khẩu Giáo Lý Số không đúng."
           : authErr?.message ?? "Không đăng nhập được giaoly."
       );
       setLoading(false);
@@ -55,11 +55,13 @@ export function GiaolyLinkForm() {
   return (
     <form onSubmit={onSubmit} className="space-y-4">
       <p className="text-sm text-text-muted">
-        Nhập tài khoản <strong>app.giaoly.com.vn</strong> để liên kết. Store chỉ đọc
-        giáo xứ &amp; gói của bạn — không lưu mật khẩu giaoly.
+        Nhập tài khoản <strong>Giáo Lý Số (giaoly.com.vn)</strong> để liên kết. Store chỉ
+        đọc giáo xứ &amp; gói của bạn — không lưu mật khẩu.
       </p>
       <div>
-        <label className="mb-1 block text-sm text-text-muted">Email giaoly</label>
+        <label className="mb-1 block text-sm text-text-muted">
+          Email Giáo Lý Số
+        </label>
         <input
           type="email"
           required
@@ -69,7 +71,9 @@ export function GiaolyLinkForm() {
         />
       </div>
       <div>
-        <label className="mb-1 block text-sm text-text-muted">Mật khẩu giaoly</label>
+        <label className="mb-1 block text-sm text-text-muted">
+          Mật khẩu Giáo Lý Số
+        </label>
         <input
           type="password"
           required
@@ -90,7 +94,7 @@ export function GiaolyLinkForm() {
         disabled={loading}
         className="w-full rounded-md bg-accent px-4 py-2.5 font-semibold text-accent-contrast hover:bg-accent-hover disabled:opacity-60"
       >
-        {loading ? "Đang liên kết…" : "Liên kết giaoly"}
+        {loading ? "Đang liên kết…" : "Liên kết Giáo Lý Số"}
       </button>
     </form>
   );

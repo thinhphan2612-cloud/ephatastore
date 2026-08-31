@@ -17,7 +17,7 @@ export default async function AdminUsersPage() {
           <thead className="bg-surface text-left text-text-muted">
             <tr>
               <th className="px-3 py-2 font-medium">Email</th>
-              <th className="px-3 py-2 font-medium">Giaoly</th>
+              <th className="px-3 py-2 font-medium">Giáo Lý Số</th>
               <th className="px-3 py-2 font-medium">Gói</th>
               <th className="px-3 py-2 font-medium">Sở hữu</th>
               <th className="px-3 py-2 font-medium">Ngày tạo</th>

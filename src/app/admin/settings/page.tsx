@@ -15,7 +15,7 @@ export default async function AdminSettingsPage() {
         <label className="block">
           <span className="mb-1 block text-sm text-text-muted">Chế độ truy cập</span>
           <select name="access_mode" defaultValue={s.accessMode} className={input}>
-            <option value="giaoly_pro">Gói Pro giaoly (giai đoạn đầu — cần Pro giaoly, không bán trên store)</option>
+            <option value="giaoly_pro">Gói Pro Giáo Lý Số (giai đoạn đầu — cần Pro, không bán trên store)</option>
             <option value="store">Bán trên store (gói năm / Freedom / Full Topping / Trial)</option>
           </select>
         </label>

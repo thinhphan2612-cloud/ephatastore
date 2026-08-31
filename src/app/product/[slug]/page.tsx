@@ -133,8 +133,8 @@ export default async function ProductPage({
                   <div className="font-semibold text-text">Truy cập Ephata Store</div>
                   <p className="mt-1 text-text-muted">
                     {owned
-                      ? "Giáo xứ của bạn có gói Pro — dùng miễn phí toàn bộ Store."
-                      : "Miễn phí với gói Pro của giaoly. Cần gói Pro để dùng các sản phẩm."}
+                      ? "Giáo xứ của bạn có gói Pro Giáo Lý Số — dùng miễn phí toàn bộ Store."
+                      : "Miễn phí với gói Pro của Giáo Lý Số (giaoly.com.vn). Cần gói Pro để dùng."}
                   </p>
                 </div>
 
@@ -162,10 +162,10 @@ export default async function ProductPage({
                         href="/account"
                         className="block w-full rounded-xl bg-accent px-4 py-3 text-center font-extrabold text-accent-contrast hover:bg-accent-hover"
                       >
-                        Liên kết tài khoản giaoly →
+                        Liên kết Giáo Lý Số →
                       </Link>
                       <p className="text-center text-xs text-text-faint">
-                        Cần liên kết giaoly (có gói Pro) để dùng Store.
+                        Cần liên kết Giáo Lý Số (có gói Pro) để dùng Store.
                       </p>
                     </>
                   ) : (
@@ -174,10 +174,10 @@ export default async function ProductPage({
                         href={giaolyUrl}
                         className="block w-full rounded-xl bg-accent px-4 py-3 text-center font-extrabold text-accent-contrast hover:bg-accent-hover"
                       >
-                        Nâng cấp gói Pro giaoly →
+                        Nâng cấp gói Pro Giáo Lý Số →
                       </a>
                       <p className="text-center text-xs text-text-faint">
-                        Giáo xứ của bạn chưa có gói Pro.
+                        Giáo xứ của bạn chưa có gói Pro Giáo Lý Số.
                       </p>
                     </>
                   )}

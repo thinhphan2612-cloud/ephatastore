@@ -20,13 +20,13 @@ export default async function AccountPage() {
       <p className="mt-1 text-sm text-text-muted">{user.email}</p>
 
       <section className="mt-8">
-        <h2 className="mb-3 text-lg font-semibold">Liên kết giaoly</h2>
+        <h2 className="mb-3 text-lg font-semibold">Liên kết Giáo Lý Số</h2>
 
         {ctx ? (
           <div className="rounded-xl border border-border bg-surface p-5">
             <div className="flex items-center gap-2 text-success">
               <span>✓</span>
-              <span className="font-medium">Đã liên kết app.giaoly.com.vn</span>
+              <span className="font-medium">Đã liên kết Giáo Lý Số (giaoly.com.vn)</span>
             </div>
             <dl className="mt-4 space-y-2 text-sm">
               <div className="flex justify-between">
@@ -58,9 +58,9 @@ export default async function AccountPage() {
         ) : (
           <div className="rounded-xl border border-border bg-surface p-5">
             <p className="mb-4 text-sm text-text-muted">
-              Liên kết tài khoản giaoly để mở khoá <strong>gói Pro</strong> và mua các{" "}
-              <strong>tính năng tích hợp</strong> cho giáo xứ. Không bắt buộc nếu bạn chỉ
-              mua sản phẩm tải về / game.
+              Liên kết tài khoản <strong>Giáo Lý Số (giaoly.com.vn)</strong> để dùng sản
+              phẩm trên Store — Store mở khoá theo <strong>gói Pro của Giáo Lý Số</strong>.
+              (Không cần liên kết cho việc quản trị.)
             </p>
             <GiaolyLinkForm />
           </div>
