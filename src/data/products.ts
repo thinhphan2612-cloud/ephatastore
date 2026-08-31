@@ -40,14 +40,16 @@ interface ProductRow {
     avatar_url: string | null;
     verified: boolean;
   } | null;
-  category: { slug: string } | null;
   categories: { category: { slug: string } | null }[] | null;
 }
 
 const SELECT =
-  "id,slug,title,tagline,description,type,price_vnd,original_price_vnd,cover_url,gallery,tags,min_plan,tier,price_month,trial,trial_days,active,icon,rating,rating_count,released_at,featured,is_new,is_popular,publisher:publishers(id,slug,name,avatar_url,verified),category:categories(slug),categories:product_categories(category:categories(slug))";
+  "id,slug,title,tagline,description,type,price_vnd,original_price_vnd,cover_url,gallery,tags,min_plan,tier,price_month,trial,trial_days,active,icon,rating,rating_count,released_at,featured,is_new,is_popular,publisher:publishers(id,slug,name,avatar_url,verified),categories:product_categories(category:categories(slug))";
 
 function mapRow(r: ProductRow): Product {
+  const categorySlugs = (r.categories ?? [])
+    .map((x) => x.category?.slug)
+    .filter((s): s is string => !!s);
   return {
     id: r.id,
     slug: r.slug,
@@ -55,10 +57,8 @@ function mapRow(r: ProductRow): Product {
     tagline: r.tagline,
     description: r.description,
     type: r.type,
-    categoryId: r.category?.slug ?? "",
-    categorySlugs: (r.categories ?? [])
-      .map((x) => x.category?.slug)
-      .filter((s): s is string => !!s),
+    categoryId: categorySlugs[0] ?? "",
+    categorySlugs,
     publisher: {
       id: r.publisher?.id ?? "",
       slug: r.publisher?.slug ?? "",

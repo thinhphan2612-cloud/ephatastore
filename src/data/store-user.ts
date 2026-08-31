@@ -9,7 +9,7 @@ import type { Product } from "@/lib/types";
  */
 
 const PRODUCT_SELECT =
-  "id,slug,title,tagline,description,type,price_vnd,original_price_vnd,cover_url,tags,min_plan,tier,price_month,trial,trial_days,active,icon,rating,rating_count,released_at,featured,is_new,is_popular,publisher:publishers(id,slug,name,avatar_url,verified),category:categories(slug)";
+  "id,slug,title,tagline,description,type,price_vnd,original_price_vnd,cover_url,tags,min_plan,tier,price_month,trial,trial_days,active,icon,rating,rating_count,released_at,featured,is_new,is_popular,publisher:publishers(id,slug,name,avatar_url,verified)";
 
 interface Row {
   id: string;
@@ -42,7 +42,6 @@ interface Row {
     avatar_url: string | null;
     verified: boolean;
   } | null;
-  category: { slug: string } | null;
 }
 
 function mapRow(r: Row): Product {
@@ -53,7 +52,7 @@ function mapRow(r: Row): Product {
     tagline: r.tagline,
     description: r.description,
     type: r.type,
-    categoryId: r.category?.slug ?? "",
+    categoryId: "",
     categorySlugs: [],
     publisher: {
       id: r.publisher?.id ?? "",
