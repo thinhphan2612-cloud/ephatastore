@@ -89,6 +89,7 @@ export async function getMyLibrary(userId: string): Promise<Product[]> {
     .from("entitlements")
     .select(`product:products(${PRODUCT_SELECT})`)
     .eq("store_user_id", userId)
+    .or(`expires_at.is.null,expires_at.gt.${new Date().toISOString()}`)
     .order("granted_at", { ascending: false });
   if (error) throw new Error(error.message);
   return (data ?? [])
@@ -153,7 +154,8 @@ export async function isOwned(userId: string, productId: string): Promise<boolea
     .from("entitlements")
     .select("id", { count: "exact", head: true })
     .eq("store_user_id", userId)
-    .eq("product_id", productId);
+    .eq("product_id", productId)
+    .or(`expires_at.is.null,expires_at.gt.${new Date().toISOString()}`);
   if (error) throw new Error(error.message);
   return (count ?? 0) > 0;
 }

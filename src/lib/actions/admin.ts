@@ -152,20 +152,26 @@ export async function approveOrder(formData: FormData) {
   const supabase = createStoreAdminClient();
   const { data: order } = await supabase
     .from("orders")
-    .select("id,store_user_id,status,order_items(product_id)")
+    .select("id,store_user_id,status,kind,access_days,order_items(product_id)")
     .eq("id", id)
     .maybeSingle();
   if (!order) throw new Error("Không tìm thấy đơn.");
 
   const items = (order.order_items ?? []) as { product_id: string }[];
   if (items.length) {
+    const expires =
+      order.access_days != null
+        ? new Date(Date.now() + order.access_days * 86400000).toISOString()
+        : null;
     const rows = items.map((it) => ({
       store_user_id: order.store_user_id,
       product_id: it.product_id,
+      source: order.kind ?? "purchase",
+      expires_at: expires,
     }));
     const { error: eErr } = await supabase
       .from("entitlements")
-      .upsert(rows, { onConflict: "store_user_id,product_id", ignoreDuplicates: true });
+      .upsert(rows, { onConflict: "store_user_id,product_id", ignoreDuplicates: false });
     if (eErr) throw new Error(eErr.message);
   }
 
