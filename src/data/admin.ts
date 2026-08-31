@@ -9,11 +9,16 @@ export interface AdminProductRow {
   price_vnd: number;
   original_price_vnd: number | null;
   min_plan: "free" | "pro" | null;
+  tier: "free" | "pro";
+  price_month: number;
+  trial: boolean;
+  trial_days: number;
+  active: boolean;
+  icon: string | null;
   published: boolean;
   featured: boolean;
   is_new: boolean;
   is_popular: boolean;
-  category: { name: string } | null;
   publisher: { name: string } | null;
 }
 
@@ -46,9 +51,9 @@ export async function adminListProducts(): Promise<AdminProductRow[]> {
   const { data, error } = await supabase
     .from("products")
     .select(
-      "id,slug,title,type,price_vnd,original_price_vnd,min_plan,published,featured,is_new,is_popular,category:categories(name),publisher:publishers(name)"
+      "id,slug,title,type,price_vnd,original_price_vnd,min_plan,tier,price_month,trial,trial_days,active,icon,published,featured,is_new,is_popular,publisher:publishers(name)"
     )
-    .order("updated_at", { ascending: false });
+    .order("title", { ascending: true });
   if (error) throw new Error(error.message);
   return data as unknown as AdminProductRow[];
 }
@@ -74,6 +79,25 @@ export async function adminListCategories(): Promise<{ id: string; name: string 
     .order("sort_order");
   if (error) throw new Error(error.message);
   return data ?? [];
+}
+
+export interface AdminCoupon {
+  id: string;
+  code: string;
+  kind: "percent" | "amount";
+  value: number;
+  active: boolean;
+  used_count: number;
+}
+
+export async function adminListCoupons(): Promise<AdminCoupon[]> {
+  const supabase = createStoreAdminClient();
+  const { data, error } = await supabase
+    .from("discount_codes")
+    .select("id,code,kind,value,active,used_count")
+    .order("created_at", { ascending: false });
+  if (error) throw new Error(error.message);
+  return (data ?? []) as AdminCoupon[];
 }
 
 export async function adminListPublishers(): Promise<{ id: string; name: string }[]> {

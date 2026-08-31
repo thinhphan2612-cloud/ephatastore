@@ -25,6 +25,9 @@ export default async function AdminLayout({
             <Link href="/admin/orders" className="text-brand hover:text-brand-hover">
               Đơn hàng
             </Link>
+            <Link href="/admin/coupons" className="text-brand hover:text-brand-hover">
+              Coupon
+            </Link>
             <Link href="/admin/users" className="text-brand hover:text-brand-hover">
               Người dùng
             </Link>

@@ -239,6 +239,65 @@ export async function revokeEntitlement(formData: FormData) {
   revalidatePath(`/admin/users/${userId}`);
 }
 
+// ---- Cấu hình nhanh sản phẩm (tier / giá / trial / active) ----
+export async function updateProductConfig(formData: FormData) {
+  await assertAdmin();
+  const id = String(formData.get("id") ?? "").trim();
+  if (!id) return;
+
+  const tier = formData.get("tier") === "pro" ? "pro" : "free";
+  const priceMonth = tier === "pro" ? Number(formData.get("price_month") ?? 0) || 0 : 0;
+  const patch = {
+    tier,
+    min_plan: tier,
+    price_month: priceMonth,
+    price_vnd: priceMonth,
+    trial: tier === "pro" && formData.get("trial") === "on",
+    trial_days: Number(formData.get("trial_days") ?? 7) || 7,
+    active: formData.get("active") === "on",
+  };
+
+  const supabase = createStoreAdminClient();
+  const { error } = await supabase.from("products").update(patch).eq("id", id);
+  if (error) throw new Error(error.message);
+
+  revalidatePath("/admin");
+}
+
+// ---- Coupon ----
+export async function createCoupon(formData: FormData) {
+  await assertAdmin();
+  const code = String(formData.get("code") ?? "").trim().toUpperCase();
+  const kind = formData.get("kind") === "amount" ? "amount" : "percent";
+  const value = Number(formData.get("value") ?? 0) || 0;
+  if (!code || value <= 0) return;
+
+  const supabase = createStoreAdminClient();
+  const { error } = await supabase
+    .from("discount_codes")
+    .insert({ code, kind, value, active: true });
+  if (error && error.code !== "23505") throw new Error(error.message);
+
+  revalidatePath("/admin/coupons");
+}
+
+export async function toggleCoupon(formData: FormData) {
+  await assertAdmin();
+  const id = String(formData.get("id") ?? "").trim();
+  const next = formData.get("next") === "true";
+  const supabase = createStoreAdminClient();
+  await supabase.from("discount_codes").update({ active: next }).eq("id", id);
+  revalidatePath("/admin/coupons");
+}
+
+export async function deleteCoupon(formData: FormData) {
+  await assertAdmin();
+  const id = String(formData.get("id") ?? "").trim();
+  const supabase = createStoreAdminClient();
+  await supabase.from("discount_codes").delete().eq("id", id);
+  revalidatePath("/admin/coupons");
+}
+
 export async function togglePublish(formData: FormData) {
   await assertAdmin();
   const id = String(formData.get("id") ?? "").trim();
