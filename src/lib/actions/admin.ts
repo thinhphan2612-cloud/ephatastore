@@ -298,6 +298,25 @@ export async function deleteCoupon(formData: FormData) {
   revalidatePath("/admin/coupons");
 }
 
+// ---- Cài đặt / chính sách ----
+export async function saveSettings(formData: FormData) {
+  await assertAdmin();
+  const fullToppingPrice = Number(formData.get("full_topping_price") ?? 0) || 0;
+  const freedomDays = Number(formData.get("freedom_days") ?? 30) || 30;
+
+  const supabase = createStoreAdminClient();
+  const { error } = await supabase.from("store_settings").upsert(
+    [
+      { key: "full_topping_price", value: String(fullToppingPrice) },
+      { key: "freedom_days", value: String(freedomDays) },
+    ],
+    { onConflict: "key" }
+  );
+  if (error) throw new Error(error.message);
+
+  revalidatePath("/admin/settings");
+}
+
 export async function togglePublish(formData: FormData) {
   await assertAdmin();
   const id = String(formData.get("id") ?? "").trim();

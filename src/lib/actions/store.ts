@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { createStoreAdminClient } from "@/lib/supabase/store-admin";
+import { getSettings } from "@/data/settings";
 
 const YEAR_DAYS = 365;
 
@@ -64,6 +65,52 @@ export async function claimProduct(formData: FormData) {
   const { error: iErr } = await supabase
     .from("order_items")
     .insert({ order_id: order.id, product_id: product.id, unit_price_vnd: annual });
+  if (iErr) throw new Error(iErr.message);
+
+  redirect(`/checkout/${order.id}`);
+}
+
+/** Mua lẻ Freedom: dùng N ngày (theo cấu hình) với giá 1 tháng. */
+export async function claimFreedom(formData: FormData) {
+  const user = await getCurrentUser();
+  const productId = String(formData.get("product_id") ?? "").trim();
+  const slug = String(formData.get("slug") ?? "").trim();
+
+  if (!user) {
+    redirect(`/login?next=${encodeURIComponent(slug ? `/product/${slug}` : "/")}`);
+  }
+
+  const supabase = createStoreAdminClient();
+  const { data: product } = await supabase
+    .from("products")
+    .select("id,tier,price_month,published")
+    .eq("id", productId)
+    .maybeSingle();
+  if (!product || !product.published) throw new Error("Sản phẩm không tồn tại.");
+  if (product.tier !== "pro" || product.price_month <= 0)
+    throw new Error("Sản phẩm này không cần mua lẻ.");
+
+  const { freedomDays } = await getSettings();
+  const orderCode = "DH" + crypto.randomUUID().replace(/-/g, "").slice(0, 8).toUpperCase();
+  const { data: order, error: oErr } = await supabase
+    .from("orders")
+    .insert({
+      store_user_id: user.id,
+      status: "pending",
+      kind: "freedom",
+      access_days: freedomDays,
+      subtotal_vnd: product.price_month,
+      discount_vnd: 0,
+      total_vnd: product.price_month,
+      order_code: orderCode,
+    })
+    .select("id")
+    .single();
+  if (oErr) throw new Error(oErr.message);
+
+  const { error: iErr } = await supabase
+    .from("order_items")
+    .insert({ order_id: order.id, product_id: product.id, unit_price_vnd: product.price_month });
   if (iErr) throw new Error(iErr.message);
 
   redirect(`/checkout/${order.id}`);

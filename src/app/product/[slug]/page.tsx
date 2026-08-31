@@ -4,7 +4,8 @@ import { getProductBySlug, getRelated } from "@/data/products";
 import { CATEGORY_BY_ID } from "@/data/categories";
 import { getCurrentUser } from "@/lib/auth";
 import { isOwned } from "@/data/store-user";
-import { claimProduct, startTrial } from "@/lib/actions/store";
+import { claimProduct, startTrial, claimFreedom } from "@/lib/actions/store";
+import { getSettings } from "@/data/settings";
 import { formatPrice } from "@/lib/format";
 import { TYPE_LABEL } from "@/lib/labels";
 import { OwnedActions } from "@/components/owned-actions";
@@ -36,6 +37,7 @@ export default async function ProductPage({
 
   const isPro = product.tier === "pro";
   const annual = product.priceMonth * 12;
+  const { freedomDays } = await getSettings();
 
   return (
     <div className="mx-auto w-[min(1180px,calc(100%-40px))] py-10">
@@ -180,15 +182,27 @@ export default async function ProductPage({
                       {isPro ? "Mua gói năm →" : "Nhận miễn phí →"}
                     </button>
                   </form>
+                  {isPro && (
+                    <form action={claimFreedom}>
+                      <input type="hidden" name="product_id" value={product.id} />
+                      <input type="hidden" name="slug" value={product.slug} />
+                      <button
+                        type="submit"
+                        className="w-full rounded-xl border border-border-strong bg-white/5 px-4 py-3 text-sm font-bold text-text hover:border-accent/50"
+                      >
+                        Mua lẻ {freedomDays} ngày · {formatPrice(product.priceMonth)}
+                      </button>
+                    </form>
+                  )}
                   {isPro && product.trial && (
                     <form action={startTrial}>
                       <input type="hidden" name="product_id" value={product.id} />
                       <input type="hidden" name="slug" value={product.slug} />
                       <button
                         type="submit"
-                        className="w-full rounded-xl border border-border-strong bg-white/5 px-4 py-3 font-extrabold text-text hover:border-accent/50"
+                        className="w-full rounded-xl border border-border px-4 py-3 text-sm font-bold text-text-muted hover:border-accent/50 hover:text-text"
                       >
-                        Dùng thử {product.trialDays} ngày
+                        Dùng thử {product.trialDays} ngày miễn phí
                       </button>
                     </form>
                   )}
