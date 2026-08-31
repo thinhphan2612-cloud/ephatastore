@@ -9,7 +9,7 @@ import type { Product } from "@/lib/types";
  */
 
 const PRODUCT_SELECT =
-  "id,slug,title,tagline,description,type,price_vnd,original_price_vnd,cover_url,tags,min_plan,rating,rating_count,released_at,featured,is_new,is_popular,publisher:publishers(id,slug,name,avatar_url,verified),category:categories(slug)";
+  "id,slug,title,tagline,description,type,price_vnd,original_price_vnd,cover_url,tags,min_plan,tier,price_month,trial,trial_days,active,icon,rating,rating_count,released_at,featured,is_new,is_popular,publisher:publishers(id,slug,name,avatar_url,verified),category:categories(slug)";
 
 interface Row {
   id: string;
@@ -23,6 +23,12 @@ interface Row {
   cover_url: string | null;
   tags: string[] | null;
   min_plan: "free" | "pro" | null;
+  tier: "free" | "pro";
+  price_month: number;
+  trial: boolean;
+  trial_days: number;
+  active: boolean;
+  icon: string | null;
   rating: number | string;
   rating_count: number;
   released_at: string;
@@ -48,6 +54,7 @@ function mapRow(r: Row): Product {
     description: r.description,
     type: r.type,
     categoryId: r.category?.slug ?? "",
+    categorySlugs: [],
     publisher: {
       id: r.publisher?.id ?? "",
       slug: r.publisher?.slug ?? "",
@@ -61,6 +68,12 @@ function mapRow(r: Row): Product {
     gallery: [],
     tags: r.tags ?? [],
     minPlan: r.min_plan,
+    tier: r.tier ?? (r.min_plan === "pro" ? "pro" : "free"),
+    priceMonth: r.price_month ?? r.price_vnd ?? 0,
+    trial: r.trial ?? false,
+    trialDays: r.trial_days ?? 7,
+    active: r.active ?? true,
+    icon: r.icon ?? undefined,
     rating: Number(r.rating),
     ratingCount: r.rating_count,
     releasedAt: r.released_at,

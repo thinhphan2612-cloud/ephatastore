@@ -1,79 +1,43 @@
 import Link from "next/link";
 import type { Product } from "@/lib/types";
-import { discountPercent } from "@/lib/types";
 import { formatPrice } from "@/lib/format";
-import { TYPE_ICON, TYPE_LABEL } from "@/lib/labels";
-import { gradientFor } from "@/lib/placeholder";
+import { TYPE_LABEL } from "@/lib/labels";
 
 export function ProductCard({ product }: { product: Product }) {
-  const discount = discountPercent(product);
+  const isPro = product.tier === "pro";
 
   return (
     <Link
       href={`/product/${product.slug}`}
-      className="group flex flex-col overflow-hidden rounded-lg border border-border bg-surface transition hover:border-accent/50 hover:bg-surface-hover"
+      className="group relative flex min-h-[300px] flex-col justify-end overflow-hidden rounded-3xl border border-border p-6 transition hover:-translate-y-1 hover:border-accent/40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
     >
-      {/* ảnh bìa */}
+      {/* ảnh full-card */}
       <div
-        className="relative flex aspect-[3/2] items-center justify-center"
-        style={{ background: product.coverUrl ? undefined : gradientFor(product.id) }}
-      >
-        {product.coverUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={product.coverUrl}
-            alt={product.title}
-            className="h-full w-full object-cover"
-          />
-        ) : (
-          <span className="text-5xl opacity-70">{TYPE_ICON[product.type]}</span>
-        )}
+        className="media-placeholder absolute inset-0 transition-transform duration-300 group-hover:scale-[1.04]"
+        style={product.coverUrl ? { background: `center/cover url(${product.coverUrl})` } : undefined}
+      />
+      <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-black/40 to-black/90" />
 
-        {/* badge góc trên */}
-        <div className="absolute left-2 top-2 flex gap-1">
-          {product.isNew && (
-            <span className="rounded bg-brand px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white">
-              Mới
-            </span>
-          )}
-          {product.minPlan === "pro" && (
-            <span className="rounded bg-accent px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-accent-contrast">
-              Pro
-            </span>
-          )}
-        </div>
-      </div>
+      {/* type badge + icon top */}
+      <span className="relative z-10 mb-auto self-start rounded-full border border-white/16 bg-black/35 px-2.5 py-1.5 text-[10px] font-extrabold uppercase tracking-[0.13em] text-white/80 backdrop-blur">
+        {TYPE_LABEL[product.type]}
+      </span>
 
-      {/* thông tin */}
-      <div className="flex flex-1 flex-col gap-2 p-3">
-        <div className="flex items-center gap-1.5 text-xs text-text-faint">
-          <span>{TYPE_LABEL[product.type]}</span>
-          <span aria-hidden>·</span>
-          <span className="inline-flex items-center gap-0.5">
-            <span className="text-accent">★</span>
-            {product.rating.toFixed(1)}
-          </span>
-        </div>
-
-        <h3 className="line-clamp-1 font-semibold text-text group-hover:text-accent">
+      <div className="relative z-10">
+        <h3 className="text-[20px] font-bold [text-shadow:0_2px_14px_rgba(0,0,0,0.65)]">
           {product.title}
         </h3>
-        <p className="line-clamp-2 flex-1 text-sm text-text-muted">{product.tagline}</p>
+        <p className="mt-1.5 line-clamp-2 text-[13px] leading-[1.6] text-white/80 [text-shadow:0_2px_12px_rgba(0,0,0,0.6)]">
+          {product.tagline}
+        </p>
 
-        <div className="mt-1 flex items-center gap-2">
-          {discount > 0 && (
-            <span className="rounded bg-discount px-1.5 py-0.5 text-xs font-bold text-white">
-              -{discount}%
-            </span>
-          )}
-          <div className="ml-auto text-right">
-            {discount > 0 && (
-              <span className="mr-1.5 text-xs text-text-faint line-through">
-                {formatPrice(product.originalPrice!)}
-              </span>
-            )}
-            <span className="font-semibold text-text">{formatPrice(product.price)}</span>
-          </div>
+        <div className="mt-5 flex items-center justify-between gap-3 border-t border-white/15 pt-4">
+          <span
+            className={`text-xs font-black ${isPro ? "text-accent-hover" : "text-success"}`}
+          >
+            {isPro ? `${formatPrice(product.priceMonth)}/tháng` : "Miễn phí"}
+          </span>
+          <span className="text-[11px] text-white/70">Xem chi tiết →</span>
         </div>
       </div>
     </Link>

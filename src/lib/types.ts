@@ -9,6 +9,9 @@ export type ProductType = "tool" | "game" | "asset" | "image" | "feature";
 /** Gói tối thiểu để dùng/sở hữu sản phẩm (đồng bộ với plan của app.giaoly.com.vn). */
 export type MinPlan = "free" | "pro";
 
+/** Tầng sản phẩm trong mô hình giá v3. */
+export type Tier = "free" | "pro";
+
 export interface Category {
   id: string;
   slug: string;
@@ -36,7 +39,10 @@ export interface Product {
   tagline: string;
   description: string;
   type: ProductType;
+  /** danh mục chính (dùng cho breadcrumb) */
   categoryId: string;
+  /** tất cả danh mục thuộc về (nhiều-nhiều) */
+  categorySlugs: string[];
   publisher: Publisher;
 
   /** giá hiện tại (VND). 0 = miễn phí. */
@@ -51,6 +57,16 @@ export interface Product {
 
   /** gói tối thiểu; null = ai cũng mua/dùng được */
   minPlan: MinPlan | null;
+
+  /** mô hình giá v3 */
+  tier: Tier;
+  /** giá theo tháng (VND); 0 nếu free */
+  priceMonth: number;
+  trial: boolean;
+  trialDays: number;
+  active: boolean;
+  /** ký hiệu hiển thị */
+  icon?: string;
 
   /** 0..5 */
   rating: number;

@@ -21,6 +21,12 @@ interface ProductRow {
   gallery: string[] | null;
   tags: string[] | null;
   min_plan: "free" | "pro" | null;
+  tier: "free" | "pro";
+  price_month: number;
+  trial: boolean;
+  trial_days: number;
+  active: boolean;
+  icon: string | null;
   rating: number | string;
   rating_count: number;
   released_at: string;
@@ -35,10 +41,11 @@ interface ProductRow {
     verified: boolean;
   } | null;
   category: { slug: string } | null;
+  categories: { category: { slug: string } | null }[] | null;
 }
 
 const SELECT =
-  "id,slug,title,tagline,description,type,price_vnd,original_price_vnd,cover_url,gallery,tags,min_plan,rating,rating_count,released_at,featured,is_new,is_popular,publisher:publishers(id,slug,name,avatar_url,verified),category:categories(slug)";
+  "id,slug,title,tagline,description,type,price_vnd,original_price_vnd,cover_url,gallery,tags,min_plan,tier,price_month,trial,trial_days,active,icon,rating,rating_count,released_at,featured,is_new,is_popular,publisher:publishers(id,slug,name,avatar_url,verified),category:categories(slug),categories:product_categories(category:categories(slug))";
 
 function mapRow(r: ProductRow): Product {
   return {
@@ -49,6 +56,9 @@ function mapRow(r: ProductRow): Product {
     description: r.description,
     type: r.type,
     categoryId: r.category?.slug ?? "",
+    categorySlugs: (r.categories ?? [])
+      .map((x) => x.category?.slug)
+      .filter((s): s is string => !!s),
     publisher: {
       id: r.publisher?.id ?? "",
       slug: r.publisher?.slug ?? "",
@@ -62,6 +72,12 @@ function mapRow(r: ProductRow): Product {
     gallery: r.gallery ?? [],
     tags: r.tags ?? [],
     minPlan: r.min_plan,
+    tier: r.tier ?? (r.min_plan === "pro" ? "pro" : "free"),
+    priceMonth: r.price_month ?? r.price_vnd ?? 0,
+    trial: r.trial ?? false,
+    trialDays: r.trial_days ?? 7,
+    active: r.active ?? true,
+    icon: r.icon ?? undefined,
     rating: Number(r.rating),
     ratingCount: r.rating_count,
     releasedAt: r.released_at,
@@ -81,8 +97,13 @@ const loadProducts = cache(async (): Promise<Product[]> => {
     .order("released_at", { ascending: false });
 
   if (error) throw new Error(`Lỗi tải sản phẩm: ${error.message}`);
-  return (data as unknown as ProductRow[]).map(mapRow);
+  return (data as unknown as ProductRow[]).map(mapRow).filter((p) => p.active);
 });
+
+/** true nếu product thuộc danh mục slug (chính hoặc phụ). */
+function inCategory(p: Product, slug: string): boolean {
+  return p.categoryId === slug || p.categorySlugs.includes(slug);
+}
 
 export async function getAllProducts(): Promise<Product[]> {
   return loadProducts();
@@ -95,7 +116,7 @@ export async function getProductBySlug(slug: string): Promise<Product | undefine
 
 export async function getProductsByCategory(categorySlug: string): Promise<Product[]> {
   const all = await loadProducts();
-  return all.filter((p) => p.categoryId === categorySlug);
+  return all.filter((p) => inCategory(p, categorySlug));
 }
 
 export async function getFeatured(): Promise<Product[]> {
@@ -120,6 +141,6 @@ export async function getPopular(): Promise<Product[]> {
 export async function getRelated(product: Product, limit = 4): Promise<Product[]> {
   const all = await loadProducts();
   return all
-    .filter((p) => p.id !== product.id && p.categoryId === product.categoryId)
+    .filter((p) => p.id !== product.id && inCategory(p, product.categoryId))
     .slice(0, limit);
 }
