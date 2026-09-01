@@ -26,7 +26,11 @@ export default async function PlayPage({
   const user = await getCurrentUser();
   if (!user) redirect(`/login?next=/play/${slug}`);
 
-  const owned = await canAccessProduct(user.id, { id: product.id, tier: product.tier });
+  const owned = await canAccessProduct(user.id, {
+    id: product.id,
+    tier: product.tier,
+    type: product.type,
+  });
   if (!owned) {
     return (
       <div className="mx-auto max-w-md px-4 py-16 text-center">

@@ -20,14 +20,20 @@ export async function GET(
   const supabase = createStoreAdminClient();
   const { data: product } = await supabase
     .from("products")
-    .select("download_path,tier")
+    .select("download_path,tier,type")
     .eq("id", productId)
     .maybeSingle();
   if (!product) {
     return new NextResponse("Sản phẩm không tồn tại.", { status: 404 });
   }
 
-  if (!(await canAccessProduct(user.id, { id: productId, tier: product.tier }))) {
+  if (
+    !(await canAccessProduct(user.id, {
+      id: productId,
+      tier: product.tier,
+      type: product.type,
+    }))
+  ) {
     return new NextResponse("Bạn chưa có quyền dùng sản phẩm này.", { status: 403 });
   }
 
