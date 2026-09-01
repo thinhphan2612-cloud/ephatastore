@@ -17,7 +17,7 @@ export default async function PlayPage({
   const supabase = createStoreAdminClient();
   const { data: product } = await supabase
     .from("products")
-    .select("id,title,type,tier,game_url,published")
+    .select("id,title,type,tier,price_month,game_url,published")
     .eq("slug", slug)
     .maybeSingle();
 
@@ -30,6 +30,7 @@ export default async function PlayPage({
     id: product.id,
     tier: product.tier,
     type: product.type,
+    priceMonth: product.price_month ?? 0,
   });
   if (!owned) {
     return (

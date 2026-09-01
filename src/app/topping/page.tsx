@@ -1,8 +1,11 @@
 import Link from "next/link";
 import { getSettings } from "@/data/settings";
 import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUserPlan } from "@/lib/plan";
+import { getBalance } from "@/data/wallet";
 import { hasActiveTopping } from "@/data/store-user";
-import { buyTopping } from "@/lib/actions/store";
+import { confirmPurchase } from "@/lib/actions/purchase";
+import { vndToPoints } from "@/lib/points";
 import { formatPrice } from "@/lib/format";
 
 export const metadata = { title: "Full Topping" };
@@ -17,8 +20,12 @@ const BENEFITS = [
 export default async function ToppingPage() {
   const { fullToppingPrice } = await getSettings();
   const annual = fullToppingPrice * 12;
+  const toppingPoints = vndToPoints(annual);
   const user = await getCurrentUser();
   const active = user ? await hasActiveTopping(user.id) : false;
+  const hasPro = user ? (await getCurrentUserPlan()) === "pro" : false;
+  const balance = user ? await getBalance(user.id) : 0;
+  const enough = balance >= toppingPoints;
 
   return (
     <div className="mx-auto w-[min(760px,calc(100%-40px))] py-[clamp(48px,8vw,90px)]">
@@ -38,12 +45,12 @@ export default async function ToppingPage() {
       <div className="mx-auto mt-9 max-w-[440px] rounded-3xl border border-accent/30 bg-gradient-to-br from-[#1b170f] to-[#0b1115] p-8">
         <div className="flex items-end gap-2">
           <span className="font-display text-[44px] font-bold text-accent">
-            {formatPrice(fullToppingPrice)}
+            {toppingPoints.toLocaleString("vi-VN")}
           </span>
-          <span className="pb-2 text-text-muted">/tháng</span>
+          <span className="pb-2 text-text-muted">point / năm</span>
         </div>
         <div className="mt-1 text-sm text-text-faint">
-          Thanh toán theo năm · <strong className="text-text">{formatPrice(annual)}/năm</strong>
+          ≈ {formatPrice(annual)} · 100đ = 1 point
         </div>
 
         <ul className="mt-6 space-y-2.5">
@@ -60,15 +67,33 @@ export default async function ToppingPage() {
             <div className="rounded-xl border border-success/40 bg-success/10 px-4 py-3 text-center font-semibold text-success">
               ✓ Full Topping đang bật
             </div>
-          ) : (
-            <form action={buyTopping}>
+          ) : hasPro ? (
+            <div className="rounded-xl border border-accent/40 bg-accent/10 px-4 py-3 text-center font-semibold text-accent">
+              Bạn đã có Pro Giáo Lý Số — dùng free mọi thứ, không cần Full Topping.
+            </div>
+          ) : !user || enough ? (
+            <form action={confirmPurchase}>
+              <input type="hidden" name="product_id" value="" />
+              <input type="hidden" name="kind" value="topping" />
               <button
                 type="submit"
                 className="w-full rounded-xl bg-accent px-4 py-3.5 font-extrabold text-accent-contrast hover:bg-accent-hover"
               >
-                Kích hoạt Full Topping →
+                Kích hoạt · {toppingPoints.toLocaleString("vi-VN")} point →
               </button>
             </form>
+          ) : (
+            <div className="text-center">
+              <p className="text-sm text-warn">
+                Không đủ point (thiếu {(toppingPoints - balance).toLocaleString("vi-VN")}).
+              </p>
+              <Link
+                href="/wallet"
+                className="mt-3 inline-block rounded-xl bg-accent px-5 py-2.5 font-semibold text-accent-contrast hover:bg-accent-hover"
+              >
+                Nạp point →
+              </Link>
+            </div>
           )}
           {!user && (
             <p className="mt-2 text-center text-xs text-text-faint">

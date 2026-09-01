@@ -4,10 +4,10 @@ import { getProductBySlug, getRelated } from "@/data/products";
 import { CATEGORY_BY_ID } from "@/data/categories";
 import { getCurrentUser } from "@/lib/auth";
 import { getCurrentUserPlan } from "@/lib/plan";
-import { getGiaolyContext } from "@/lib/giaoly-context";
 import { isOwned, hasActiveTopping } from "@/data/store-user";
 import { getSettings } from "@/data/settings";
-import { claimProduct, startTrial, claimFreedom } from "@/lib/actions/store";
+import { claimProduct, startTrial } from "@/lib/actions/store";
+import { vndToPoints } from "@/lib/points";
 import { formatPrice } from "@/lib/format";
 import { TYPE_LABEL } from "@/lib/labels";
 import { OwnedActions } from "@/components/owned-actions";
@@ -41,14 +41,16 @@ export default async function ProductPage({
 
   const user = await getCurrentUser();
   const plan = user ? await getCurrentUserPlan() : "free";
-  const linked = user ? !!(await getGiaolyContext()) : false;
   const ownedEnt = user ? await isOwned(user.id, product.id) : false;
   const topping = user && !isGame && isProTier ? await hasActiveTopping(user.id) : false;
 
   const annual = product.priceMonth * 12;
+  const annualPoints = vndToPoints(annual);
+  const freedomPoints = vndToPoints(product.priceMonth);
+  const gamePoints = vndToPoints(product.priceMonth);
   const { freedomDays } = await getSettings();
-  const giaolyUrl = process.env.NEXT_PUBLIC_APP_GIAOLY_URL ?? "#";
   const hasPro = plan === "pro";
+  const isFreeGame = isGame && !isProTier && product.priceMonth <= 0;
 
   return (
     <div className="mx-auto w-[min(1180px,calc(100%-40px))] py-10">
@@ -144,24 +146,31 @@ export default async function ProductPage({
                 </div>
               </>
             ) : isGame ? (
-              /* ===== GAME: free với Pro Giáo Lý Số ===== */
+              /* ===== GAME: Pro Giáo Lý Số free, còn lại mua bằng point ===== */
               <>
                 <div className="mt-5 rounded-2xl border border-border bg-white/[0.03] p-4 text-sm">
                   <div className="font-semibold text-text">Game trên Ephata Store</div>
                   <p className="mt-1 text-text-muted">
                     {hasPro
                       ? "Bạn có gói Pro Giáo Lý Số — chơi miễn phí và thêm được vào Giáo Lý Số."
-                      : "Miễn phí với gói Pro Giáo Lý Số (admin hoặc GLV)."}
+                      : isFreeGame
+                        ? "Game miễn phí — chơi ngay."
+                        : "Có Pro Giáo Lý Số thì chơi miễn phí, hoặc mua bằng point."}
                   </p>
                 </div>
                 <div className="mt-5 space-y-2">
-                  {hasPro ? (
+                  {hasPro || ownedEnt || isFreeGame ? (
                     <>
                       <OwnedActions product={product} className="w-full" />
-                      <AddToGiaolyButton productId={product.id} />
+                      {hasPro && <AddToGiaolyButton productId={product.id} />}
                     </>
                   ) : (
-                    <GiaolyGate user={!!user} linked={linked} giaolyUrl={giaolyUrl} slug={product.slug} />
+                    <Link
+                      href={`/buy/${product.id}?kind=game`}
+                      className="block w-full rounded-xl bg-accent px-4 py-3 text-center font-extrabold text-accent-contrast hover:bg-accent-hover"
+                    >
+                      Mua bằng point · {gamePoints.toLocaleString("vi-VN")} point →
+                    </Link>
                   )}
                 </div>
               </>
@@ -192,19 +201,22 @@ export default async function ProductPage({
               <>
                 <div className="mt-5 grid grid-cols-2 gap-3 rounded-2xl border border-border bg-white/[0.03] p-4">
                   <div>
-                    <span className="mb-1.5 block text-[11px] text-text-faint">Giá sử dụng</span>
+                    <span className="mb-1.5 block text-[11px] text-text-faint">Gói năm</span>
                     <b className="text-[27px]">
-                      {formatPrice(product.priceMonth)}
-                      <small className="text-xs font-semibold text-text-muted">/tháng</small>
+                      {annualPoints.toLocaleString("vi-VN")}
+                      <small className="ml-1 text-xs font-semibold text-text-muted">point</small>
                     </b>
                   </div>
                   <div className="border-l border-border pl-4 text-xs leading-5 text-text-muted">
-                    Thanh toán theo năm ·{" "}
-                    <strong className="text-text">{formatPrice(annual)}/năm</strong>
+                    {hasPro ? (
+                      <strong className="text-accent">Miễn phí với Pro Giáo Lý Số</strong>
+                    ) : (
+                      <>≈ {formatPrice(annual)} · 100đ = 1 point</>
+                    )}
                   </div>
                 </div>
                 <div className="mt-5 space-y-2">
-                  {ownedEnt || topping ? (
+                  {hasPro || ownedEnt || topping ? (
                     <>
                       <OwnedActions product={product} className="w-full" />
                       <Link href="/library" className="block text-center text-xs text-text-faint hover:text-text">
@@ -213,20 +225,18 @@ export default async function ProductPage({
                     </>
                   ) : (
                     <>
-                      <form action={claimProduct}>
-                        <input type="hidden" name="product_id" value={product.id} />
-                        <input type="hidden" name="slug" value={product.slug} />
-                        <button type="submit" className="w-full rounded-xl bg-accent px-4 py-3 font-extrabold text-accent-contrast hover:bg-accent-hover">
-                          Mua gói năm →
-                        </button>
-                      </form>
-                      <form action={claimFreedom}>
-                        <input type="hidden" name="product_id" value={product.id} />
-                        <input type="hidden" name="slug" value={product.slug} />
-                        <button type="submit" className="w-full rounded-xl border border-border-strong bg-white/5 px-4 py-3 text-sm font-bold text-text hover:border-accent/50">
-                          Mua lẻ {freedomDays} ngày · {formatPrice(product.priceMonth)}
-                        </button>
-                      </form>
+                      <Link
+                        href={`/buy/${product.id}?kind=annual`}
+                        className="block w-full rounded-xl bg-accent px-4 py-3 text-center font-extrabold text-accent-contrast hover:bg-accent-hover"
+                      >
+                        Mua gói năm · {annualPoints.toLocaleString("vi-VN")} point →
+                      </Link>
+                      <Link
+                        href={`/buy/${product.id}?kind=freedom`}
+                        className="block w-full rounded-xl border border-border-strong bg-white/5 px-4 py-3 text-center text-sm font-bold text-text hover:border-accent/50"
+                      >
+                        Mua lẻ {freedomDays} ngày · {freedomPoints.toLocaleString("vi-VN")} point
+                      </Link>
                       {product.trial && (
                         <form action={startTrial}>
                           <input type="hidden" name="product_id" value={product.id} />
@@ -254,46 +264,5 @@ export default async function ProductPage({
         </div>
       )}
     </div>
-  );
-}
-
-function GiaolyGate({
-  user,
-  linked,
-  giaolyUrl,
-  slug,
-}: {
-  user: boolean;
-  linked: boolean;
-  giaolyUrl: string;
-  slug: string;
-}) {
-  if (!user) {
-    return (
-      <Link
-        href={`/login?next=/product/${slug}`}
-        className="block w-full rounded-xl bg-accent px-4 py-3 text-center font-extrabold text-accent-contrast hover:bg-accent-hover"
-      >
-        Đăng nhập để chơi →
-      </Link>
-    );
-  }
-  if (!linked) {
-    return (
-      <>
-        <Link href="/account" className="block w-full rounded-xl bg-accent px-4 py-3 text-center font-extrabold text-accent-contrast hover:bg-accent-hover">
-          Liên kết Giáo Lý Số →
-        </Link>
-        <p className="text-center text-xs text-text-faint">Cần liên kết Giáo Lý Số (có Pro) để chơi.</p>
-      </>
-    );
-  }
-  return (
-    <>
-      <a href={giaolyUrl} className="block w-full rounded-xl bg-accent px-4 py-3 text-center font-extrabold text-accent-contrast hover:bg-accent-hover">
-        Nâng cấp gói Pro Giáo Lý Số →
-      </a>
-      <p className="text-center text-xs text-text-faint">Tài khoản của bạn chưa có Pro Giáo Lý Số.</p>
-    </>
   );
 }
