@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { adminListProducts } from "@/data/admin";
-import { updateProductConfig } from "@/lib/actions/admin";
+import { updateProductConfig, deleteProduct } from "@/lib/actions/admin";
+import { ConfirmSubmit } from "@/components/admin/confirm-submit";
 
 const input =
   "rounded-md border border-border bg-bg-elevated px-2 py-1 text-sm text-text focus:border-accent focus:outline-none";
@@ -87,12 +88,23 @@ export default async function AdminProductsPage() {
                   </form>
                 </td>
                 <td className="px-3 py-2">
-                  <Link
-                    href={`/admin/products/${p.id}/edit`}
-                    className="text-brand hover:text-brand-hover"
-                  >
-                    Sửa
-                  </Link>
+                  <div className="flex items-center gap-3">
+                    <Link
+                      href={`/admin/products/${p.id}/edit`}
+                      className="text-brand hover:text-brand-hover"
+                    >
+                      Sửa
+                    </Link>
+                    <form action={deleteProduct}>
+                      <input type="hidden" name="id" value={p.id} />
+                      <ConfirmSubmit
+                        confirm={`Xóa "${p.title}"? Hành động này không hoàn tác được. File host (nếu có) cũng bị xóa.`}
+                        className="text-text-faint hover:text-danger"
+                      >
+                        Xóa
+                      </ConfirmSubmit>
+                    </form>
+                  </div>
                 </td>
               </tr>
             ))}

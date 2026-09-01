@@ -129,14 +129,56 @@ export async function saveProduct(
   redirect("/admin");
 }
 
+const GAMES_BUCKET = "games";
+
+/** Xóa đệ quy mọi file trong 1 thư mục của bucket (best-effort). */
+async function removeStorageFolder(
+  supabase: ReturnType<typeof createStoreAdminClient>,
+  bucket: string,
+  prefix: string
+) {
+  const { data } = await supabase.storage.from(bucket).list(prefix, { limit: 1000 });
+  if (!data?.length) return;
+  const files: string[] = [];
+  const folders: string[] = [];
+  for (const item of data) {
+    // Supabase trả thư mục với id === null.
+    if (item.id === null) folders.push(`${prefix}/${item.name}`);
+    else files.push(`${prefix}/${item.name}`);
+  }
+  if (files.length) await supabase.storage.from(bucket).remove(files);
+  for (const f of folders) await removeStorageFolder(supabase, bucket, f);
+}
+
 export async function deleteProduct(formData: FormData) {
   await assertAdmin();
   const id = String(formData.get("id") ?? "").trim();
   if (!id) return;
 
   const supabase = createStoreAdminClient();
+
+  // Lấy thông tin để dọn Storage sau khi xóa row.
+  const { data: prod } = await supabase
+    .from("products")
+    .select("game_url,download_path")
+    .eq("id", id)
+    .maybeSingle();
+
+  // Xóa row (entitlements + product_categories cascade; order_items RESTRICT sẽ chặn).
   const { error } = await supabase.from("products").delete().eq("id", id);
-  if (error) throw new Error(error.message);
+  if (error) {
+    if (error.code === "23503")
+      throw new Error(
+        "Sản phẩm đã nằm trong đơn hàng nên không xóa cứng được. Hãy bỏ tích 'Hiện' để ẩn khỏi store."
+      );
+    throw new Error(error.message);
+  }
+
+  // Dọn Storage (best-effort): thư mục game/tool host + file tải về.
+  const gameId = prod?.game_url?.match(/^\/g\/([^/]+)\//)?.[1];
+  if (gameId) await removeStorageFolder(supabase, GAMES_BUCKET, gameId);
+  if (prod?.download_path)
+    await supabase.storage.from(FILES_BUCKET).remove([prod.download_path]);
 
   revalidatePath("/admin");
   redirect("/admin");
