@@ -2,20 +2,24 @@ import { VND_PER_POINT } from "@/lib/points";
 
 /**
  * Bảng giá AI → point. Chỉnh mọi tham số ở đây.
- * Giá gốc gemini-3.1-pro (USD/1M token), có ngưỡng ngữ cảnh dài:
- *  - ≤ 200k token:  input $2  / output $12
- *  - > 200k token:  input $4  / output $18  (toàn bộ request tính mức cao)
+ * Dùng gemini-3.5-flash (chạy được free tier — Felix chưa bật billing).
+ *
+ * ⚠️ GIÁ GỐC FLASH DƯỚI ĐÂY LÀ TẠM (theo bậc Flash) — cần xác nhận giá chính thức
+ * của gemini-3.5-flash rồi chỉnh lại. Khi còn trong hạn mức free tier thì thực tế
+ * Google không thu tiền; giá này để tính point user + đúng khi vượt free tier.
+ * Lưu ý: output GỒM CẢ thinking tokens (model này "suy nghĩ" tốn token).
+ *
  * Giá user = giá gốc × MARKUP, quy VND theo USD_TO_VND, rồi ra point.
  */
-export const AI_MODEL = "gemini-3.1-pro-preview";
+export const AI_MODEL = "gemini-3.5-flash";
 
-/** Trần output token mặc định (giới hạn chi phí + estimate). Request có thể xin thấp hơn. */
-export const DEFAULT_MAX_OUTPUT_TOKENS = 8192;
+/** Trần output token mặc định (gồm cả thinking). Đủ lớn để câu trả lời không bị cụt. */
+export const DEFAULT_MAX_OUTPUT_TOKENS = 16384;
 
 const CONTEXT_THRESHOLD = 200_000;
 const RATE = {
-  standard: { input: 2, output: 12 }, // USD / 1M token
-  long: { input: 4, output: 18 },
+  standard: { input: 0.3, output: 2.5 }, // USD / 1M token — TẠM, xác nhận lại
+  long: { input: 0.6, output: 5.0 },
 };
 const MARKUP = 5;
 export const USD_TO_VND = 26_000;
