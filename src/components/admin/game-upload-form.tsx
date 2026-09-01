@@ -45,6 +45,7 @@ export function GameUploadForm({
   categories: { id: string; name: string; slug: string }[];
 }) {
   const router = useRouter();
+  const [kind, setKind] = useState<"game" | "tool">("game");
   const [title, setTitle] = useState("");
   const [categorySlug, setCategorySlug] = useState("game-store");
   const [tier, setTier] = useState<"free" | "pro">("free");
@@ -80,7 +81,8 @@ export function GameUploadForm({
 
       const files = entries
         .filter((f) => f.name.startsWith(base))
-        .map((f) => ({ rel: f.name.slice(base.length), entry: f }))
+        // chuẩn hoá "\" -> "/" để zip nén trên Windows không hỏng đường dẫn con
+        .map((f) => ({ rel: f.name.slice(base.length).replace(/\\/g, "/"), entry: f }))
         .filter((f) => f.rel.length > 0);
 
       setProgress("Đang chuẩn bị tải lên…");
@@ -128,6 +130,7 @@ export function GameUploadForm({
         priceMonth: price,
         description: desc,
         coverPath,
+        kind,
       });
 
       router.push(`/product/${slug}`);
@@ -140,7 +143,17 @@ export function GameUploadForm({
   return (
     <form onSubmit={onSubmit} className="max-w-xl space-y-4">
       <label className="block">
-        <span className="mb-1 block text-sm text-text-muted">Tên game *</span>
+        <span className="mb-1 block text-sm text-text-muted">Loại nội dung</span>
+        <select value={kind} onChange={(e) => setKind(e.target.value as "game" | "tool")} className={input}>
+          <option value="game">Game (có thể gate Pro)</option>
+          <option value="tool">Công cụ web (mở tự do)</option>
+        </select>
+      </label>
+
+      <label className="block">
+        <span className="mb-1 block text-sm text-text-muted">
+          Tên {kind === "tool" ? "công cụ" : "game"} *
+        </span>
         <input value={title} onChange={(e) => setTitle(e.target.value)} className={input} />
       </label>
 
@@ -155,16 +168,18 @@ export function GameUploadForm({
             ))}
           </select>
         </label>
-        <label className="block">
-          <span className="mb-1 block text-sm text-text-muted">Tier</span>
-          <select value={tier} onChange={(e) => setTier(e.target.value as "free" | "pro")} className={input}>
-            <option value="free">FREE</option>
-            <option value="pro">PRO</option>
-          </select>
-        </label>
+        {kind === "game" && (
+          <label className="block">
+            <span className="mb-1 block text-sm text-text-muted">Tier</span>
+            <select value={tier} onChange={(e) => setTier(e.target.value as "free" | "pro")} className={input}>
+              <option value="free">FREE</option>
+              <option value="pro">PRO</option>
+            </select>
+          </label>
+        )}
       </div>
 
-      {tier === "pro" && (
+      {kind === "game" && tier === "pro" && (
         <label className="block">
           <span className="mb-1 block text-sm text-text-muted">Giá/tháng (VND)</span>
           <input type="number" min={0} step={1000} value={price} onChange={(e) => setPrice(Number(e.target.value))} className={input} />

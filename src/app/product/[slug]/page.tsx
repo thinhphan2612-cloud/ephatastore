@@ -36,6 +36,7 @@ export default async function ProductPage({
   const category = CATEGORY_BY_ID.get(product.categoryId);
   const related = await getRelated(product);
   const isGame = product.type === "game";
+  const isHostedTool = product.type === "tool" && !!product.gameUrl;
   const isProTier = product.tier === "pro";
 
   const user = await getCurrentUser();
@@ -103,7 +104,7 @@ export default async function ProductPage({
                   isProTier ? "border-accent text-accent" : "border-success text-success"
                 }`}
               >
-                {isGame ? "GAME" : isProTier ? "PRO" : "FREE"}
+                {isHostedTool ? "CÔNG CỤ" : isGame ? "GAME" : isProTier ? "PRO" : "FREE"}
               </span>
             </div>
             <div className="mb-1 text-xs uppercase tracking-[0.13em] text-text-faint">
@@ -112,7 +113,37 @@ export default async function ProductPage({
             <h1 className="font-display text-[26px] font-bold">{product.title}</h1>
             <p className="mt-1 text-text-muted">{product.tagline}</p>
 
-            {isGame ? (
+            {isHostedTool ? (
+              /* ===== CÔNG CỤ WEB host nội bộ: mở tự do, AI trừ point ===== */
+              <>
+                <div className="mt-5 rounded-2xl border border-border bg-white/[0.03] p-4 text-sm">
+                  <div className="font-semibold text-text">Công cụ web trên Ephata Store</div>
+                  <p className="mt-1 text-text-muted">
+                    Mở và dùng trực tiếp trong store. Tác vụ AI sẽ trừ point trong Ví của bạn.
+                  </p>
+                </div>
+                <div className="mt-5 space-y-2">
+                  {user ? (
+                    <Link
+                      href={`/play/${product.slug}`}
+                      className="block w-full rounded-xl bg-accent px-4 py-3 text-center font-extrabold text-accent-contrast hover:bg-accent-hover"
+                    >
+                      Mở công cụ →
+                    </Link>
+                  ) : (
+                    <Link
+                      href={`/login?next=/play/${product.slug}`}
+                      className="block w-full rounded-xl bg-accent px-4 py-3 text-center font-extrabold text-accent-contrast hover:bg-accent-hover"
+                    >
+                      Đăng nhập để dùng →
+                    </Link>
+                  )}
+                  <Link href="/wallet" className="block text-center text-xs text-text-faint hover:text-text">
+                    Nạp point cho tác vụ AI →
+                  </Link>
+                </div>
+              </>
+            ) : isGame ? (
               /* ===== GAME: free với Pro Giáo Lý Số ===== */
               <>
                 <div className="mt-5 rounded-2xl border border-border bg-white/[0.03] p-4 text-sm">

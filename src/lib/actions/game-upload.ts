@@ -46,6 +46,7 @@ export interface SaveGameInput {
   priceMonth: number;
   description?: string;
   coverPath?: string; // rel trong bucket, vd "__cover.png" (đã upload); trống nếu không có
+  kind?: "game" | "tool"; // 'tool' = web app host nội bộ, mở tự do (không gate Pro)
 }
 
 /** Tạo sản phẩm game sau khi đã upload xong file. */
@@ -76,9 +77,11 @@ export async function saveGameProduct(input: SaveGameInput): Promise<{ slug: str
         .getPublicUrl(`${input.gameId}/${input.coverPath}`).data.publicUrl
     : null;
 
-  const baseSlug = slugify(input.title) || "game";
+  const isTool = input.kind === "tool";
+  const baseSlug = slugify(input.title) || (isTool ? "cong-cu" : "game");
   const slug = `${baseSlug}-${input.gameId.slice(0, 6)}`;
-  const tier = input.tier === "pro" ? "pro" : "free";
+  // Công cụ web: mở tự do (tier free); Game: theo tier chọn.
+  const tier = isTool ? "free" : input.tier === "pro" ? "pro" : "free";
   const price = tier === "pro" ? Math.max(0, input.priceMonth) : 0;
   const desc = input.description?.trim() || input.title;
 
@@ -87,7 +90,7 @@ export async function saveGameProduct(input: SaveGameInput): Promise<{ slug: str
     title: input.title,
     tagline: desc.slice(0, 140),
     description: desc,
-    type: "game",
+    type: isTool ? "tool" : "game",
     category_id: cat.id,
     publisher_id: pub?.id ?? null,
     tier,
@@ -98,7 +101,7 @@ export async function saveGameProduct(input: SaveGameInput): Promise<{ slug: str
     trial_days: 7,
     active: true,
     published: true,
-    icon: "◈",
+    icon: isTool ? "🛠" : "◈",
     game_url: gameUrl,
     cover_url: coverUrl,
     is_new: true,

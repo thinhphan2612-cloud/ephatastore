@@ -69,6 +69,8 @@ export interface Product {
   icon?: string;
   /** URL mở tiện ích web-app (tool/feature) khi đã sở hữu */
   appUrl?: string;
+  /** đường dẫn app host trên store (/g/<id>/index.html) — game hoặc công cụ web */
+  gameUrl?: string;
 
   /** 0..5 */
   rating: number;
