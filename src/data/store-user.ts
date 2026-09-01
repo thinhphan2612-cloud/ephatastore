@@ -100,55 +100,6 @@ export async function getMyLibrary(userId: string): Promise<Product[]> {
     .map(mapRow);
 }
 
-export interface OrderView {
-  id: string;
-  status: string;
-  order_code: string | null;
-  subtotal_vnd: number;
-  discount_code: string | null;
-  discount_vnd: number;
-  total_vnd: number;
-  created_at: string;
-  items: { title: string; slug: string; unit_price_vnd: number }[];
-}
-
-/** Đơn hàng của user (kiểm tra sở hữu qua giaoly_user_id). null nếu không thuộc user. */
-export async function getOrderForUser(
-  orderId: string,
-  userId: string
-): Promise<OrderView | null> {
-  const supabase = createStoreAdminClient();
-  const { data, error } = await supabase
-    .from("orders")
-    .select(
-      "id,status,order_code,subtotal_vnd,discount_code,discount_vnd,total_vnd,created_at,store_user_id,order_items(unit_price_vnd,product:products(title,slug))"
-    )
-    .eq("id", orderId)
-    .maybeSingle();
-  if (error) throw new Error(error.message);
-  if (!data || data.store_user_id !== userId) return null;
-
-  type ItemRow = {
-    unit_price_vnd: number;
-    product: { title: string; slug: string } | null;
-  };
-  return {
-    id: data.id,
-    status: data.status,
-    order_code: data.order_code ?? null,
-    subtotal_vnd: data.subtotal_vnd ?? data.total_vnd,
-    discount_code: data.discount_code ?? null,
-    discount_vnd: data.discount_vnd ?? 0,
-    total_vnd: data.total_vnd,
-    created_at: data.created_at,
-    items: ((data.order_items ?? []) as unknown as ItemRow[]).map((it) => ({
-      title: it.product?.title ?? "Sản phẩm",
-      slug: it.product?.slug ?? "",
-      unit_price_vnd: it.unit_price_vnd,
-    })),
-  };
-}
-
 /** true nếu user đang có Full Topping (all-access) còn hạn. */
 export async function hasActiveTopping(userId: string): Promise<boolean> {
   const supabase = createStoreAdminClient();

@@ -11,7 +11,7 @@ import { adjustPoints, InsufficientPointsError } from "@/lib/ai/wallet-ops";
 
 const YEAR_DAYS = 365;
 
-export type PurchaseKind = "annual" | "freedom" | "topping" | "game";
+export type PurchaseKind = "annual" | "freedom" | "topping" | "perpetual";
 
 /** Số point cần trả cho một lượt mua (0 nếu free). */
 export async function purchasePricePoints(
@@ -23,13 +23,13 @@ export async function purchasePricePoints(
     return vndToPoints(fullToppingPrice * 12);
   }
   if (kind === "annual") return vndToPoints(priceMonth * 12);
-  // freedom | game → giá 1 tháng
+  // freedom | perpetual → giá 1 tháng
   return vndToPoints(priceMonth);
 }
 
 /**
  * Mua bằng point + cấp quyền ngay. Pro Giáo Lý Số → kích hoạt miễn phí.
- * kind: annual (365 ngày) | freedom (N ngày) | game (vĩnh viễn) | topping (all-access 365 ngày).
+ * kind: annual (365 ngày) | freedom (N ngày) | perpetual (vĩnh viễn: game, file tải về) | topping (all-access 365 ngày).
  */
 export async function confirmPurchase(formData: FormData) {
   const user = await getCurrentUser();
@@ -77,7 +77,7 @@ export async function confirmPurchase(formData: FormData) {
     if (error) throw new Error(error.message);
   } else {
     const expires =
-      kind === "game"
+      kind === "perpetual"
         ? null
         : new Date(
             Date.now() +

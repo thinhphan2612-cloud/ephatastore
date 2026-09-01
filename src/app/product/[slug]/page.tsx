@@ -48,9 +48,11 @@ export default async function ProductPage({
   const annualPoints = vndToPoints(annual);
   const freedomPoints = vndToPoints(product.priceMonth);
   const gamePoints = vndToPoints(product.priceMonth);
+  const perpetualPoints = vndToPoints(product.priceMonth);
   const { freedomDays } = await getSettings();
   const hasPro = plan === "pro";
   const isFreeGame = isGame && !isProTier && product.priceMonth <= 0;
+  const isDownloadable = product.type === "asset" || product.type === "image";
 
   return (
     <div className="mx-auto w-[min(1180px,calc(100%-40px))] py-10">
@@ -166,7 +168,7 @@ export default async function ProductPage({
                     </>
                   ) : (
                     <Link
-                      href={`/buy/${product.id}?kind=game`}
+                      href={`/buy/${product.id}?kind=perpetual`}
                       className="block w-full rounded-xl bg-accent px-4 py-3 text-center font-extrabold text-accent-contrast hover:bg-accent-hover"
                     >
                       Mua bằng point · {gamePoints.toLocaleString("vi-VN")} point →
@@ -196,8 +198,40 @@ export default async function ProductPage({
                   )}
                 </div>
               </>
+            ) : isDownloadable ? (
+              /* ===== FILE TẢI VỀ: mua vĩnh viễn ===== */
+              <>
+                <div className="mt-5 grid grid-cols-2 gap-3 rounded-2xl border border-border bg-white/[0.03] p-4">
+                  <div>
+                    <span className="mb-1.5 block text-[11px] text-text-faint">Mua vĩnh viễn</span>
+                    <b className="text-[27px]">
+                      {perpetualPoints.toLocaleString("vi-VN")}
+                      <small className="ml-1 text-xs font-semibold text-text-muted">point</small>
+                    </b>
+                  </div>
+                  <div className="border-l border-border pl-4 text-xs leading-5 text-text-muted">
+                    {hasPro ? (
+                      <strong className="text-accent">Miễn phí với Pro Giáo Lý Số</strong>
+                    ) : (
+                      <>≈ {formatPrice(product.priceMonth)} · tải về dùng mãi</>
+                    )}
+                  </div>
+                </div>
+                <div className="mt-5 space-y-2">
+                  {hasPro || ownedEnt ? (
+                    <OwnedActions product={product} className="w-full" />
+                  ) : (
+                    <Link
+                      href={`/buy/${product.id}?kind=perpetual`}
+                      className="block w-full rounded-xl bg-accent px-4 py-3 text-center font-extrabold text-accent-contrast hover:bg-accent-hover"
+                    >
+                      Mua · {perpetualPoints.toLocaleString("vi-VN")} point (vĩnh viễn) →
+                    </Link>
+                  )}
+                </div>
+              </>
             ) : (
-              /* ===== SẢN PHẨM PRO (mua trên store) ===== */
+              /* ===== SẢN PHẨM PRO (tool/feature — thuê bao) ===== */
               <>
                 <div className="mt-5 grid grid-cols-2 gap-3 rounded-2xl border border-border bg-white/[0.03] p-4">
                   <div>

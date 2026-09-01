@@ -12,7 +12,7 @@ export const metadata = { title: "Xác nhận mua" };
 const KIND_LABEL: Record<PurchaseKind, string> = {
   annual: "Gói năm (365 ngày)",
   freedom: "Mua lẻ",
-  game: "Mua vĩnh viễn",
+  perpetual: "Mua vĩnh viễn",
   topping: "Full Topping",
 };
 
@@ -25,7 +25,7 @@ export default async function BuyPage({
 }) {
   const { productId } = await params;
   const { kind: kindRaw } = await searchParams;
-  const kind = (["annual", "freedom", "game"].includes(kindRaw ?? "")
+  const kind = (["annual", "freedom", "perpetual"].includes(kindRaw ?? "")
     ? kindRaw
     : "annual") as PurchaseKind;
 
