@@ -18,12 +18,6 @@ export default async function AdminProductsPage() {
         </h2>
         <div className="flex items-center gap-2">
           <Link
-            href="/admin/games/new"
-            className="rounded-md border border-accent/50 px-4 py-2 text-sm font-semibold text-accent hover:bg-accent/10"
-          >
-            ◈ Tải lên game
-          </Link>
-          <Link
             href="/admin/products/new"
             className="rounded-md bg-accent px-4 py-2 text-sm font-semibold text-accent-contrast hover:bg-accent-hover"
           >

@@ -7,16 +7,28 @@ import type { AdminProductDetail } from "@/data/admin";
 import { TYPE_LABEL } from "@/lib/labels";
 import type { ProductType } from "@/lib/types";
 
-const TYPES: ProductType[] = ["tool", "game", "asset", "image", "feature"];
+const ALL_TYPES: ProductType[] = ["tool", "game", "asset", "image", "feature"];
+
+/** Preset quyết định form hiện field nào. 'full' = đủ (dùng khi sửa). */
+export type ProductPreset = "download" | "link" | "feature" | "full";
+
+const PRESET_TYPES: Record<ProductPreset, ProductType[]> = {
+  download: ["asset", "image"],
+  link: ["tool", "feature"],
+  feature: ["feature"],
+  full: ALL_TYPES,
+};
 
 export function ProductForm({
   categories,
   publishers,
   product,
+  preset = "full",
 }: {
   categories: { id: string; name: string }[];
   publishers: { id: string; name: string }[];
   product?: AdminProductDetail | null;
+  preset?: ProductPreset;
 }) {
   const [state, formAction, pending] = useActionState<SaveState, FormData>(
     saveProduct,
@@ -24,6 +36,12 @@ export function ProductForm({
   );
 
   const p = product;
+  const types = PRESET_TYPES[preset];
+  const showDownload = preset === "download" || preset === "full";
+  const showLink = preset === "link" || preset === "full";
+  const showFeature = preset === "feature" || preset === "full";
+  const showGameUrl = preset === "full";
+  const defaultType = p?.type ?? types[0];
 
   return (
     <form action={formAction} className="space-y-5">
@@ -38,8 +56,8 @@ export function ProductForm({
           <input name="slug" defaultValue={p?.slug} className={input} placeholder="tu-dong" />
         </Field>
         <Field label="Loại *">
-          <select name="type" defaultValue={p?.type ?? "tool"} className={input}>
-            {TYPES.map((t) => (
+          <select name="type" defaultValue={defaultType} className={input}>
+            {types.map((t) => (
               <option key={t} value={t}>
                 {TYPE_LABEL[t]}
               </option>
@@ -133,34 +151,42 @@ export function ProductForm({
       </Field>
 
       <div className="rounded-lg border border-border bg-surface-hover/40 p-4">
-        <div className="mb-3 text-sm font-semibold text-text">Giao hàng (tuỳ loại)</div>
+        <div className="mb-3 text-sm font-semibold text-text">Giao hàng</div>
 
-        <Field label="File tải về (asset / ảnh / tool) — bucket riêng tư">
-          {p?.download_path && (
-            <div className="mb-2 text-xs text-text-muted">
-              File hiện tại: <code className="text-text">{p.download_path.split("/").pop()}</code>
-            </div>
-          )}
-          <input
-            type="file"
-            name="download_file"
-            className="block w-full text-sm text-text-muted file:mr-3 file:rounded-md file:border-0 file:bg-surface file:px-3 file:py-1.5 file:text-text hover:file:bg-surface-hover"
-          />
-          <span className="mt-1 block text-xs text-text-faint">
-            Tối đa 50MB. Chỉ người đã mua mới tải được (link ký có hạn).
-          </span>
-        </Field>
+        {showDownload && (
+          <Field label="File tải về — bucket riêng tư (PDF / DOCX / ảnh / zip)">
+            {p?.download_path && (
+              <div className="mb-2 text-xs text-text-muted">
+                File hiện tại: <code className="text-text">{p.download_path.split("/").pop()}</code>
+              </div>
+            )}
+            <input
+              type="file"
+              name="download_file"
+              className="block w-full text-sm text-text-muted file:mr-3 file:rounded-md file:border-0 file:bg-surface file:px-3 file:py-1.5 file:text-text hover:file:bg-surface-hover"
+            />
+            <span className="mt-1 block text-xs text-text-faint">
+              Tối đa 50MB. Chỉ người đã mua mới tải được (link ký có hạn).
+            </span>
+          </Field>
+        )}
 
         <div className="mt-4 grid gap-5 sm:grid-cols-2">
-          <Field label="URL game (loại game) — nhúng ở /play">
-            <input name="game_url" defaultValue={p?.game_url ?? ""} className={input} placeholder="https://…" />
-          </Field>
-          <Field label="URL app (tool/feature) — mở khi đã sở hữu">
-            <input name="app_url" defaultValue={p?.app_url ?? ""} className={input} placeholder="https://…" />
-          </Field>
-          <Field label="Feature key (loại tính năng)">
-            <input name="giaoly_feature_key" defaultValue={p?.giaoly_feature_key ?? ""} className={input} placeholder="vd: lich_phung_vu" />
-          </Field>
+          {showGameUrl && (
+            <Field label="URL game (loại game) — nhúng ở /play">
+              <input name="game_url" defaultValue={p?.game_url ?? ""} className={input} placeholder="/g/…/index.html" />
+            </Field>
+          )}
+          {showLink && (
+            <Field label="URL app ngoài — mở khi đã sở hữu">
+              <input name="app_url" defaultValue={p?.app_url ?? ""} className={input} placeholder="https://…" />
+            </Field>
+          )}
+          {showFeature && (
+            <Field label="Feature key (bật tính năng bên Giáo Lý Số)">
+              <input name="giaoly_feature_key" defaultValue={p?.giaoly_feature_key ?? ""} className={input} placeholder="vd: lich_phung_vu" />
+            </Field>
+          )}
         </div>
       </div>
 
