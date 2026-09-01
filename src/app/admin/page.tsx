@@ -16,12 +16,20 @@ export default async function AdminProductsPage() {
           Sản phẩm <span className="text-text-faint">({products.length})</span>{" "}
           <span className="text-sm text-text-muted">· {pro} PRO / {products.length - pro} FREE</span>
         </h2>
-        <Link
-          href="/admin/products/new"
-          className="rounded-md bg-accent px-4 py-2 text-sm font-semibold text-accent-contrast hover:bg-accent-hover"
-        >
-          + Thêm sản phẩm
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link
+            href="/admin/games/new"
+            className="rounded-md border border-accent/50 px-4 py-2 text-sm font-semibold text-accent hover:bg-accent/10"
+          >
+            ◈ Tải lên game
+          </Link>
+          <Link
+            href="/admin/products/new"
+            className="rounded-md bg-accent px-4 py-2 text-sm font-semibold text-accent-contrast hover:bg-accent-hover"
+          >
+            + Thêm sản phẩm
+          </Link>
+        </div>
       </div>
 
       <div className="overflow-x-auto rounded-lg border border-border">
