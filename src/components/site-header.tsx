@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getCurrentUser, isAdminEmail } from "@/lib/auth";
 import { getCurrentUserPlan } from "@/lib/plan";
+import { getBalance } from "@/data/wallet";
 import { signOut } from "@/lib/actions/auth";
 import { ThemeToggle } from "@/components/theme-toggle";
 
@@ -8,6 +9,7 @@ export async function SiteHeader() {
   const user = await getCurrentUser();
   const isAdmin = isAdminEmail(user?.email);
   const plan = user ? await getCurrentUserPlan() : "free";
+  const balance = user ? await getBalance(user.id) : 0;
 
   return (
     <nav className="sticky top-0 z-40 border-b border-border bg-bg/80 backdrop-blur-xl">
@@ -56,6 +58,13 @@ export async function SiteHeader() {
                   Pro
                 </span>
               )}
+              <Link
+                href="/wallet"
+                className="hidden rounded-xl border border-border-strong bg-white/5 px-3 py-2.5 text-sm font-bold text-text hover:border-accent/50 hover:bg-accent/10 sm:block"
+                title="Ví Point"
+              >
+                ◆ {balance.toLocaleString("vi-VN")}
+              </Link>
               <Link
                 href="/account"
                 className="max-w-[150px] truncate rounded-xl border border-border-strong bg-white/5 px-3.5 py-2.5 text-sm font-extrabold text-text hover:border-accent/50 hover:bg-accent/10"
