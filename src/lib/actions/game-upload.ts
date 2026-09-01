@@ -45,6 +45,7 @@ export interface SaveGameInput {
   tier: "free" | "pro";
   priceMonth: number;
   description?: string;
+  coverPath?: string; // rel trong bucket, vd "__cover.png" (đã upload); trống nếu không có
 }
 
 /** Tạo sản phẩm game sau khi đã upload xong file. */
@@ -67,6 +68,13 @@ export async function saveGameProduct(input: SaveGameInput): Promise<{ slug: str
 
   // Phục vụ qua route /g (sửa content-type HTML). Xem app/g/[gameId]/[...path].
   const gameUrl = `/g/${input.gameId}/index.html`;
+
+  // Ảnh banner/thumbnail (nếu có) — bucket games là public, dùng thẳng public URL.
+  const coverUrl = input.coverPath
+    ? supabase.storage
+        .from(BUCKET)
+        .getPublicUrl(`${input.gameId}/${input.coverPath}`).data.publicUrl
+    : null;
 
   const baseSlug = slugify(input.title) || "game";
   const slug = `${baseSlug}-${input.gameId.slice(0, 6)}`;
@@ -92,6 +100,7 @@ export async function saveGameProduct(input: SaveGameInput): Promise<{ slug: str
     published: true,
     icon: "◈",
     game_url: gameUrl,
+    cover_url: coverUrl,
     is_new: true,
     released_at: new Date().toISOString(),
   });

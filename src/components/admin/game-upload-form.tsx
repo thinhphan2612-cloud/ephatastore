@@ -51,6 +51,7 @@ export function GameUploadForm({
   const [price, setPrice] = useState(0);
   const [desc, setDesc] = useState("");
   const [file, setFile] = useState<File | null>(null);
+  const [cover, setCover] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -83,7 +84,12 @@ export function GameUploadForm({
         .filter((f) => f.rel.length > 0);
 
       setProgress("Đang chuẩn bị tải lên…");
-      const { gameId, tokens } = await createGameUploadTokens(files.map((f) => f.rel));
+      const coverPath = cover
+        ? `__cover.${cover.name.split(".").pop()?.toLowerCase() || "png"}`
+        : undefined;
+      const relPaths = files.map((f) => f.rel);
+      if (coverPath) relPaths.push(coverPath);
+      const { gameId, tokens } = await createGameUploadTokens(relPaths);
       const tokenMap = new Map(tokens.map((t) => [t.path, t.token]));
 
       const supabase = createStoreAuthBrowserClient();
@@ -102,6 +108,17 @@ export function GameUploadForm({
         setProgress(`Đang tải lên… ${done}/${files.length}`);
       }
 
+      if (coverPath && cover) {
+        setProgress("Đang tải ảnh bìa…");
+        const { error: upErr } = await supabase.storage
+          .from("games")
+          .uploadToSignedUrl(`${gameId}/${coverPath}`, tokenMap.get(coverPath)!, cover, {
+            contentType: cover.type || mimeOf(coverPath),
+            upsert: true,
+          });
+        if (upErr) throw new Error(`Lỗi tải ảnh bìa: ${upErr.message}`);
+      }
+
       setProgress("Đang tạo sản phẩm…");
       const { slug } = await saveGameProduct({
         gameId,
@@ -110,6 +127,7 @@ export function GameUploadForm({
         tier,
         priceMonth: price,
         description: desc,
+        coverPath,
       });
 
       router.push(`/product/${slug}`);
@@ -156,6 +174,29 @@ export function GameUploadForm({
       <label className="block">
         <span className="mb-1 block text-sm text-text-muted">Mô tả ngắn</span>
         <textarea value={desc} onChange={(e) => setDesc(e.target.value)} rows={2} className={input} />
+      </label>
+
+      <label className="block">
+        <span className="mb-1 block text-sm text-text-muted">
+          Ảnh bìa / thumbnail <span className="text-text-faint">(không bắt buộc)</span>
+        </span>
+        <input
+          type="file"
+          accept="image/*"
+          onChange={(e) => setCover(e.target.files?.[0] ?? null)}
+          className="block w-full text-sm text-text-muted file:mr-3 file:rounded-md file:border-0 file:bg-surface file:px-3 file:py-1.5 file:text-text hover:file:bg-surface-hover"
+        />
+        {cover && (
+          /* eslint-disable-next-line @next/next/no-img-element */
+          <img
+            src={URL.createObjectURL(cover)}
+            alt="Xem trước ảnh bìa"
+            className="mt-2 aspect-video w-48 rounded-md border border-border object-cover"
+          />
+        )}
+        <span className="mt-1 block text-xs text-text-faint">
+          Tỉ lệ 16:9 đẹp nhất. Dùng làm ảnh cho thẻ sản phẩm và trang chi tiết.
+        </span>
       </label>
 
       <label className="block">
