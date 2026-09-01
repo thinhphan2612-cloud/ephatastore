@@ -3,6 +3,7 @@ import { redirect, notFound } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { canAccessProduct } from "@/lib/access";
 import { createStoreAdminClient } from "@/lib/supabase/store-admin";
+import { GameFrame } from "@/components/game-frame";
 
 export const metadata = { title: "Chơi game" };
 
@@ -58,14 +59,7 @@ export default async function PlayPage({
           ← Thư viện
         </Link>
       </div>
-      <div className="overflow-hidden rounded-xl border border-border bg-black">
-        <iframe
-          src={product.game_url}
-          title={product.title}
-          className="h-[70vh] w-full"
-          allow="fullscreen; autoplay"
-        />
-      </div>
+      <GameFrame src={product.game_url} title={product.title} />
     </div>
   );
 }
