@@ -40,7 +40,13 @@ export async function linkGiaoly(
   const giaolyUserId = gUser.user.id;
 
   // Đọc context qua RPC (chạy dưới danh tính user giaoly này).
-  const { data: ctx } = await giaoly.rpc("get_my_context");
+  const { data: ctx, error: ctxErr } = await giaoly.rpc("get_my_context");
+  if (ctxErr) {
+    return {
+      error:
+        "Chưa đọc được gói từ Giáo Lý Số. Cần cài hàm get_my_context bên Giáo Lý Số (chạy file giaoly-rpc.sql).",
+    };
+  }
   const c = (ctx ?? {}) as { parish_id?: string; role?: string; plan?: string };
 
   const admin = createStoreAdminClient();
