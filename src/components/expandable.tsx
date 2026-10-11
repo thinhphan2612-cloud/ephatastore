@@ -35,7 +35,8 @@ export function Expandable({ children, collapsedHeight = 360 }: { children: Reac
           <div
             aria-hidden
             className="pointer-events-none absolute inset-x-0 bottom-0 h-24"
-            style={{ background: "linear-gradient(to bottom, transparent, var(--bg))" }}
+            // Mờ về màu nền nơi đặt khối (--fade-bg do khung cha đặt; mặc định nền trang).
+            style={{ background: "linear-gradient(to bottom, transparent, var(--fade-bg, var(--bg)))" }}
           />
         )}
       </div>

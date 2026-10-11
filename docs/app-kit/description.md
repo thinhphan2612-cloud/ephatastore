@@ -36,8 +36,8 @@ Dòng **tagline** (≤ 140 ký tự) là ô riêng, không lặp lại trong mô
 - `style` ngoài danh sách trên: `width`, `height`, `margin`, `padding`, `position`, `font-size`, `display`, `float`…
 
 ## Giữ trang không vỡ (responsive)
-Mục Giới thiệu rộng hết trang (~1180px trên máy tính, ~340px trên điện thoại); ảnh/video hiển thị tối đa 800px. Ephata
-đã ép ảnh/video/bảng vừa khung, nhưng vẫn:
+Mục Giới thiệu nằm trong khung nền rộng hết trang, nội dung là **cột giữa rộng tối đa 880px** (~290px trên điện thoại);
+ảnh/video tối đa 800px, ảnh/video/bảng tự căn giữa. Ephata đã ép ảnh/video/bảng vừa khung, nhưng vẫn:
 - **Ảnh**: dùng ảnh chụp màn hình / minh họa bên trong sản phẩm — **đừng lặp lại ảnh bìa** (đã hiện ở đầu trang).
   Rộng tối thiểu 1200px để nét, tỉ lệ ngang (16:9 hoặc 4:3); nén WebP/JPG ≤ 300KB mỗi ảnh. Luôn có `alt`.
   Ảnh tự co theo khung — đừng đặt `width` cố định để "ép" kích thước.
