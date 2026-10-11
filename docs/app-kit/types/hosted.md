@@ -22,7 +22,8 @@ cần cài đặt/truy cập máy tính (→ Phần mềm bán key).
 | Đường dẫn | **Tương đối** (`./assets/x.png`), không bắt đầu bằng `/`. App chạy dưới `/g/<id>/<mã truy cập>/` — đường dẫn tương đối tự mang theo mã. Vite: `base: './'` · Angular: `ng build --base-href ./` · CRA: `"homepage": "."`. Next.js export tĩnh khó làm đường dẫn tương đối — ưu tiên Vite. |
 | Điều hướng | **Hash routing** (`#/trang`). Không có rewrite phía server → tải lại một route dạng `/g/.../trang` sẽ 404. |
 | Bí mật | Không đặt API key/secret trong code — ai cũng xem được. Cần thu tiền → dùng Ví Ephata (dưới). |
-| Lưu dữ liệu | Chỉ `localStorage` / `IndexedDB` (theo trình duyệt). App chạy **cùng origin với ephatastore.com và mọi app khác** → **đặt tiền tố khóa theo slug** (vd `quiz-giao-ly:diem`), đừng `localStorage.clear()`. |
+| Lưu dữ liệu | Chỉ `localStorage` / `IndexedDB` (theo trình duyệt). App chạy trên domain **`play.ephatastore.com`** (tách khỏi store), dùng chung với các app host khác → **đặt tiền tố khóa theo slug** (vd `quiz-giao-ly:diem`), đừng `localStorage.clear()`. |
+| Liên kết | Link tới trang store phải là URL tuyệt đối `https://www.ephatastore.com/...` kèm `target="_top"` (app chạy trên domain khác, trong khung). |
 | Loại file | Lưu đúng content-type theo đuôi file: html, js, css, json, wasm, ảnh (png/jpg/webp/avif/gif/svg/ico), âm thanh (mp3/m4a/aac/wav/ogg/flac), video (mp4/webm), font (woff/woff2/ttf/otf), glb/gltf. Đuôi khác lưu `application/octet-stream`. |
 | Engine game | Phaser, PixiJS, Three.js, JS thuần: ổn. Unity/Godot (`.wasm`): wasm phục vụ đúng `application/wasm`; **tắt nén khi build** (không dùng `.br/.gz`). Chưa thử engine thật — kiểm kỹ lần đầu. |
 | Dung lượng | Mỗi file ≤ 50MB; số file không giới hạn (tải lên từng file). Giữ tổng nhỏ để mở nhanh. |
@@ -31,11 +32,14 @@ cần cài đặt/truy cập máy tính (→ Phần mềm bán key).
 
 ## Bảo vệ nội dung (Ephata lo sẵn)
 File bản build nằm ở kho **riêng tư**. Trang chơi chỉ cấp **mã truy cập** (ký, gắn với người chơi, hạn 12 giờ) cho người đã
-có quyền; link không mã / mã giả / mã hết hạn đều bị chặn. App không cần làm gì thêm, miễn là dùng đường dẫn tương đối.
+có quyền; link không mã / mã giả / mã hết hạn đều bị chặn. App chạy trên domain riêng `play.ephatastore.com` trong khung có
+`sandbox` → **không đọc được phiên đăng nhập của store** và không tự điều hướng được trang store (chỉ khi người dùng bấm).
+App không cần làm gì thêm, miễn là dùng đường dẫn tương đối.
 
 ## Thu tiền theo lượt dùng — Ví Ephata
-Bật ô **"App trừ point qua Ví Ephata"** trên admin. Người dùng được hỏi cho phép một lần khi mở công cụ. Gọi API cùng origin
-từ trình duyệt — Ephata xác thực bằng mã truy cập trong URL + phiên đăng nhập của người dùng:
+Bật ô **"App trừ point qua Ví Ephata"** trên admin. Người dùng được hỏi cho phép một lần khi mở công cụ. Gọi API bằng đường
+dẫn tương đối từ trình duyệt — Ephata xác thực bằng **mã truy cập trong URL** (gắn đúng người chơi + đúng app, chỉ trừ được ví
+của người đó cho app họ đã cho phép):
 
 ```js
 const ephata = (path, body = {}) =>
@@ -55,11 +59,12 @@ if (r.ok) {
   // làm dịch vụ; nếu dịch vụ lỗi → hoàn point:
   // await ephata("refund", { chargeId: r.chargeId });      // hoặc { chargeId, amount } để hoàn một phần
 } else if (r.error === "INSUFFICIENT_POINTS") {
-  // mời nạp point: <a href="/wallet" target="_top">Nạp point</a>  (target="_top" để thoát khỏi khung)
+  // mời nạp point: <a href={r.topupUrl} target="_top">Nạp point</a>  (URL tuyệt đối tới trang Ví; target="_top" thoát khỏi khung)
 }
 ```
 Mã lỗi: `INSUFFICIENT_POINTS` (kèm `needed`, `balance`, `topupUrl`) · `CONNECTION_REVOKED` (người dùng đã ngắt kết nối —
-mời mở lại từ trang sản phẩm) · `NOT_SIGNED_IN` · `WALLET_DISABLED` (chưa bật ô Ví) · `IDEMPOTENCY_CONFLICT` · `BAD_REQUEST`.
+mời mở lại từ trang sản phẩm) · `TOKEN_INVALID` (phiên chơi hết hạn sau 12 giờ — mời mở lại từ Ephata) · `WALLET_DISABLED`
+(chưa bật ô Ví) · `IDEMPOTENCY_CONFLICT` · `BAD_REQUEST`.
 Nên **báo trước giá** cho người dùng và trừ khi họ bấm xác nhận.
 
 ## Giá & quyền

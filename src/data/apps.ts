@@ -1,7 +1,8 @@
 import "server-only";
 import crypto from "node:crypto";
 import { createStoreAdminClient } from "@/lib/supabase/store-admin";
-import { normalizePlan } from "@/lib/plan";
+import { effectivePlan } from "@/lib/plan";
+import { getGiaolyContextFor } from "@/lib/giaoly-context";
 import { signPayload, verifySignedPayload } from "@/lib/software/license";
 import { verifyHostedToken } from "@/lib/hosted-access";
 
@@ -69,12 +70,9 @@ export async function accessFor(
   const now = new Date().toISOString();
 
   if (p.giaoly_pro_free && p.type !== "software") {
-    const { data: prof } = await supabase
-      .from("profiles")
-      .select("giaoly_user_id,plan")
-      .eq("id", userId)
-      .maybeSingle();
-    if (prof?.giaoly_user_id && normalizePlan(prof.plan) === "pro") return { active: true, until: null };
+    const ctx = await getGiaolyContextFor(userId);
+    // Quyền theo Pro kéo dài tới hạn gói của giáo xứ.
+    if (effectivePlan(ctx) === "pro") return { active: true, until: ctx?.planExpiresAt ?? null };
   }
 
   const { data: ent } = await supabase
@@ -229,13 +227,17 @@ export async function callerFromConnection(product: AppProduct, connection: unkn
   return { product, userId: data.store_user_id };
 }
 
-/** App host trên store: mã trong URL /g/<gameId>/<mã>/ + phiên đăng nhập phải cùng người. */
-export async function callerFromHosted(hostedPath: string | null, sessionUserId: string | null): Promise<Caller> {
+/** App host trên store: mã trong URL /g/<gameId>/<mã>/ (+ phiên đăng nhập cùng người khi chạy cùng origin). */
+export async function callerFromHosted(
+  hostedPath: string | null,
+  sessionUserId: string | null,
+  requireSession = true
+): Promise<Caller> {
   const m = hostedPath?.match(/\/g\/([0-9a-f-]{36})\/([A-Za-z0-9_-]+\.[A-Za-z0-9_-]+)\//);
   if (!m) throw new AppError("BAD_REQUEST", 400);
   const userId = verifyHostedToken(m[2], m[1]);
   if (!userId) throw new AppError("TOKEN_INVALID", 401);
-  if (!sessionUserId || sessionUserId !== userId) throw new AppError("NOT_SIGNED_IN", 401);
+  if (requireSession && (!sessionUserId || sessionUserId !== userId)) throw new AppError("NOT_SIGNED_IN", 401);
   const { data } = await createStoreAdminClient()
     .from("products")
     .select(PRODUCT_SELECT)

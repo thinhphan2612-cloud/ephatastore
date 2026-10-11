@@ -88,6 +88,8 @@ export default async function BuyPage({
         <form action={confirmPurchase} className="mt-5">
           <input type="hidden" name="product_id" value={product.id} />
           <input type="hidden" name="kind" value={kind} />
+          {/* Khóa chống trùng: mỗi lần mở trang một khóa — bấm 2 lần / gửi lại không trừ point 2 lần. */}
+          <input type="hidden" name="purchase_key" value={crypto.randomUUID()} />
           <button
             type="submit"
             className="w-full rounded-xl bg-accent px-4 py-3 font-extrabold text-accent-contrast hover:bg-accent-hover"

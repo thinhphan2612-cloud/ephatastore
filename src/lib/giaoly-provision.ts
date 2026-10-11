@@ -1,5 +1,6 @@
 import "server-only";
 import { createStoreAdminClient } from "@/lib/supabase/store-admin";
+import { getGiaolyContextFor } from "@/lib/giaoly-context";
 
 /**
  * Bật / tắt tính năng bên Giáo Lý Số cho GIÁO XỨ khi quyền trên Ephata thay đổi.
@@ -59,12 +60,9 @@ export async function syncFeatureProvision(userId: string, productId: string): P
   const featureKey = product?.giaoly_feature_key;
   if (!featureKey) return;
 
-  const { data: prof } = await supabase
-    .from("profiles")
-    .select("parish_id")
-    .eq("id", userId)
-    .maybeSingle();
-  if (!prof?.parish_id) return; // chưa liên kết Giáo Lý Số — luồng mua đã chặn trước
+  const ctx = await getGiaolyContextFor(userId); // làm mới nếu cũ → đúng giáo xứ hiện tại
+  if (!ctx?.parishId) return; // chưa liên kết Giáo Lý Số — luồng mua đã chặn trước
+  const prof = { parish_id: ctx.parishId };
 
   const now = new Date().toISOString();
   const { data: ent } = await supabase

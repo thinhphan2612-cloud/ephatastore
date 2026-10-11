@@ -67,6 +67,9 @@ export async function loginWithGiaoly(
     parish_id: c.parish_id ?? null,
     role: c.role ?? null,
     plan: c.plan ?? null,
+    // get_my_context không trả hạn gói → buộc làm mới ngữ cảnh (gồm plan_expires_at) ở lần dùng đầu tiên.
+    plan_expires_at: null,
+    context_checked_at: null,
     giaoly_linked_at: new Date().toISOString(),
   });
 
