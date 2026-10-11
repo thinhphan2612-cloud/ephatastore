@@ -56,7 +56,7 @@ jobs:
   # Bản Microsoft Store (.msix). Chỉ chạy khi repo có 3 Repository variables
   # (Settings → Secrets and variables → Actions → Variables) lấy ở Partner Center → Product identity:
   #   MSSTORE_IDENTITY_NAME, MSSTORE_PUBLISHER, MSSTORE_PUBLISHER_DISPLAY_NAME
-  # App phải có Cargo feature `msstore` (tắt kiểm bản mới, StartupTask) — xem README mục 5.
+  # App phải có Cargo feature `msstore` (tắt kiểm bản mới, StartupTask) — xem types/software.md mục 5.
   # File .msix tải ở mục Artifacts của lần chạy → nộp ở Partner Center.
   msstore:
     if: vars.MSSTORE_IDENTITY_NAME != ''
