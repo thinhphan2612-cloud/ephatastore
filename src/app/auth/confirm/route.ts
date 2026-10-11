@@ -24,8 +24,7 @@ export async function GET(req: NextRequest) {
       : { error: new Error("Thiếu mã xác nhận") };
 
   if (error) {
-    const msg = "Liên kết đã hết hạn hoặc đã được dùng. Hãy yêu cầu gửi lại.";
-    return NextResponse.redirect(new URL(`/login?error=${encodeURIComponent(msg)}`, req.url));
+    return NextResponse.redirect(new URL("/login?error=link_expired", req.url));
   }
   return NextResponse.redirect(new URL(next, req.url));
 }

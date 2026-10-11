@@ -21,6 +21,8 @@ const MIN_TOPUP_VND = 10000;
 const MAX_TOPUP_VND = 50000000;
 
 /** User tạo yêu cầu nạp point → sinh mã CK → sang trang QR. */
+const MAX_PENDING_TOPUPS = 3;
+
 export async function createTopup(
   _prev: TopupState,
   formData: FormData
@@ -37,6 +39,17 @@ export async function createTopup(
   if (points <= 0) return { error: "Số tiền không hợp lệ." };
 
   const supabase = createStoreAdminClient();
+  // Chặn tạo đơn liên tục (làm ngập hàng đợi admin): tối đa 3 đơn đang chờ duyệt / người.
+  const { count: pendingCount } = await supabase
+    .from("point_topups")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", user.id)
+    .eq("status", "pending");
+  if ((pendingCount ?? 0) >= MAX_PENDING_TOPUPS)
+    return {
+      error: `Bạn đang có ${MAX_PENDING_TOPUPS} đơn nạp chờ duyệt. Hãy chuyển khoản theo đơn đã tạo (xem ở mục Đơn nạp gần đây) hoặc đợi admin duyệt.`,
+    };
+
   const code = `NAP${crypto.randomUUID().replace(/-/g, "").slice(0, 8).toUpperCase()}`;
   const { data, error } = await supabase
     .from("point_topups")

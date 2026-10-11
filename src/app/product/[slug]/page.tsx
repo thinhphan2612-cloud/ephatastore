@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { getProductBySlug, getRelated } from "@/data/products";
 import { getCategoryBySlug } from "@/data/categories";
 import { sanitizeDescription } from "@/lib/rich-text";
+import { noticeText } from "@/lib/notices";
 import { Expandable } from "@/components/expandable";
 import { getCurrentUser } from "@/lib/auth";
 import { getCurrentUserPlan } from "@/lib/plan";
@@ -38,7 +39,7 @@ export default async function ProductPage({
   searchParams: Promise<{ notice?: string }>;
 }) {
   const { slug } = await params;
-  const { notice } = await searchParams;
+  const notice = noticeText((await searchParams).notice);
   const product = await getProductBySlug(slug);
   if (!product) notFound();
 
@@ -151,7 +152,7 @@ export default async function ProductPage({
             )}
             {notice && (
               <p role="alert" className="mt-3 rounded-xl border border-danger/40 bg-danger/10 px-3 py-2 text-xs text-danger">
-                {notice.slice(0, 200)}
+                {notice}
               </p>
             )}
             {/* Trạng thái quyền của người đang xem: hạn dùng / qua Full Topping / đã hết hạn. */}

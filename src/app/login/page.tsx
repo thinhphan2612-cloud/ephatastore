@@ -4,11 +4,13 @@ import { getCurrentUser } from "@/lib/auth";
 import { LoginForm } from "@/components/login-form";
 import { GiaolyLoginForm } from "@/components/giaoly-login-form";
 import { safeNext } from "@/lib/safe-next";
+import { noticeText } from "@/lib/notices";
 
 export const metadata = { title: "Đăng nhập" };
 
 export default async function LoginPage({ searchParams }: { searchParams: Promise<{ error?: string; next?: string }> }) {
-  const { error, next } = await searchParams;
+  const { error: errorCode, next } = await searchParams;
+  const error = noticeText(errorCode);
   const user = await getCurrentUser();
   if (user) redirect(safeNext(next));
 
@@ -21,7 +23,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
 
       {error && (
         <p role="alert" className="mt-6 rounded-md border border-danger/40 bg-danger/10 px-3 py-2 text-center text-sm text-danger">
-          {error.slice(0, 200)}
+          {error}
         </p>
       )}
       <div className="mt-8 rounded-xl border border-border bg-bg-elevated p-6">

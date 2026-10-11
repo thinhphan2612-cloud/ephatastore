@@ -6,10 +6,11 @@ import { getCurrentUser } from "@/lib/auth";
 import { createStoreAdminClient } from "@/lib/supabase/store-admin";
 import { isParishAdmin } from "@/lib/giaoly-context";
 import { syncFeatureProvision } from "@/lib/giaoly-provision";
+import type { NoticeCode } from "@/lib/notices";
 
 /** Lỗi người dùng gặp được (không phải lỗi hệ thống) → quay lại trang sản phẩm kèm thông báo, thay vì trang lỗi chung. */
-function backWithNotice(slug: string, message: string): never {
-  redirect(slug ? `/product/${slug}?notice=${encodeURIComponent(message)}` : "/");
+function backWithNotice(slug: string, code: NoticeCode): never {
+  redirect(slug ? `/product/${slug}?notice=${code}` : "/");
 }
 
 /**
@@ -32,10 +33,10 @@ export async function claimProduct(formData: FormData) {
     .eq("id", productId)
     .maybeSingle();
   if (pErr) throw new Error(pErr.message);
-  if (!product || !product.published) backWithNotice(slug, "Sản phẩm không tồn tại hoặc đã ẩn.");
-  if (product.tier === "pro" && product.price_month > 0) backWithNotice(slug, "Sản phẩm này cần mua bằng point.");
+  if (!product || !product.published) backWithNotice(slug, "product_unavailable");
+  if (product.tier === "pro" && product.price_month > 0) backWithNotice(slug, "needs_purchase");
   if (product.giaoly_feature_key && !(await isParishAdmin()))
-    backWithNotice(slug, "Tính năng Giáo Lý Số chỉ quản trị giáo xứ (đã liên kết tài khoản) mới nhận được.");
+    backWithNotice(slug, "feature_parish_admin");
 
   const { error } = await supabase
     .from("entitlements")
@@ -65,10 +66,10 @@ export async function startTrial(formData: FormData) {
     .select("id,tier,trial,trial_days,giaoly_feature_key,published")
     .eq("id", productId)
     .maybeSingle();
-  if (!product || !product.published) backWithNotice(slug, "Sản phẩm không tồn tại hoặc đã ẩn.");
-  if (product.tier !== "pro" || !product.trial) backWithNotice(slug, "Sản phẩm này không có dùng thử.");
+  if (!product || !product.published) backWithNotice(slug, "product_unavailable");
+  if (product.tier !== "pro" || !product.trial) backWithNotice(slug, "no_trial");
   if (product.giaoly_feature_key && !(await isParishAdmin()))
-    backWithNotice(slug, "Tính năng Giáo Lý Số chỉ quản trị giáo xứ (đã liên kết tài khoản) mới dùng thử được.");
+    backWithNotice(slug, "feature_parish_admin");
 
   // Chỉ cho dùng thử 1 lần: đã từng có quyền với sản phẩm (thử / mua, kể cả hết hạn) → không thử nữa.
   // (Trước đây chỉ xét source = trial: mua gói năm xong hết hạn vẫn dùng thử lại được, và upsert ghi đè quyền đã mua.)
@@ -77,7 +78,7 @@ export async function startTrial(formData: FormData) {
     .select("id", { count: "exact", head: true })
     .eq("store_user_id", user.id)
     .eq("product_id", product.id);
-  if ((count ?? 0) > 0) backWithNotice(slug, "Bạn đã dùng thử (hoặc đã từng mua) sản phẩm này — không dùng thử lại được.");
+  if ((count ?? 0) > 0) backWithNotice(slug, "trial_used");
 
   const expires = new Date(Date.now() + (product.trial_days || 7) * 86400000).toISOString();
   const { error } = await supabase
