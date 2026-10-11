@@ -32,7 +32,8 @@ Hỏi người tạo (gom thành **một lượt hỏi**, đừng hỏi từng c
 3. Nếu là ứng dụng: chạy **trong trình duyệt** được không, hay cần **cài vào máy** (chạy nền, offline, truy cập file/hệ thống)?
 4. Có cần **server / database / tài khoản riêng** (lưu dữ liệu dùng chung nhiều người) không?
 5. Có phải là **chức năng bên trong app Giáo Lý Số** (dùng dữ liệu giáo xứ có sẵn ở đó) không?
-6. Có dùng **AI** không? Bán **miễn phí**, **mua 1 lần** hay **thuê bao**? Đã có code/bản build sẵn chưa, stack gì?
+6. Bán **miễn phí**, **mua 1 lần** hay **thuê bao**? Có **tính phí theo lượt dùng dịch vụ** (trừ point Ví Ephata) không?
+   Tài khoản Pro Giáo Lý Số có được dùng free không? Đã có code/bản build sẵn chưa, stack gì?
 
 ### Bước 2 — Chọn loại (theo cây quyết định, dừng ở câu "có" đầu tiên)
 
@@ -42,14 +43,15 @@ Hỏi người tạo (gom thành **một lượt hỏi**, đừng hỏi từng c
 | Người dùng nhận **một file** (PDF, DOCX, ảnh, bộ thiết kế)? | **1 · Tải về** → `types/download.md` |
 | Phải **cài vào máy** (Windows/macOS, chạy nền, offline, truy cập hệ thống)? | **5 · Phần mềm bán key** → `types/software.md` |
 | Cần **server/database/tài khoản riêng**, hoặc app đã chạy ở domain khác? | **3 · Link ngoài** → `types/link.md` |
-| Còn lại: chạy hoàn toàn trong trình duyệt (game, công cụ, công cụ có AI) | **2 · Chạy trên store** → `types/hosted.md` |
+| Còn lại: chạy hoàn toàn trong trình duyệt (game, công cụ web, công cụ thu phí theo lượt) | **2 · Chạy trên store** → `types/hosted.md` |
 
-Khi phân vân giữa **2** và **3**: nếu chỉ cần lưu dữ liệu trên máy người dùng (localStorage) và AI thì chọn **2** —
-Ephata lo hosting, AI, thu tiền và chặn người chưa mua. Chọn **3** chỉ khi thật sự cần server.
+Khi phân vân giữa **2** và **3**: nếu chỉ cần lưu dữ liệu trên máy người dùng (localStorage) thì chọn **2** —
+Ephata lo hosting, bảo vệ file, thu tiền. Chọn **3** khi thật sự cần server (dữ liệu dùng chung, tích hợp dịch vụ khác,
+khóa API bí mật). Cả hai đều **trừ point theo lượt dùng qua Ví Ephata** được (`charge` / `refund`).
 
 ### Bước 3 — Xác nhận
 Báo lại cho người tạo: **loại đã chọn + lý do 1–2 câu + sản phẩm cuối cùng phải giao cho Ephata là gì**
-(file gì, định dạng gì, giới hạn gì — lấy từ mục "Sản phẩm giao cho Ephata" và "Giới hạn hiện tại" của loại đó).
+(file gì, định dạng gì, giới hạn gì — lấy từ mục "Sản phẩm giao cho Ephata" và "Yêu cầu kỹ thuật" của loại đó).
 Chờ người tạo đồng ý rồi mới làm.
 
 ### Bước 4 — Làm theo hướng dẫn của loại
@@ -68,9 +70,10 @@ của sản phẩm này (tiêu đề, slug gợi ý, mô tả ngắn, danh mục
 |---|---|---|---|---|---|
 | Giao cho Ephata | 1 file | 1 file `.zip` bản build | 1 URL HTTPS | Feature key (+ URL) | `.exe` + `.dmg` (+ `.msix`) |
 | Ai host | Ephata | Ephata | Bạn | Giáo Lý Số | Ephata (bộ cài) |
-| Cách bán | Free / mua vĩnh viễn | Game: free / mua vĩnh viễn · Công cụ: free + trừ point AI | Free / thuê bao | Free / thuê bao | Mua key vĩnh viễn |
-| Pro Giáo Lý Số miễn phí | Có | Có (game) | Có | Có | **Không** |
-| Ephata chặn người chưa mua | Có (link tải ký 24h) | Ở trang chơi (file host công khai) | **Không** — app tự chặn | Chưa (chưa kết nối GLS) | Có (key + chữ ký) |
+| Cách bán | Free / mua vĩnh viễn | Game: free / mua vĩnh viễn · Công cụ: free | Free / thuê bao | Free / thuê bao | Mua key vĩnh viễn |
+| Trừ point theo lượt (Ví Ephata) | — | Có (gọi từ trình duyệt) | Có (server gọi, khóa bí mật) | — | — |
+| Miễn phí cho Pro Giáo Lý Số | Tùy ô tick | Tùy ô tick (game) | Tùy ô tick | Tùy ô tick | **Không bao giờ** |
+| Ephata chặn người chưa mua | Có (link tải ký 24h) | Có (file riêng tư + mã truy cập theo người chơi) | Có (launch token + `verify`) | Có (bật cho giáo xứ qua `provision`) | Có (key + chữ ký) |
 | Mục trên admin | Tải về | Chạy trên store | Link ngoài | Tính năng Giáo Lý Số | Phần mềm cài đặt |
 
 ---
@@ -79,7 +82,9 @@ của sản phẩm này (tiêu đề, slug gợi ý, mô tả ngắn, danh mục
 
 - **Admin**: `https://www.ephatastore.com/login` → đăng nhập tài khoản admin → **Admin → Thêm sản phẩm** → chọn đúng thẻ loại.
   (Store đang ở chế độ "Sắp ra mắt": khách chỉ thấy trang chờ, tài khoản admin thấy toàn bộ.)
-- **Tiền**: giá nhập bằng VND, người mua trả bằng **point** (100đ = 1 point), nạp point bằng chuyển khoản ở trang Ví.
+- **Tiền**: giá nhập bằng VND ở khung **Bán** của form (Miễn phí / Mua vĩnh viễn / Thuê bao tùy loại), người mua trả bằng
+  **point** (100đ = 1 point), nạp point bằng chuyển khoản ở trang Ví. Ô **"Miễn phí cho Pro Giáo Lý Số"** quyết định tài khoản
+  Pro có được dùng free không — không tick thì Pro vẫn phải mua.
 - **Slug**: chữ thường không dấu, số, gạch ngang; không trùng; **không đổi sau khi đã bán**.
 - **Ảnh bìa**: 16:9 (vd 1600×900), PNG/JPG/WebP, có tên sản phẩm dễ đọc ở cỡ nhỏ.
 - **Mô tả**: dòng tagline ngắn (≤ 140 ký tự) + mô tả chi tiết: làm được gì, cho ai, cần gì để dùng.
