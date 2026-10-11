@@ -4,7 +4,8 @@ import { getMyLibrary, getToppingUntil, type LibraryItem } from "@/data/store-us
 import { ProductCard } from "@/components/product-card";
 import { OwnedActions } from "@/components/owned-actions";
 import { getMyLicenses, type MyLicense } from "@/data/software";
-import { getFeatureSyncStatus } from "@/data/store-user";
+import { getFeatureSyncStatus, getParishLibrary } from "@/data/store-user";
+import { getGiaolyContext } from "@/lib/giaoly-context";
 import { CopyButton } from "@/components/copy-button";
 import { ConfirmSubmit } from "@/components/admin/confirm-submit";
 import { removeMyDevice } from "@/lib/actions/license";
@@ -39,12 +40,16 @@ export default async function LibraryPage({ searchParams }: { searchParams: Prom
     getToppingUntil(user.id),
     getMyLicenses(user.id),
   ]);
-  const active = items.filter((i) => i.active);
-  const expired = items.filter((i) => !i.active);
-  const featureSync = await getFeatureSyncStatus(
-    user.id,
-    active.filter((i) => i.product.giaolyFeatureKey).map((i) => i.product.id)
-  );
+  // Tính năng Giáo Lý Số là quyền của GIÁO XỨ → hiện cho quản trị giáo xứ (ai mua cũng thấy chung).
+  const ctx = await getGiaolyContext();
+  const parishId = ctx?.role === "admin" ? ctx.parishId : null;
+  const parishItems = parishId ? await getParishLibrary(parishId) : [];
+  const all = [...items.filter((i) => !i.product.giaolyFeatureKey), ...parishItems];
+  const active = all.filter((i) => i.active);
+  const expired = all.filter((i) => !i.active);
+  const featureSync = parishId
+    ? await getFeatureSyncStatus(parishId, parishItems.filter((i) => i.active).map((i) => i.product.id))
+    : new Map<string, "done" | "failed" | "pending">();
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8">
@@ -144,7 +149,7 @@ function AccessLine({ item }: { item: LibraryItem }) {
   return (
     <p className={`flex items-center justify-between gap-2 text-xs ${daysLeft <= 7 ? "text-danger" : "text-text-faint"}`}>
       <span>
-        {item.source === "trial" ? "Dùng thử · " : ""}Dùng đến {formatDate(item.expiresAt)}
+        {item.parish ? "Giáo xứ · " : ""}{item.source === "trial" ? "Dùng thử · " : ""}Dùng đến {formatDate(item.expiresAt)}
         {daysLeft <= 7 ? ` (còn ${daysLeft} ngày)` : ""}
       </span>
       <Link href={`/buy/${item.product.id}?kind=annual`} className="shrink-0 text-brand hover:text-brand-hover">

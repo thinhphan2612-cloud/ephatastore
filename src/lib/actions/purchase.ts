@@ -53,18 +53,22 @@ export async function confirmPurchase(formData: FormData) {
 
   let priceMonth = 0;
   let proFree = false;
+  let parishId: string | null = null; // tính năng Giáo Lý Số → quyền ghi cho giáo xứ
   if (kind !== "topping") {
     const { data: product } = await supabase
       .from("products")
-      .select("id,slug,type,price_month,giaoly_pro_free,giaoly_feature_key,published")
+      .select("id,slug,type,price_month,giaoly_pro_free,giaoly_feature_key,published,active")
       .eq("id", productId)
       .maybeSingle();
-    if (!product || !product.published) redirect("/library");
+    if (!product || !product.published || !product.active) redirect("/library");
     // Gói mua phải hợp loại sản phẩm (phần mềm chỉ qua kind=software).
     if (!kindsFor(product.type).includes(kind)) redirect(`/product/${product.slug}?notice=kind_invalid`);
     // Tính năng Giáo Lý Số áp cho cả giáo xứ → chỉ quản trị giáo xứ đã liên kết mới mua được.
-    if (product.giaoly_feature_key && !(await isParishAdmin()))
-      redirect(`/product/${product.slug}?notice=feature_parish_admin`);
+    if (product.giaoly_feature_key) {
+      if (!(await isParishAdmin())) redirect(`/product/${product.slug}?notice=feature_parish_admin`);
+      parishId = (await getGiaolyContext())?.parishId ?? null;
+      if (!parishId) redirect(`/product/${product.slug}?notice=feature_parish_admin`);
+    }
     priceMonth = product.price_month ?? 0;
     proFree = product.giaoly_pro_free;
     // Đã sở hữu vĩnh viễn → không trừ point lần nữa (form cũ / bấm Back / mở lại link mua).
@@ -94,6 +98,7 @@ export async function confirmPurchase(formData: FormData) {
     p_key: key,
     p_coupon: !isPro && coupon ? coupon : null,
     p_until: until,
+    p_parish: parishId,
   });
   if (error) {
     if (/ALREADY_OWNED/.test(error.message)) redirect("/library");

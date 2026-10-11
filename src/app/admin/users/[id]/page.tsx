@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { adminGetUserItems, adminGetUserEmail } from "@/data/admin-orders";
+import { adminGetUserItems, adminGetUserEmail, adminGetUserParishItems } from "@/data/admin-orders";
 import { adminListProducts } from "@/data/admin";
 import { formatDate } from "@/lib/format";
 import { grantEntitlement, revokeEntitlement } from "@/lib/actions/admin";
@@ -7,17 +7,21 @@ import { ConfirmSubmit } from "@/components/admin/confirm-submit";
 
 export default async function AdminUserDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ notice?: string }>;
 }) {
   const { id } = await params;
-  const [email, items, products] = await Promise.all([
+  const { notice } = await searchParams;
+  const [email, items, products, parish] = await Promise.all([
     adminGetUserEmail(id),
     adminGetUserItems(id),
     adminListProducts(),
+    adminGetUserParishItems(id),
   ]);
 
-  const ownedIds = new Set(items.map((i) => i.product_id));
+  const ownedIds = new Set([...items.map((i) => i.product_id), ...parish.items.filter((i) => i.active).map((i) => i.product_id)]);
   const grantable = products.filter((p) => !ownedIds.has(p.id));
 
   return (
@@ -28,6 +32,8 @@ export default async function AdminUserDetailPage({
         </Link>{" "}
         / {email ?? id.slice(0, 8)}
       </div>
+
+      {notice && <p className="rounded-md border border-warn/40 bg-warn/10 px-3 py-2 text-sm text-warn">{notice.slice(0, 200)}</p>}
 
       <h2 className="text-lg font-semibold">Sản phẩm sở hữu ({items.length})</h2>
 
@@ -73,6 +79,40 @@ export default async function AdminUserDetailPage({
           </tbody>
         </table>
       </div>
+
+      {parish.parishId && (
+        <div>
+          <h2 className="text-lg font-semibold">Tính năng Giáo Lý Số của giáo xứ ({parish.items.length})</h2>
+          <p className="mb-2 text-xs text-text-faint">
+            Quyền theo giáo xứ — mọi quản trị của giáo xứ dùng chung. Thu hồi ở đây là thu hồi của cả giáo xứ và gửi lệnh tắt sang Giáo Lý Số.
+          </p>
+          <ul className="divide-y divide-border rounded-lg border border-border text-sm">
+            {parish.items.map((it) => (
+              <li key={it.product_id} className="flex flex-wrap items-center justify-between gap-2 px-3 py-2">
+                <span>
+                  <Link href={`/product/${it.slug}`} className="text-text hover:text-accent">
+                    {it.title}
+                  </Link>{" "}
+                  <span className="text-xs text-text-faint">
+                    · {it.source} · {it.active ? (it.expires_at ? `đến ${formatDate(it.expires_at)}` : "vĩnh viễn") : "đã hết / thu hồi"}
+                  </span>
+                </span>
+                {it.active && (
+                  <form action={revokeEntitlement}>
+                    <input type="hidden" name="user_id" value={id} />
+                    <input type="hidden" name="product_id" value={it.product_id} />
+                    <input type="hidden" name="parish_id" value={parish.parishId!} />
+                    <ConfirmSubmit confirm={`Thu hồi "${it.title}" của cả giáo xứ?`} className="text-danger hover:underline">
+                      Thu hồi
+                    </ConfirmSubmit>
+                  </form>
+                )}
+              </li>
+            ))}
+            {parish.items.length === 0 && <li className="px-3 py-4 text-center text-text-muted">Giáo xứ chưa có tính năng nào.</li>}
+          </ul>
+        </div>
+      )}
 
       <div className="rounded-lg border border-border bg-surface p-4">
         <h3 className="mb-3 text-sm font-semibold">Cấp sản phẩm thủ công</h3>

@@ -8,7 +8,7 @@ import { createStoreAdminClient } from "@/lib/supabase/store-admin";
 import { slugify } from "@/lib/slug";
 import { htmlToText, sanitizeDescription } from "@/lib/rich-text";
 import { removeStorageFolder } from "@/lib/storage-folder";
-import { retryProvisionJob, syncFeatureProvision } from "@/lib/giaoly-provision";
+import { retryProvisionJob, syncParishFeature } from "@/lib/giaoly-provision";
 
 const assertAdmin = requireAdmin;
 
@@ -309,7 +309,20 @@ export async function deleteProduct(formData: FormData) {
 
 // ---- Quyền sở hữu của user ----
 
-/** Cấp một sản phẩm cho user (thủ công). */
+/** Loại sản phẩm + giáo xứ của user (tính năng Giáo Lý Số cấp / thu hồi theo giáo xứ). */
+async function grantTarget(userId: string, productId: string) {
+  const supabase = createStoreAdminClient();
+  const [{ data: product }, { data: prof }] = await Promise.all([
+    supabase.from("products").select("type,giaoly_feature_key").eq("id", productId).maybeSingle(),
+    supabase.from("profiles").select("parish_id").eq("id", userId).maybeSingle(),
+  ]);
+  return { product, parishId: (prof?.parish_id as string | null) ?? null };
+}
+
+/**
+ * Cấp một sản phẩm cho user (thủ công). Tính năng Giáo Lý Số → cấp cho GIÁO XỨ của user (vĩnh viễn, đến khi thu hồi).
+ * Phần mềm → mở lại key nếu key đã bị khóa do thu hồi trước đó.
+ */
 export async function grantEntitlement(formData: FormData) {
   const admin = await assertAdmin();
   const userId = String(formData.get("user_id") ?? "").trim();
@@ -317,6 +330,22 @@ export async function grantEntitlement(formData: FormData) {
   if (!userId || !productId) return;
 
   const supabase = createStoreAdminClient();
+  const { product, parishId } = await grantTarget(userId, productId);
+  if (product?.giaoly_feature_key) {
+    if (!parishId) redirect(`/admin/users/${userId}?notice=${encodeURIComponent("Người dùng chưa liên kết Giáo Lý Số — không cấp được tính năng cho giáo xứ.")}`);
+    const { error } = await supabase
+      .from("parish_entitlements")
+      .upsert(
+        { parish_id: parishId, product_id: productId, source: "admin", expires_at: null, purchased_by: userId, updated_at: new Date().toISOString() },
+        { onConflict: "parish_id,product_id" }
+      );
+    if (error) throw new Error(error.message);
+    await syncParishFeature(parishId, productId, userId).catch((e) => console.error("provision", e));
+    await logAdmin(admin, "entitlement.grant", { type: "user", id: userId }, { product_id: productId, parish_id: parishId });
+    revalidatePath(`/admin/users/${userId}`);
+    return;
+  }
+
   const { error } = await supabase
     .from("entitlements")
     .upsert(
@@ -324,27 +353,48 @@ export async function grantEntitlement(formData: FormData) {
       { onConflict: "store_user_id,product_id", ignoreDuplicates: true }
     );
   if (error) throw new Error(error.message);
-  await syncFeatureProvision(userId, productId).catch((e) => console.error("provision", e));
+  if (product?.type === "software")
+    await supabase.from("licenses").update({ status: "active" }).eq("store_user_id", userId).eq("product_id", productId);
   await logAdmin(admin, "entitlement.grant", { type: "user", id: userId }, { product_id: productId });
 
   revalidatePath(`/admin/users/${userId}`);
 }
 
-/** Thu hồi một sản phẩm khỏi user. */
+/**
+ * Thu hồi một sản phẩm khỏi user. Tính năng Giáo Lý Số → thu hồi của GIÁO XỨ (giữ dòng, hạn = bây giờ → còn lịch sử dùng thử)
+ * + gửi lệnh tắt sang Giáo Lý Số. Phần mềm → KHÓA key (app báo key bị thu hồi ở lần kiểm tiếp theo).
+ */
 export async function revokeEntitlement(formData: FormData) {
   const admin = await assertAdmin();
   const userId = String(formData.get("user_id") ?? "").trim();
   const productId = String(formData.get("product_id") ?? "").trim();
+  const parishFromForm = String(formData.get("parish_id") ?? "").trim();
   if (!userId || !productId) return;
 
   const supabase = createStoreAdminClient();
+  const { product, parishId: userParish } = await grantTarget(userId, productId);
+  const parishId = parishFromForm || userParish;
+  if (product?.giaoly_feature_key && parishId) {
+    const { error } = await supabase
+      .from("parish_entitlements")
+      .update({ expires_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+      .eq("parish_id", parishId)
+      .eq("product_id", productId);
+    if (error) throw new Error(error.message);
+    await syncParishFeature(parishId, productId, userId).catch((e) => console.error("provision", e));
+    await logAdmin(admin, "entitlement.revoke", { type: "user", id: userId }, { product_id: productId, parish_id: parishId });
+    revalidatePath(`/admin/users/${userId}`);
+    return;
+  }
+
   const { error } = await supabase
     .from("entitlements")
     .delete()
     .eq("store_user_id", userId)
     .eq("product_id", productId);
   if (error) throw new Error(error.message);
-  await syncFeatureProvision(userId, productId).catch((e) => console.error("provision", e));
+  if (product?.type === "software")
+    await supabase.from("licenses").update({ status: "revoked" }).eq("store_user_id", userId).eq("product_id", productId);
   await logAdmin(admin, "entitlement.revoke", { type: "user", id: userId }, { product_id: productId });
 
   revalidatePath(`/admin/users/${userId}`);
@@ -357,14 +407,15 @@ export async function updateProductConfig(formData: FormData) {
   if (!id) return;
 
   const tier = formData.get("tier") === "pro" ? "pro" : "free";
-  const priceMonth = tier === "pro" ? Number(formData.get("price_month") ?? 0) || 0 : 0;
+  // Giá: số nguyên 0 – 100 triệu (trước đây giá âm làm DB từ chối → trang lỗi).
+  const priceMonth = tier === "pro" ? Math.min(100_000_000, Math.max(0, Math.floor(Number(formData.get("price_month") ?? 0) || 0))) : 0;
   const patch = {
     tier,
     min_plan: tier,
     price_month: priceMonth,
     price_vnd: priceMonth,
     trial: tier === "pro" && formData.get("trial") === "on",
-    trial_days: Number(formData.get("trial_days") ?? 7) || 7,
+    trial_days: Math.min(60, Math.max(1, Math.floor(Number(formData.get("trial_days") ?? 7) || 7))),
     active: formData.get("active") === "on",
     giaoly_pro_free: tier === "pro" && formData.get("giaoly_pro_free") === "on",
   };
