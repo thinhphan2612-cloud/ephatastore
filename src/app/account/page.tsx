@@ -2,7 +2,8 @@ import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { getGiaolyContext } from "@/lib/giaoly-context";
 import { effectivePlan } from "@/lib/plan";
-import { unlinkGiaoly } from "@/lib/actions/giaoly-link";
+import { unlinkGiaoly, refreshGiaolyNow } from "@/lib/actions/giaoly-link";
+import { ConfirmSubmit } from "@/components/admin/confirm-submit";
 import { GiaolyLinkForm } from "@/components/giaoly-link-form";
 import Link from "next/link";
 import { getBalance } from "@/data/wallet";
@@ -10,6 +11,8 @@ import { formatDate } from "@/lib/format";
 import { signOut } from "@/lib/actions/auth";
 
 export const metadata = { title: "Tài khoản" };
+
+const ROLE_LABEL: Record<string, string> = { admin: "Quản trị giáo xứ", teacher: "Giáo lý viên" };
 
 export default async function AccountPage() {
   const user = await getCurrentUser();
@@ -75,22 +78,29 @@ export default async function AccountPage() {
               )}
               <div className="flex justify-between">
                 <dt className="text-text-faint">Vai trò</dt>
-                <dd>{ctx.role ?? "—"}</dd>
+                <dd>{ctx.role ? (ROLE_LABEL[ctx.role] ?? ctx.role) : "—"}</dd>
               </div>
             </dl>
 
             <div className="mt-5 flex items-center justify-between gap-3">
               <p className="text-xs text-text-faint">
-                Gói và vai trò tự cập nhật từ Giáo Lý Số (tối đa 6 giờ một lần).
+                Gói và vai trò tự cập nhật từ Giáo Lý Số (tối đa 6 giờ một lần) — vừa đổi bên Giáo Lý Số thì bấm Cập nhật ngay.
               </p>
-              <form action={unlinkGiaoly}>
-                <button
-                  type="submit"
-                  className="shrink-0 rounded-md border border-border px-3 py-1.5 text-sm text-text-muted hover:border-danger/50 hover:text-danger"
-                >
-                  Gỡ liên kết
-                </button>
-              </form>
+              <div className="flex shrink-0 items-center gap-2">
+                <form action={refreshGiaolyNow}>
+                  <button type="submit" className="rounded-md border border-border px-3 py-1.5 text-sm text-text-muted hover:border-accent hover:text-text">
+                    Cập nhật ngay
+                  </button>
+                </form>
+                <form action={unlinkGiaoly}>
+                  <ConfirmSubmit
+                    confirm="Gỡ liên kết Giáo Lý Số? Bạn sẽ mất quyền miễn phí theo gói Pro và không mua được tính năng cho giáo xứ cho tới khi liên kết lại."
+                    className="rounded-md border border-border px-3 py-1.5 text-sm text-text-muted hover:border-danger/50 hover:text-danger"
+                  >
+                    Gỡ liên kết
+                  </ConfirmSubmit>
+                </form>
+              </div>
             </div>
           </div>
         ) : (

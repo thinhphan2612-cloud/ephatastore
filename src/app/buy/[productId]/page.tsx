@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { getCurrentUserPlan } from "@/lib/plan";
-import { getGiaolyContext } from "@/lib/giaoly-context";
+import { getGiaolyContext, isParishAdmin } from "@/lib/giaoly-context";
 import { getBalance } from "@/data/wallet";
 import { createStoreAdminClient } from "@/lib/supabase/store-admin";
 import { getSettings } from "@/data/settings";
@@ -12,6 +12,8 @@ import { quoteCoupon, type CouponQuote } from "@/lib/coupons";
 import { getMyLicenseKey } from "@/data/software";
 import { getToppingUntil, isOwned } from "@/data/store-user";
 import { formatDate } from "@/lib/format";
+import { PendingSubmit } from "@/components/pending-submit";
+import { getEntitlement } from "@/data/store-user";
 
 export const metadata = { title: "Xác nhận mua" };
 
@@ -63,7 +65,7 @@ export default async function BuyPage({
       icon: "✦",
       note: until
         ? `Đang bật đến ${formatDate(until)} — mua thêm sẽ cộng nối 365 ngày`
-        : "365 ngày · mở khoá tất cả sản phẩm PRO",
+        : "365 ngày · mở khoá sản phẩm PRO (trừ phần mềm bán key và tính năng Giáo Lý Số)",
       points: await purchasePricePoints("topping", 0),
       isPro: false,
       alreadyOwned: false,
@@ -74,28 +76,41 @@ export default async function BuyPage({
     const supabase = createStoreAdminClient();
     const { data: product } = await supabase
       .from("products")
-      .select("id,slug,title,tagline,icon,type,price_month,giaoly_pro_free,published")
+      .select("id,slug,title,tagline,icon,type,price_month,giaoly_pro_free,giaoly_feature_key,published")
       .eq("id", productId)
       .maybeSingle();
     if (!product || !product.published) notFound();
     // Gói mua phải hợp loại sản phẩm (server cũng kiểm lại) — link lạ → gói đúng của sản phẩm.
     const allowed = kindsFor(product.type);
     if (!allowed.includes(kind)) redirect(`/buy/${product.id}?kind=${allowed[0]}`);
+    // Tính năng Giáo Lý Số bật cho cả giáo xứ → chỉ quản trị giáo xứ đã liên kết mua được; báo trước, không để bấm rồi bị đẩy về.
+    if (product.giaoly_feature_key && !(await isParishAdmin())) redirect(`/product/${product.slug}?notice=feature_parish_admin`);
     // Mỗi tài khoản 1 key/sản phẩm — đã có thì về Thư viện xem key.
     if (kind === "software" && (await getMyLicenseKey(user.id, product.id))) redirect("/library");
 
     // Chỉ sản phẩm gắn nhãn "Miễn phí cho Pro Giáo Lý Số" mới free cho Pro (phần mềm không bao giờ có nhãn này).
     const isPro = kind !== "software" && product.giaoly_pro_free && (await getCurrentUserPlan()) === "pro";
     const proUntil = isPro ? (await getGiaolyContext())?.planExpiresAt : null;
+    // Gói năm / mua lẻ đang còn hạn → nói rõ mua thêm là cộng nối (giống Full Topping).
+    const ent = kind === "annual" || kind === "freedom" ? await getEntitlement(user.id, product.id) : null;
+    const days = kind === "annual" ? 365 : settings.freedomDays;
+    const renewNote =
+      !isPro && ent?.active && ent.expiresAt
+        ? `Đang dùng đến ${formatDate(ent.expiresAt)} — mua thêm cộng nối ${days} ngày, đến ${formatDate(
+            new Date(new Date(ent.expiresAt).getTime() + days * 86400000).toISOString()
+          )}`
+        : null;
     item = {
       productId: product.id,
       title: product.title,
       icon: product.icon ?? "✦",
       note: isPro
         ? `Miễn phí theo gói Pro Giáo Lý Số — dùng đến ${proUntil ? formatDate(proUntil) : "hết 365 ngày"}`
-        : kind === "freedom"
-          ? `Dùng ${settings.freedomDays} ngày`
-          : KIND_LABEL[kind],
+        : renewNote
+          ? renewNote
+          : kind === "freedom"
+            ? `Dùng ${settings.freedomDays} ngày`
+            : KIND_LABEL[kind],
       points: isPro ? 0 : await purchasePricePoints(kind, product.price_month ?? 0),
       isPro,
       // Mua vĩnh viễn mà đã sở hữu → không cho trả tiền lần nữa (gói năm / mua lẻ thì mua thêm là gia hạn).
@@ -192,12 +207,12 @@ export default async function BuyPage({
           {/* Khóa chống trùng: mỗi lần mở trang một khóa — bấm 2 lần / gửi lại không trừ point 2 lần. */}
           <input type="hidden" name="purchase_key" value={crypto.randomUUID()} />
           {discount > 0 && quote && <input type="hidden" name="coupon" value={quote.code} />}
-          <button
-            type="submit"
+          <PendingSubmit
+            pendingText={item.isPro ? "Đang kích hoạt…" : "Đang thanh toán…"}
             className="w-full rounded-xl bg-accent px-4 py-3 font-extrabold text-accent-contrast hover:bg-accent-hover"
           >
             {item.isPro ? "Kích hoạt miễn phí →" : `Thanh toán ${pay.toLocaleString("vi-VN")} point →`}
-          </button>
+          </PendingSubmit>
         </form>
       ) : (
         <div className="mt-5 rounded-xl border border-danger/40 bg-danger/10 p-4 text-center text-sm">

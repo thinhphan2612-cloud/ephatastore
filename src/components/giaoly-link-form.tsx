@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@supabase/supabase-js";
 import { linkGiaoly } from "@/lib/actions/giaoly-link";
+import { authErrorVi } from "@/lib/auth-errors";
 
 export function GiaolyLinkForm() {
   const router = useRouter();
@@ -29,11 +30,7 @@ export function GiaolyLinkForm() {
     });
 
     if (authErr || !data.session) {
-      setError(
-        authErr?.message === "Invalid login credentials"
-          ? "Email hoặc mật khẩu Giáo Lý Số không đúng."
-          : authErr?.message ?? "Không đăng nhập được giaoly."
-      );
+      setError(authErrorVi(authErr, "Giáo Lý Số"));
       setLoading(false);
       return;
     }
@@ -59,10 +56,10 @@ export function GiaolyLinkForm() {
         đọc giáo xứ &amp; gói của bạn — không lưu mật khẩu.
       </p>
       <div>
-        <label className="mb-1 block text-sm text-text-muted">
+        <label htmlFor="gls-link-email" className="mb-1 block text-sm text-text-muted">
           Email Giáo Lý Số
         </label>
-        <input
+        <input id="gls-link-email" autoComplete="email"
           type="email"
           required
           value={email}
@@ -71,10 +68,10 @@ export function GiaolyLinkForm() {
         />
       </div>
       <div>
-        <label className="mb-1 block text-sm text-text-muted">
+        <label htmlFor="gls-link-password" className="mb-1 block text-sm text-text-muted">
           Mật khẩu Giáo Lý Số
         </label>
-        <input
+        <input id="gls-link-password" autoComplete="current-password"
           type="password"
           required
           value={password}

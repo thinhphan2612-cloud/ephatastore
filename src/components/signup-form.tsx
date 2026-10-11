@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { safeNext } from "@/lib/safe-next";
 import { createStoreAuthBrowserClient } from "@/lib/supabase/store-auth-browser";
+import { authErrorVi } from "@/lib/auth-errors";
 
 export function SignupForm() {
   const router = useRouter();
@@ -35,11 +36,7 @@ export function SignupForm() {
     });
 
     if (error) {
-      setError(
-        error.message.includes("already registered")
-          ? "Email này đã có tài khoản. Hãy đăng nhập."
-          : error.message
-      );
+      setError(authErrorVi(error));
       setLoading(false);
       return;
     }
@@ -58,8 +55,8 @@ export function SignupForm() {
   return (
     <form onSubmit={onSubmit} className="space-y-4 text-left">
       <div>
-        <label className="mb-1 block text-sm text-text-muted">Email</label>
-        <input
+        <label htmlFor="signup-email" className="mb-1 block text-sm text-text-muted">Email</label>
+        <input id="signup-email" autoComplete="email"
           type="email"
           required
           value={email}
@@ -69,8 +66,8 @@ export function SignupForm() {
         />
       </div>
       <div>
-        <label className="mb-1 block text-sm text-text-muted">Mật khẩu</label>
-        <input
+        <label htmlFor="signup-password" className="mb-1 block text-sm text-text-muted">Mật khẩu</label>
+        <input id="signup-password" autoComplete="new-password"
           type="password"
           required
           value={password}

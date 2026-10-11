@@ -40,6 +40,9 @@ export default async function AdminTopupsPage() {
               </div>
 
               <div className="mt-2 text-sm text-text-muted">{t.email ?? "—"}</div>
+              {t.status === "rejected" && t.reject_reason && (
+                <div className="mt-1 text-xs text-danger">Lý do: {t.reject_reason}</div>
+              )}
 
               <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
                 <div className="text-sm">
@@ -60,8 +63,15 @@ export default async function AdminTopupsPage() {
                         ✓ Duyệt (đã nhận CK)
                       </ConfirmSubmit>
                     </form>
-                    <form action={rejectTopup}>
+                    <form action={rejectTopup} className="flex items-center gap-2">
                       <input type="hidden" name="id" value={t.id} />
+                      <input
+                        name="reason"
+                        list="reject-reasons"
+                        maxLength={300}
+                        placeholder="Lý do (gửi cho khách)"
+                        className="w-56 rounded-md border border-border bg-bg-elevated px-2 py-1.5 text-sm text-text focus:border-accent focus:outline-none"
+                      />
                       <ConfirmSubmit
                         confirm={`Từ chối đơn nạp ${t.code}?`}
                         className="rounded-md border border-border px-3 py-1.5 text-sm text-text-muted hover:border-danger/50 hover:text-danger"
@@ -75,6 +85,13 @@ export default async function AdminTopupsPage() {
             </div>
           );
         })}
+
+        <datalist id="reject-reasons">
+          <option value="Chưa nhận được chuyển khoản khớp số tiền và nội dung của đơn." />
+          <option value="Số tiền chuyển không khớp với đơn." />
+          <option value="Nội dung chuyển khoản không có mã nạp." />
+          <option value="Đơn tạo trùng — bạn đã có đơn khác cho cùng giao dịch." />
+        </datalist>
 
         {topups.length === 0 && (
           <p className="py-10 text-center text-text-muted">Chưa có đơn nạp nào.</p>

@@ -21,6 +21,7 @@ export interface Topup {
   points: number;
   status: string;
   created_at: string;
+  reject_reason?: string | null;
 }
 
 /** Số dư point của user (0 nếu chưa có ví). */
@@ -68,7 +69,7 @@ export async function getTopupForUser(id: string, userId: string): Promise<Topup
   const supabase = createStoreAdminClient();
   const { data } = await supabase
     .from("point_topups")
-    .select("id,user_id,code,amount_vnd,points,status,created_at")
+    .select("id,user_id,code,amount_vnd,points,status,created_at,reject_reason")
     .eq("id", id)
     .maybeSingle();
   if (!data || data.user_id !== userId) return null;
@@ -79,7 +80,7 @@ export async function getTopupForUser(id: string, userId: string): Promise<Topup
 export async function getMyTopups(userId: string, limit = 5): Promise<Topup[]> {
   const { data } = await createStoreAdminClient()
     .from("point_topups")
-    .select("id,user_id,code,amount_vnd,points,status,created_at")
+    .select("id,user_id,code,amount_vnd,points,status,created_at,reject_reason")
     .eq("user_id", userId)
     .order("created_at", { ascending: false })
     .limit(limit);
@@ -91,7 +92,7 @@ export async function adminListTopups(): Promise<(Topup & { email: string | null
   const supabase = createStoreAdminClient();
   // Đơn chờ duyệt lấy ĐỦ (trước đây chỉ 100 dòng mới nhất mọi trạng thái → đơn chờ cũ trôi khỏi hàng đợi,
   // khách đã chuyển tiền mà không được cộng) + 100 đơn đã xử lý gần nhất.
-  const cols = "id,user_id,code,amount_vnd,points,status,created_at";
+  const cols = "id,user_id,code,amount_vnd,points,status,created_at,reject_reason";
   const [{ data: pending }, { data: done }] = await Promise.all([
     supabase.from("point_topups").select(cols).eq("status", "pending").order("created_at", { ascending: true }),
     supabase.from("point_topups").select(cols).neq("status", "pending").order("created_at", { ascending: false }).limit(100),

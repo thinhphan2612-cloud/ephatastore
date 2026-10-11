@@ -207,3 +207,38 @@ export async function deactivateLicense(input: {
     .eq("device_id", input.deviceId);
   if (error) throw new Error(error.message);
 }
+
+/** Gỡ thiết bị (khách tự làm): 1 lần / 30 ngày / key. */
+export const DEVICE_RESET_DAYS = 30;
+
+export interface MyLicense {
+  id: string;
+  key: string;
+  deviceLimit: number;
+  devices: { id: string; platform: string | null; lastSeen: string }[];
+  /** null = gỡ được ngay; có giá trị = lần gỡ tiếp theo từ thời điểm này. */
+  resetAvailableAt: string | null;
+}
+
+/** Key + thiết bị đã kích hoạt của user (productId → key) — cho Thư viện. */
+export async function getMyLicenses(userId: string): Promise<Map<string, MyLicense>> {
+  const supabase = createStoreAdminClient();
+  const { data } = await supabase
+    .from("licenses")
+    .select("id,product_id,key,device_limit,devices_reset_at,license_devices(id,platform,last_seen)")
+    .eq("store_user_id", userId);
+  const out = new Map<string, MyLicense>();
+  for (const r of data ?? []) {
+    const next = r.devices_reset_at ? new Date(r.devices_reset_at).getTime() + DEVICE_RESET_DAYS * 86400000 : 0;
+    out.set(r.product_id as string, {
+      id: r.id,
+      key: r.key,
+      deviceLimit: r.device_limit,
+      devices: ((r.license_devices ?? []) as { id: string; platform: string | null; last_seen: string }[])
+        .map((d) => ({ id: d.id, platform: d.platform, lastSeen: d.last_seen }))
+        .sort((a, b) => b.lastSeen.localeCompare(a.lastSeen)),
+      resetAvailableAt: next > Date.now() ? new Date(next).toISOString() : null,
+    });
+  }
+  return out;
+}

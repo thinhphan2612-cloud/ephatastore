@@ -1,14 +1,20 @@
 import Link from "next/link";
 import { getCurrentUser } from "@/lib/auth";
 import { getMyLibrary, getToppingUntil, type LibraryItem } from "@/data/store-user";
-import { formatDate } from "@/lib/format";
 import { ProductCard } from "@/components/product-card";
 import { OwnedActions } from "@/components/owned-actions";
-import { getMyLicenseKeys } from "@/data/software";
+import { getMyLicenses, type MyLicense } from "@/data/software";
+import { getFeatureSyncStatus } from "@/data/store-user";
+import { CopyButton } from "@/components/copy-button";
+import { ConfirmSubmit } from "@/components/admin/confirm-submit";
+import { removeMyDevice } from "@/lib/actions/license";
+import { noticeText } from "@/lib/notices";
+import { formatDate, formatDateTime } from "@/lib/format";
 
 export const metadata = { title: "Thư viện" };
 
-export default async function LibraryPage() {
+export default async function LibraryPage({ searchParams }: { searchParams: Promise<{ notice?: string }> }) {
+  const notice = noticeText((await searchParams).notice);
   const user = await getCurrentUser();
 
   if (!user) {
@@ -31,16 +37,26 @@ export default async function LibraryPage() {
   const [items, toppingUntil, licenseKeys] = await Promise.all([
     getMyLibrary(user.id),
     getToppingUntil(user.id),
-    getMyLicenseKeys(user.id),
+    getMyLicenses(user.id),
   ]);
   const active = items.filter((i) => i.active);
   const expired = items.filter((i) => !i.active);
+  const featureSync = await getFeatureSyncStatus(
+    user.id,
+    active.filter((i) => i.product.giaolyFeatureKey).map((i) => i.product.id)
+  );
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8">
       <h1 className="mb-6 text-2xl font-bold">
         Thư viện của tôi <span className="text-text-faint">({active.length})</span>
       </h1>
+
+      {notice && (
+        <p role="status" className="mb-6 rounded-xl border border-border bg-surface px-4 py-3 text-sm text-text">
+          {notice}
+        </p>
+      )}
 
       {toppingUntil && (
         <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-accent/40 bg-accent/10 px-4 py-3 text-sm">
@@ -75,8 +91,12 @@ export default async function LibraryPage() {
             <div key={it.product.id} className="space-y-2">
               <ProductCard product={it.product} />
               <AccessLine item={it} />
-              {licenseKeys.has(it.product.id) && <LicenseKeyBox licenseKey={licenseKeys.get(it.product.id)!} />}
-              <OwnedActions product={it.product} className="w-full" />
+              {licenseKeys.has(it.product.id) && <LicenseKeyBox license={licenseKeys.get(it.product.id)!} />}
+              <OwnedActions
+                product={it.product}
+                className="w-full"
+                featureSync={it.product.giaolyFeatureKey ? (featureSync.get(it.product.id) ?? null) : undefined}
+              />
             </div>
           ))}
         </div>
@@ -135,18 +155,57 @@ function AccessLine({ item }: { item: LibraryItem }) {
 }
 
 /** Key phần mềm + hướng dẫn kích hoạt. */
-function LicenseKeyBox({ licenseKey }: { licenseKey: string }) {
+function LicenseKeyBox({ license }: { license: MyLicense }) {
+  const full = license.devices.length >= license.deviceLimit;
   return (
     <div className="rounded-xl border border-accent/40 bg-accent/5 p-3 text-sm">
       <div className="text-[11px] uppercase tracking-[0.13em] text-text-faint">Key bản quyền</div>
-      <code className="mt-1 block select-all break-all font-mono text-base font-bold text-text">
-        {licenseKey}
-      </code>
+      <div className="mt-1 flex items-center gap-2">
+        <code className="min-w-0 flex-1 select-all break-all font-mono text-base font-bold text-text">{license.key}</code>
+        <CopyButton value={license.key} />
+      </div>
       <ol className="mt-2 list-decimal space-y-0.5 pl-4 text-xs text-text-muted">
         <li>Tải và cài bộ cài cho máy của bạn.</li>
         <li>Mở app → mục Bản quyền / Kích hoạt.</li>
         <li>Dán key trên rồi bấm Kích hoạt (cần mạng lần đầu).</li>
       </ol>
+
+      <div className="mt-3 border-t border-accent/20 pt-2">
+        <div className={`text-xs ${full ? "text-warn" : "text-text-muted"}`}>
+          Thiết bị đã kích hoạt: {license.devices.length} / {license.deviceLimit}
+          {full && " — đã đủ, gỡ máy cũ để kích hoạt máy mới"}
+        </div>
+        {license.devices.length > 0 && (
+          <ul className="mt-1.5 space-y-1">
+            {license.devices.map((d) => (
+              <li key={d.id} className="flex items-center justify-between gap-2 text-xs text-text-muted">
+                <span>
+                  {d.platform ?? "Thiết bị"} · dùng gần nhất {formatDateTime(d.lastSeen)}
+                </span>
+                {!license.resetAvailableAt && (
+                  <form action={removeMyDevice}>
+                    <input type="hidden" name="device_id" value={d.id} />
+                    <ConfirmSubmit
+                      confirm="Gỡ thiết bị này? Máy đó sẽ về trạng thái chưa kích hoạt. Mỗi key chỉ tự gỡ 1 lần / 30 ngày."
+                      className="text-brand hover:text-brand-hover"
+                    >
+                      Gỡ
+                    </ConfirmSubmit>
+                  </form>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
+        {license.resetAvailableAt && (
+          <p className="mt-1 text-[11px] text-text-faint">
+            Lần gỡ tiếp theo từ {formatDateTime(license.resetAvailableAt)}. Cần gấp?{" "}
+            <Link href="/lien-he?chu-de=mua-hang" className="underline">
+              Liên hệ
+            </Link>
+          </p>
+        )}
+      </div>
     </div>
   );
 }

@@ -14,18 +14,18 @@ export async function GET(
 
   const user = await getCurrentUser();
   if (!user) {
-    return NextResponse.redirect(new URL("/login", request.url));
+    return NextResponse.redirect(new URL(`/login?next=${encodeURIComponent(`/download/${productId}`)}`, request.url));
   }
+  // Lỗi người dùng gặp được → về trang sản phẩm kèm thông báo (không trả chữ trơn không có lối ra).
+  const back = (slug: string, notice: string) => NextResponse.redirect(new URL(`/product/${slug}?notice=${notice}`, request.url));
 
   const supabase = createStoreAdminClient();
   const { data: product } = await supabase
     .from("products")
-    .select("download_path,tier,type,price_month,giaoly_pro_free")
+    .select("slug,download_path,tier,type,price_month,giaoly_pro_free")
     .eq("id", productId)
     .maybeSingle();
-  if (!product) {
-    return new NextResponse("Sản phẩm không tồn tại.", { status: 404 });
-  }
+  if (!product) return NextResponse.redirect(new URL("/library", request.url));
 
   if (
     !(await canAccessProduct(user.id, {
@@ -36,11 +36,11 @@ export async function GET(
       giaolyProFree: product.giaoly_pro_free,
     }))
   ) {
-    return new NextResponse("Bạn chưa có quyền dùng sản phẩm này.", { status: 403 });
+    return back(product.slug, "download_no_access");
   }
 
   if (!product.download_path) {
-    return new NextResponse("Sản phẩm chưa có file tải về.", { status: 404 });
+    return back(product.slug, "download_no_file");
   }
 
   const { data, error } = await supabase.storage
@@ -48,7 +48,7 @@ export async function GET(
     .createSignedUrl(product.download_path, EXPIRES, { download: true });
 
   if (error || !data?.signedUrl) {
-    return new NextResponse("Không tạo được link tải.", { status: 500 });
+    return back(product.slug, "download_failed");
   }
 
   return NextResponse.redirect(data.signedUrl);

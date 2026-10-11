@@ -22,7 +22,7 @@ export async function loginWithGiaoly(
   formData: FormData
 ): Promise<GiaolyLoginState> {
   const accessToken = String(formData.get("access_token") ?? "").trim();
-  if (!accessToken) return { error: "Thiếu token Giáo Lý Số." };
+  if (!accessToken) return { error: "Chưa đăng nhập được Giáo Lý Số. Thử lại." };
 
   // Verify token giaoly + đọc context.
   const giaoly = createClient(
@@ -34,7 +34,7 @@ export async function loginWithGiaoly(
     }
   );
   const { data: gUser, error: gErr } = await giaoly.auth.getUser(accessToken);
-  if (gErr || !gUser.user?.email) return { error: "Token Giáo Lý Số không hợp lệ." };
+  if (gErr || !gUser.user?.email) return { error: "Phiên Giáo Lý Số đã hết hạn. Đăng nhập lại rồi thử." };
   const email = gUser.user.email;
   const giaolyUserId = gUser.user.id;
   const { data: ctx } = await giaoly.rpc("get_my_context");
@@ -71,7 +71,7 @@ export async function loginWithGiaoly(
           error:
             "Email này đã có tài khoản Ephata Store. Hãy đăng nhập bằng mật khẩu Store ở khung trên, rồi liên kết Giáo Lý Số trong trang Tài khoản.",
         };
-      return { error: created.error?.message ?? "Không tạo được tài khoản Store." };
+      return { error: "Không tạo được tài khoản Ephata Store. Thử lại sau ít phút." };
     }
     storeUserId = created.data.user.id;
     storeEmail = email;
@@ -83,7 +83,7 @@ export async function loginWithGiaoly(
     email: storeEmail,
   });
   if (linkErr || !link.properties?.hashed_token || link.user?.id !== storeUserId) {
-    return { error: linkErr?.message ?? "Không tạo được phiên đăng nhập." };
+    return { error: "Không tạo được phiên đăng nhập. Thử lại sau ít phút." };
   }
 
   // Gắn liên kết Giáo Lý Số + cache gói.

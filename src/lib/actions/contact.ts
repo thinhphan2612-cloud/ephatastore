@@ -11,6 +11,8 @@ import { CONTACT_TOPICS } from "@/lib/contact-topics";
 export interface ContactState {
   ok?: boolean;
   error?: string;
+  /** Giá trị vừa nhập — trả lại khi lỗi để form không mất nội dung. */
+  values?: { name: string; email: string; topic: string; message: string };
 }
 
 
@@ -31,9 +33,10 @@ export async function submitContact(_prev: ContactState, formData: FormData): Pr
   const topic = (CONTACT_TOPICS as readonly string[]).includes(topicRaw) ? topicRaw : "Khác";
   const message = String(formData.get("message") ?? "").trim().slice(0, 5000);
 
-  if (!name) return { error: "Nhập họ tên." };
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return { error: "Email không hợp lệ." };
-  if (message.length < 10) return { error: "Nội dung quá ngắn — mô tả rõ hơn giúp chúng tôi hỗ trợ nhanh." };
+  const values = { name, email, topic, message };
+  if (!name) return { error: "Nhập họ tên.", values };
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return { error: "Email không hợp lệ.", values };
+  if (message.length < 10) return { error: "Nội dung quá ngắn — mô tả rõ hơn giúp chúng tôi hỗ trợ nhanh.", values };
 
   const h = await headers();
   const ip = (h.get("x-forwarded-for") ?? "").split(",")[0].trim() || h.get("x-real-ip") || "unknown";
@@ -49,7 +52,7 @@ export async function submitContact(_prev: ContactState, formData: FormData): Pr
     supabase.from("contact_messages").select("id", { count: "exact", head: true }).eq("email", email).gt("created_at", since),
   ]);
   if ((byIp ?? 0) >= MAX_PER_HOUR || (byEmail ?? 0) >= MAX_PER_HOUR)
-    return { error: "Bạn đã gửi nhiều lần trong một giờ. Vui lòng đợi rồi gửi lại." };
+    return { error: "Bạn đã gửi nhiều lần trong một giờ. Vui lòng đợi rồi gửi lại.", values };
 
   const user = await getCurrentUser();
   const { data: row, error } = await supabase
@@ -57,7 +60,7 @@ export async function submitContact(_prev: ContactState, formData: FormData): Pr
     .insert({ name, email, topic, message, store_user_id: user?.id ?? null, ip_hash: ipHash })
     .select("id")
     .single();
-  if (error) return { error: "Không lưu được tin nhắn. Thử lại sau ít phút." };
+  if (error) return { error: "Không lưu được tin nhắn. Thử lại sau ít phút.", values };
 
   const mail = contactNotificationEmail({
     id: row.id,

@@ -77,7 +77,7 @@ export default async function WalletPage({ searchParams }: { searchParams: Promi
 
       <div className="mt-6 rounded-2xl border border-border bg-surface p-6">
         <h2 className="mb-4 font-semibold">Nạp point</h2>
-        <TopupForm defaultAmount={suggestVnd} />
+        <TopupForm defaultAmount={suggestVnd} back={back || undefined} />
       </div>
 
       {topups.length > 0 && (
@@ -102,6 +102,11 @@ export default async function WalletPage({ searchParams }: { searchParams: Promi
                     className="shrink-0 rounded-md border border-accent px-3 py-1.5 text-xs font-semibold text-accent hover:bg-accent/10"
                   >
                     Xem mã QR / thông tin CK
+                  </Link>
+                )}
+                {t.status === "rejected" && (
+                  <Link href={`/wallet/topup/${t.id}`} className="shrink-0 text-xs font-semibold text-brand hover:text-brand-hover">
+                    Xem lý do
                   </Link>
                 )}
               </li>

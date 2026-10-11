@@ -133,17 +133,6 @@ body::before {
 .media-placeholder {
   background: linear-gradient(135deg, #456574 0%, #8d7040 48%, #2d3c45 100%);
 }
-.media-placeholder::before {
-  content: "THÊM ẢNH SAU";
-  position: absolute;
-  inset: 0;
-  display: grid;
-  place-items: center;
-  color: rgba(255, 255, 255, 0.42);
-  font-size: 10px;
-  font-weight: 900;
-  letter-spacing: 0.16em;
-}
 
 .scrollbar-thin {
   scrollbar-width: thin;

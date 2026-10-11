@@ -115,3 +115,45 @@ Bấm Trả lời trong hộp thư cũng gửi thẳng tới người gửi. Mã
     html: layout({ preheader: `${m.name}: ${m.message.slice(0, 90)}`, eyebrow: `// Tin liên hệ · ${m.topic}`, title: "Tin nhắn mới từ khách", body }),
   };
 }
+
+/** Email cho khách: đơn nạp đã được duyệt, point đã vào ví. */
+export function topupApprovedEmail(t: { code: string; points: number; amountVnd: number; balance: number | null }) {
+  const pts = t.points.toLocaleString("vi-VN");
+  const subject = `Đã cộng ${pts} point vào Ví Ephata Store (${t.code})`;
+  const text = [
+    `Đơn nạp ${t.code} (${t.amountVnd.toLocaleString("vi-VN")}đ) đã được xác nhận — ${pts} point đã vào ví của bạn.`,
+    t.balance != null ? `Số dư hiện tại: ${t.balance.toLocaleString("vi-VN")} point.` : "",
+    "",
+    `Mở Ví: ${SITE}/wallet`,
+  ].filter(Boolean).join("\n");
+  const body = `
+<p style="margin:14px 0 0;font-size:15px;line-height:1.7;color:#c9ced2;">Đơn nạp <b style="color:${C.text};">${esc(t.code)}</b> (${esc(t.amountVnd.toLocaleString("vi-VN"))}đ) đã được xác nhận.</p>
+<div style="margin-top:22px;padding:20px;background:${C.surface};border-left:3px solid ${C.accent};border-radius:10px;">
+  <div style="font-size:12px;letter-spacing:1px;text-transform:uppercase;color:${C.faint};">Đã cộng vào ví</div>
+  <div style="margin-top:6px;font-family:${SERIF};font-size:30px;font-weight:700;color:${C.accent};">+${esc(pts)} point</div>
+  ${t.balance != null ? `<div style="margin-top:6px;font-size:13px;color:${C.muted};">Số dư hiện tại: ${esc(t.balance.toLocaleString("vi-VN"))} point</div>` : ""}
+</div>
+${button(`${SITE}/wallet`, "Mở Ví point →")}`;
+  return { subject, text, html: layout({ preheader: `${pts} point đã vào ví của bạn.`, eyebrow: "// Ví point · Nạp thành công", title: "Point đã vào ví", body }) };
+}
+
+/** Email cho khách: đơn nạp bị từ chối — kèm lý do + đường liên hệ nếu đã chuyển khoản. */
+export function topupRejectedEmail(t: { code: string; amountVnd: number; reason: string }) {
+  const subject = `Đơn nạp ${t.code} chưa được duyệt — Ephata Store`;
+  const contact = `${SITE}/lien-he?chu-de=nap-point&ma=${encodeURIComponent(t.code)}`;
+  const text = [
+    `Đơn nạp ${t.code} (${t.amountVnd.toLocaleString("vi-VN")}đ) chưa được duyệt.`,
+    `Lý do: ${t.reason}`,
+    "",
+    `Nếu bạn ĐÃ chuyển khoản, gửi yêu cầu kèm mã ${t.code} tại: ${contact}`,
+  ].join("\n");
+  const body = `
+<p style="margin:14px 0 0;font-size:15px;line-height:1.7;color:#c9ced2;">Đơn nạp <b style="color:${C.text};">${esc(t.code)}</b> (${esc(t.amountVnd.toLocaleString("vi-VN"))}đ) chưa được duyệt.</p>
+<div style="margin-top:22px;padding:16px 18px;background:${C.surface};border-left:3px solid ${C.accent};border-radius:10px;font-size:14px;line-height:1.7;color:${C.text};">
+  <div style="font-size:12px;letter-spacing:1px;text-transform:uppercase;color:${C.faint};">Lý do</div>
+  <div style="margin-top:6px;white-space:pre-wrap;">${esc(t.reason)}</div>
+</div>
+<p style="margin:22px 0 0;font-size:14px;line-height:1.7;color:${C.muted};"><b style="color:${C.text};">Bạn đã chuyển khoản?</b> Gửi yêu cầu kèm mã ${esc(t.code)} — chúng tôi kiểm tra và cộng point hoặc hoàn tiền.</p>
+${button(contact, "Gửi yêu cầu hỗ trợ →")}`;
+  return { subject, text, html: layout({ preheader: `Lý do: ${t.reason.slice(0, 80)}`, eyebrow: "// Ví point · Đơn nạp", title: "Đơn nạp chưa được duyệt", body }) };
+}

@@ -8,8 +8,18 @@ import { CONTACT_TOPICS } from "@/lib/contact-topics";
 const input =
   "w-full rounded-md border border-border bg-surface px-3 py-2 text-text focus:border-accent focus:outline-none";
 
-export function ContactForm({ defaultEmail }: { defaultEmail?: string }) {
+export function ContactForm({
+  defaultEmail,
+  defaultTopic,
+  defaultMessage,
+}: {
+  defaultEmail?: string;
+  defaultTopic?: string;
+  defaultMessage?: string;
+}) {
   const [state, formAction, pending] = useActionState<ContactState, FormData>(submitContact, {});
+  // Gửi lỗi (thiếu tên, nội dung ngắn…) → React reset form; điền lại giá trị vừa nhập từ state.
+  const v = state.values;
 
   if (state.ok) {
     return (
@@ -34,16 +44,16 @@ export function ContactForm({ defaultEmail }: { defaultEmail?: string }) {
       <div className="grid gap-4 sm:grid-cols-2">
         <label className="block">
           <span className="mb-1 block text-sm text-text-muted">Họ tên *</span>
-          <input name="name" required maxLength={100} autoComplete="name" className={input} />
+          <input name="name" required maxLength={100} autoComplete="name" defaultValue={v?.name} className={input} />
         </label>
         <label className="block">
           <span className="mb-1 block text-sm text-text-muted">Email để nhận trả lời *</span>
-          <input name="email" type="email" required defaultValue={defaultEmail} autoComplete="email" className={input} />
+          <input name="email" type="email" required defaultValue={v?.email ?? defaultEmail} autoComplete="email" className={input} />
         </label>
       </div>
       <label className="block">
         <span className="mb-1 block text-sm text-text-muted">Chủ đề</span>
-        <select name="topic" defaultValue="Khác" className={input}>
+        <select name="topic" defaultValue={v?.topic ?? defaultTopic ?? "Khác"} className={input}>
           {CONTACT_TOPICS.map((t) => (
             <option key={t} value={t}>
               {t}
@@ -58,7 +68,8 @@ export function ContactForm({ defaultEmail }: { defaultEmail?: string }) {
           required
           rows={6}
           maxLength={5000}
-          placeholder="Mô tả vấn đề hoặc đề xuất. Liên quan nạp point thì ghi kèm mã nạp (vd W2427139)."
+          defaultValue={v?.message ?? defaultMessage}
+          placeholder="Mô tả vấn đề hoặc đề xuất. Liên quan nạp point thì ghi kèm mã nạp (vd NAP3F9A1C0E)."
           className={input}
         />
       </label>
