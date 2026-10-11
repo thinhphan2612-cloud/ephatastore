@@ -227,9 +227,10 @@ body::before {
   border-top: 1px solid var(--border);
   margin: 1.8em 0;
 }
+/* Ảnh/video tối đa 800px: mô tả rộng hết trang nhưng ảnh không chiếm cả màn hình (vẫn co theo khung trên mobile). */
 .rich-text img,
 .rich-text figure {
-  max-width: 100%;
+  max-width: min(100%, 800px);
   height: auto;
   border-radius: 14px;
 }
@@ -242,7 +243,7 @@ body::before {
 .rich-text iframe {
   display: block;
   width: 100%;
-  max-width: 100%;
+  max-width: min(100%, 800px);
   height: auto;
   aspect-ratio: 16 / 9;
   border: 0;

@@ -100,9 +100,9 @@ export default async function ProductPage({
         <span className="text-text-muted">{product.title}</span>
       </nav>
 
-      {/* min-w-0: cột grid không bị nội dung rộng (bảng, code trong mô tả HTML) đẩy tràn ngang trang. */}
-      <div className="grid gap-8 lg:grid-cols-[1.4fr_1fr]">
-        <div className="min-w-0 space-y-6">
+      {/* Hàng trên: ảnh bìa | card thông tin nằm ngang nhau. Giới thiệu ở dưới, rộng hết trang. */}
+      <div className="grid items-start gap-8 lg:grid-cols-[1.4fr_1fr]">
+        <div className="min-w-0">
           <div className="relative flex aspect-video items-center justify-center overflow-hidden rounded-3xl border border-border">
             <div
               className="media-placeholder absolute inset-0"
@@ -111,26 +111,6 @@ export default async function ProductPage({
             <div className="absolute inset-0 bg-gradient-to-b from-black/20 to-black/70" />
             <span className="relative z-10 text-[64px]">{product.icon ?? "✦"}</span>
           </div>
-          <div>
-            <h2 className="font-display mb-2 text-2xl font-bold">Giới thiệu</h2>
-            <Expandable>
-              {product.descriptionHtml ? (
-                // Lọc lại khi hiển thị: chính sách lọc đổi thì nội dung cũ cũng theo.
-                <div className="rich-text" dangerouslySetInnerHTML={{ __html: sanitizeDescription(product.descriptionHtml) }} />
-              ) : (
-                <p className="whitespace-pre-line leading-relaxed text-text-muted">{product.description}</p>
-              )}
-            </Expandable>
-          </div>
-          {product.tags.length > 0 && (
-            <div className="flex flex-wrap gap-2">
-              {product.tags.map((t) => (
-                <span key={t} className="rounded-full border border-border bg-white/[0.03] px-3 py-1 text-sm text-text-muted">
-                  {t}
-                </span>
-              ))}
-            </div>
-          )}
         </div>
 
         <aside className="min-w-0 space-y-4">
@@ -365,6 +345,30 @@ export default async function ProductPage({
           </div>
         </aside>
       </div>
+
+      {/* min-w-0: nội dung rộng trong mô tả HTML (bảng, code) cuộn trong khung, không đẩy tràn ngang trang. */}
+      <section className="mt-10 min-w-0 space-y-6">
+        <div>
+          <h2 className="font-display mb-2 text-2xl font-bold">Giới thiệu</h2>
+          <Expandable>
+            {product.descriptionHtml ? (
+              // Lọc lại khi hiển thị: chính sách lọc đổi thì nội dung cũ cũng theo.
+              <div className="rich-text" dangerouslySetInnerHTML={{ __html: sanitizeDescription(product.descriptionHtml) }} />
+            ) : (
+              <p className="whitespace-pre-line leading-relaxed text-text-muted">{product.description}</p>
+            )}
+          </Expandable>
+        </div>
+        {product.tags.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {product.tags.map((t) => (
+              <span key={t} className="rounded-full border border-border bg-white/[0.03] px-3 py-1 text-sm text-text-muted">
+                {t}
+              </span>
+            ))}
+          </div>
+        )}
+      </section>
 
       {related.length > 0 && (
         <div className="mt-12">
