@@ -4,6 +4,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { canAccessProduct } from "@/lib/access";
 import { createStoreAdminClient } from "@/lib/supabase/store-admin";
 import { GameFrame } from "@/components/game-frame";
+import { hostedPlayUrl } from "@/lib/hosted-access";
 
 export const metadata = { title: "Chơi game" };
 
@@ -65,7 +66,8 @@ export default async function PlayPage({
           ← Thư viện
         </Link>
       </div>
-      <GameFrame src={product.game_url} title={product.title} />
+      {/* File host trên store: URL kèm mã truy cập theo người chơi (bucket private). */}
+      <GameFrame src={hostedPlayUrl(product.game_url, user.id) ?? product.game_url} title={product.title} />
     </div>
   );
 }

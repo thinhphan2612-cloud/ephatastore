@@ -1,9 +1,13 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { createStoreAdminClient } from "@/lib/supabase/store-admin";
+import { verifyHostedToken } from "@/lib/hosted-access";
 
 /**
- * Phục vụ file webgame đã host trên Supabase Storage (bucket 'games').
- * - HTML/JS/CSS/JSON: proxy + set content-type đúng (Supabase ép HTML thành text/plain).
- * - Media/ảnh/font: redirect thẳng về public URL của Supabase (không tốn băng thông).
+ * Phục vụ file game / công cụ web host trên store (bucket PRIVATE 'games').
+ * URL: /g/<gameId>/<token>/<file> — token do trang chơi cấp (lib/hosted-access), kiểm chữ ký mỗi request.
+ * - HTML/JS/CSS/JSON: tải từ Storage rồi trả với content-type đúng (cùng origin với store).
+ * - Ảnh/âm thanh/video/font/wasm…: redirect sang link ký có hạn của Storage (không đi qua function —
+ *   Vercel giới hạn response ~4.5MB).
  */
 const PROXY: Record<string, string> = {
   html: "text/html; charset=utf-8",
@@ -13,33 +17,44 @@ const PROXY: Record<string, string> = {
   css: "text/css; charset=utf-8",
   json: "application/json; charset=utf-8",
 };
-
-function publicUrl(gameId: string, rel: string): string {
-  return `${process.env.NEXT_PUBLIC_STORE_SUPABASE_URL}/storage/v1/object/public/games/${gameId}/${rel}`;
-}
+const BUCKET = "games";
+const SIGNED_TTL = 60 * 60; // 1 giờ
 
 export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ gameId: string; path: string[] }> }
 ) {
   const { gameId, path } = await params;
-  const rel = (path ?? []).join("/");
-  const url = publicUrl(gameId, rel);
-  const ext = rel.split(".").pop()?.toLowerCase() ?? "";
-
-  const proxyType = PROXY[ext];
-  if (!proxyType) {
-    // media / ảnh / font → để browser tải thẳng từ Supabase (đúng content-type)
-    return NextResponse.redirect(url, 307);
+  const [token, ...rest] = path ?? [];
+  const rel = rest.join("/");
+  if (!token || !rel || rel.split("/").includes("..")) {
+    return new NextResponse("Not found", { status: 404 });
+  }
+  if (!verifyHostedToken(token, gameId)) {
+    return new NextResponse("Phiên chơi đã hết hạn hoặc không hợp lệ. Mở lại từ trang sản phẩm trên Ephata Store.", {
+      status: 403,
+      headers: { "content-type": "text/plain; charset=utf-8" },
+    });
   }
 
-  const res = await fetch(url);
-  if (!res.ok) return new NextResponse("Not found", { status: 404 });
-  const body = await res.arrayBuffer();
-  return new NextResponse(body, {
+  const storage = createStoreAdminClient().storage.from(BUCKET);
+  const objectPath = `${gameId}/${rel}`;
+  const ext = rel.split(".").pop()?.toLowerCase() ?? "";
+  const proxyType = PROXY[ext];
+
+  if (!proxyType) {
+    const { data, error } = await storage.createSignedUrl(objectPath, SIGNED_TTL);
+    if (error || !data?.signedUrl) return new NextResponse("Not found", { status: 404 });
+    return NextResponse.redirect(data.signedUrl, 302);
+  }
+
+  const { data, error } = await storage.download(objectPath);
+  if (error || !data) return new NextResponse("Not found", { status: 404 });
+  return new NextResponse(await data.arrayBuffer(), {
     headers: {
       "content-type": proxyType,
-      "cache-control": "public, max-age=300",
+      // URL chứa token theo phiên → chỉ trình duyệt người chơi được cache.
+      "cache-control": "private, max-age=3600",
     },
   });
 }

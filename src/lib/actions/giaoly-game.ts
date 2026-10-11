@@ -4,6 +4,8 @@ import { getCurrentUser } from "@/lib/auth";
 import { getGiaolyContext } from "@/lib/giaoly-context";
 import { normalizePlan } from "@/lib/plan";
 import { createStoreAdminClient } from "@/lib/supabase/store-admin";
+import { canAccessProduct } from "@/lib/access";
+import { EMBED_TOKEN_TTL_MS, hostedPlayUrl } from "@/lib/hosted-access";
 
 export interface AddGameState {
   ok?: boolean;
@@ -31,12 +33,20 @@ export async function addGameToGiaoly(
   const supabase = createStoreAdminClient();
   const { data: product } = await supabase
     .from("products")
-    .select("id,slug,title,type,icon,game_url,published")
+    .select("id,slug,title,type,tier,price_month,giaoly_pro_free,icon,game_url,published")
     .eq("id", productId)
     .maybeSingle();
   if (!product || !product.published) return { error: "Sản phẩm không tồn tại." };
   if (product.type !== "game" || !product.game_url)
     return { error: "Chỉ thêm được game." };
+  const allowed = await canAccessProduct(user.id, {
+    id: product.id,
+    tier: product.tier,
+    type: product.type,
+    priceMonth: product.price_month ?? 0,
+    giaolyProFree: product.giaoly_pro_free,
+  });
+  if (!allowed) return { error: "Bạn cần sở hữu game này trước khi thêm vào Giáo Lý Số." };
 
   const endpoint = process.env.GIAOLY_PROVISION_URL;
   const secret = process.env.GIAOLY_PROVISION_SECRET;
@@ -47,9 +57,11 @@ export async function addGameToGiaoly(
   }
 
   const site = process.env.NEXT_PUBLIC_SITE_URL ?? "";
+  // Game host trên store: link kèm mã truy cập dài hạn (nhúng ở domain Giáo Lý Số, không có cookie Ephata).
+  const hosted = hostedPlayUrl(product.game_url, user.id, EMBED_TOKEN_TTL_MS);
   const playUrl = product.game_url.startsWith("http")
     ? product.game_url
-    : `${site}${product.game_url}`;
+    : `${site}${hosted ?? product.game_url}`;
 
   try {
     const res = await fetch(endpoint, {

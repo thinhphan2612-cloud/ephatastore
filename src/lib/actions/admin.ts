@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { getAdminUser } from "@/lib/auth";
 import { createStoreAdminClient } from "@/lib/supabase/store-admin";
 import { slugify } from "@/lib/slug";
+import { removeStorageFolder } from "@/lib/storage-folder";
 
 async function assertAdmin() {
   const admin = await getAdminUser();
@@ -54,6 +55,10 @@ function coverPathFromUrl(url: string | null | undefined): string | null {
 /** Loại bán MỘT LẦN dùng vĩnh viễn; còn lại (tool/feature) là thuê bao. */
 const PERPETUAL_TYPES = ["asset", "image", "game", "software"];
 
+function optionalText(formData: FormData, key: string): Record<string, string | null> {
+  return formData.has(key) ? { [key]: String(formData.get(key) ?? "").trim() || null } : {};
+}
+
 function parseProduct(formData: FormData) {
   const title = String(formData.get("title") ?? "").trim();
   const slugInput = String(formData.get("slug") ?? "").trim();
@@ -75,9 +80,10 @@ function parseProduct(formData: FormData) {
     original_price_vnd: originalPrice ? Number(originalPrice) : null,
     tags,
     released_at: releasedAt || null,
-    game_url: String(formData.get("game_url") ?? "").trim() || null,
-    app_url: String(formData.get("app_url") ?? "").trim() || null,
-    giaoly_feature_key: String(formData.get("giaoly_feature_key") ?? "").trim() || null,
+    // Chỉ ghi các ô giao hàng mà form có hiển thị — form theo loại không có ô thì giữ nguyên giá trị cũ.
+    ...optionalText(formData, "game_url"),
+    ...optionalText(formData, "app_url"),
+    ...optionalText(formData, "giaoly_feature_key"),
     featured: formData.get("featured") === "on",
     is_new: formData.get("is_new") === "on",
     is_popular: formData.get("is_popular") === "on",
@@ -218,25 +224,6 @@ async function persistProduct(formData: FormData): Promise<SaveState & { id?: st
 }
 
 const GAMES_BUCKET = "games";
-
-/** Xóa đệ quy mọi file trong 1 thư mục của bucket (best-effort). */
-async function removeStorageFolder(
-  supabase: ReturnType<typeof createStoreAdminClient>,
-  bucket: string,
-  prefix: string
-) {
-  const { data } = await supabase.storage.from(bucket).list(prefix, { limit: 1000 });
-  if (!data?.length) return;
-  const files: string[] = [];
-  const folders: string[] = [];
-  for (const item of data) {
-    // Supabase trả thư mục với id === null.
-    if (item.id === null) folders.push(`${prefix}/${item.name}`);
-    else files.push(`${prefix}/${item.name}`);
-  }
-  if (files.length) await supabase.storage.from(bucket).remove(files);
-  for (const f of folders) await removeStorageFolder(supabase, bucket, f);
-}
 
 export async function deleteProduct(formData: FormData) {
   await assertAdmin();
