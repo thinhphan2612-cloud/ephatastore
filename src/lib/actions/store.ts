@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { createStoreAdminClient } from "@/lib/supabase/store-admin";
+import { isParishAdmin } from "@/lib/giaoly-context";
+import { syncFeatureProvision } from "@/lib/giaoly-provision";
 
 /**
  * Nhận sản phẩm FREE → cấp quyền vĩnh viễn ngay.
@@ -21,13 +23,15 @@ export async function claimProduct(formData: FormData) {
   const supabase = createStoreAdminClient();
   const { data: product, error: pErr } = await supabase
     .from("products")
-    .select("id,tier,price_month,published")
+    .select("id,tier,price_month,giaoly_feature_key,published")
     .eq("id", productId)
     .maybeSingle();
   if (pErr) throw new Error(pErr.message);
   if (!product || !product.published) throw new Error("Sản phẩm không tồn tại.");
   if (product.tier === "pro" && product.price_month > 0)
     throw new Error("Sản phẩm này cần mua bằng point.");
+  if (product.giaoly_feature_key && !(await isParishAdmin()))
+    throw new Error("Tính năng Giáo Lý Số chỉ quản trị giáo xứ (đã liên kết tài khoản) mới nhận được.");
 
   const { error } = await supabase
     .from("entitlements")
@@ -36,6 +40,7 @@ export async function claimProduct(formData: FormData) {
       { onConflict: "store_user_id,product_id", ignoreDuplicates: true }
     );
   if (error) throw new Error(error.message);
+  await syncFeatureSafe(user.id, product.id);
   revalidatePath("/library");
   redirect("/library");
 }
@@ -53,12 +58,14 @@ export async function startTrial(formData: FormData) {
   const supabase = createStoreAdminClient();
   const { data: product } = await supabase
     .from("products")
-    .select("id,tier,trial,trial_days,published")
+    .select("id,tier,trial,trial_days,giaoly_feature_key,published")
     .eq("id", productId)
     .maybeSingle();
   if (!product || !product.published) throw new Error("Sản phẩm không tồn tại.");
   if (product.tier !== "pro" || !product.trial)
     throw new Error("Sản phẩm này không có dùng thử.");
+  if (product.giaoly_feature_key && !(await isParishAdmin()))
+    throw new Error("Tính năng Giáo Lý Số chỉ quản trị giáo xứ (đã liên kết tài khoản) mới dùng thử được.");
 
   // Chỉ cho dùng thử 1 lần (kể cả đã hết hạn).
   const { count } = await supabase
@@ -77,7 +84,17 @@ export async function startTrial(formData: FormData) {
       { onConflict: "store_user_id,product_id", ignoreDuplicates: false }
     );
   if (error) throw new Error(error.message);
+  await syncFeatureSafe(user.id, product.id);
 
   revalidatePath("/library");
   redirect("/library");
+}
+
+/** Đồng bộ tính năng sang Giáo Lý Số — lỗi không làm hỏng giao dịch (job lưu lại để admin thử lại). */
+async function syncFeatureSafe(userId: string, productId: string) {
+  try {
+    await syncFeatureProvision(userId, productId);
+  } catch (e) {
+    console.error("provision", e);
+  }
 }

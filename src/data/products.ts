@@ -31,6 +31,7 @@ interface ProductRow {
   icon: string | null;
   app_url: string | null;
   game_url: string | null;
+  giaoly_feature_key: string | null;
   rating: number | string;
   rating_count: number;
   released_at: string;
@@ -48,7 +49,7 @@ interface ProductRow {
 }
 
 const SELECT =
-  "id,slug,title,tagline,description,type,price_vnd,original_price_vnd,cover_url,gallery,tags,min_plan,tier,price_month,trial,trial_days,active,giaoly_pro_free,uses_wallet,icon,app_url,game_url,rating,rating_count,released_at,featured,is_new,is_popular,publisher:publishers(id,slug,name,avatar_url,verified),categories:product_categories(category:categories(slug))";
+  "id,slug,title,tagline,description,type,price_vnd,original_price_vnd,cover_url,gallery,tags,min_plan,tier,price_month,trial,trial_days,active,giaoly_pro_free,uses_wallet,icon,app_url,game_url,giaoly_feature_key,rating,rating_count,released_at,featured,is_new,is_popular,publisher:publishers(id,slug,name,avatar_url,verified),categories:product_categories(category:categories(slug))";
 
 function mapRow(r: ProductRow): Product {
   const categorySlugs = (r.categories ?? [])
@@ -86,6 +87,7 @@ function mapRow(r: ProductRow): Product {
     icon: r.icon ?? undefined,
     appUrl: r.app_url ?? undefined,
     gameUrl: r.game_url ?? undefined,
+    giaolyFeatureKey: r.giaoly_feature_key ?? undefined,
     rating: Number(r.rating),
     ratingCount: r.rating_count,
     releasedAt: r.released_at,
