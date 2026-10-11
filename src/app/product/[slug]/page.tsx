@@ -122,6 +122,12 @@ export default async function ProductPage({
             </div>
             <h1 className="font-display text-[26px] font-bold">{product.title}</h1>
             <p className="mt-1 text-text-muted">{product.tagline}</p>
+            {product.usesWallet && (
+              <p className="mt-3 rounded-xl border border-border bg-white/[0.03] px-3 py-2 text-xs text-text-muted">
+                ◈ Một số dịch vụ trong ứng dụng tính phí theo lượt dùng — trừ point trong Ví Ephata (bạn được hỏi trước khi
+                kết nối).
+              </p>
+            )}
 
             {isSoftware ? (
               <SoftwarePanel productId={product.id} slug={product.slug} priceVnd={product.priceMonth} userId={user?.id} />

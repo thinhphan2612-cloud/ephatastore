@@ -68,9 +68,27 @@ export function issueToken(opts: {
     // offlineDays = 0 → vĩnh viễn: lùi hạn 100 năm (app không cần đổi gì, vẫn so now <= offlineExpiresAt).
     offlineExpiresAt: now + (opts.offlineDays > 0 ? opts.offlineDays : PERMANENT_OFFLINE_DAYS) * 86400000,
   };
+  return signPayload(payload);
+}
+
+/** Ký payload bất kỳ bằng khóa Ed25519 của store: base64url(JSON) + "." + base64url(chữ ký trên chuỗi payload). */
+export function signPayload(payload: Record<string, unknown>): string {
   const payloadB64 = Buffer.from(JSON.stringify(payload), "utf8").toString("base64url");
   const sig = crypto.sign(null, Buffer.from(payloadB64), signingKey());
   return `${payloadB64}.${sig.toString("base64url")}`;
+}
+
+/** Kiểm chữ ký token do store ký; trả payload hoặc null. */
+export function verifySignedPayload(token: string): Record<string, unknown> | null {
+  const [payloadB64, sig] = String(token).split(".");
+  if (!payloadB64 || !sig) return null;
+  try {
+    const pub = crypto.createPublicKey(signingKey());
+    if (!crypto.verify(null, Buffer.from(payloadB64), pub, Buffer.from(sig, "base64url"))) return null;
+    return JSON.parse(Buffer.from(payloadB64, "base64url").toString("utf8"));
+  } catch {
+    return null;
+  }
 }
 
 /** Đọc key từ payload token (không verify chữ ký — quyền quyết định nằm ở DB). */

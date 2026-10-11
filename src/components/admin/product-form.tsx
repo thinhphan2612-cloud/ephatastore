@@ -427,6 +427,22 @@ export function ProductForm({
         </div>
       )}
 
+      {!isSoftware && preset !== "download" && (type === "tool" || type === "feature" || type === "game") && (
+        <div className="rounded-lg border border-border bg-surface-hover/40 p-4">
+          <input type="hidden" name="uses_wallet_field" value="1" />
+          <label className="flex items-start gap-2 text-sm text-text">
+            <input type="checkbox" name="uses_wallet" defaultChecked={p?.uses_wallet ?? false} className="mt-0.5 h-4 w-4" />
+            <span>
+              <b>App trừ point qua Ví Ephata</b> (tính phí theo lượt dùng dịch vụ trong app)
+              <Hint>
+                Người dùng được hỏi cho phép một lần khi mở app; app gọi /api/apps/v1/charge để trừ point.
+                {preset !== "hosted" && " App ngoài cần khóa bí mật server — tạo ở khung bên dưới sau khi lưu."}
+              </Hint>
+            </span>
+          </label>
+        </div>
+      )}
+
       <div className="flex flex-wrap gap-5">
         <Check name="published" label="Đang bán" defaultChecked={p ? p.published : true} />
         <Check name="featured" label="Nổi bật" defaultChecked={p?.featured} />

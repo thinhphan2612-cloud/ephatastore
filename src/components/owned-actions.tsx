@@ -4,7 +4,7 @@ import type { Product } from "@/lib/types";
 /**
  * Hành động cho sản phẩm ĐÃ sở hữu, theo loại:
  *  - game            → chơi trên store (/play)
- *  - tool / feature  → mở web-app (app_url) tab mới
+ *  - tool / feature  → mở web-app qua /launch (kiểm quyền, xin phép Ví nếu cần, gửi launch token) — tab mới
  *  - asset / image   → tải về (link ký có hạn)
  *  - software        → trang sản phẩm (chọn bộ cài theo hệ điều hành)
  */
@@ -30,7 +30,7 @@ export function OwnedActions({
     if (product.appUrl) {
       return (
         <a
-          href={product.appUrl}
+          href={`/launch/${product.id}`}
           target="_blank"
           rel="noopener noreferrer"
           className={`${base} ${className}`}

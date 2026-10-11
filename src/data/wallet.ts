@@ -6,8 +6,11 @@ export interface LedgerEntry {
   amount: number;
   balance_after: number;
   kind: string;
+  ref: string | null;
   note: string | null;
   created_at: string;
+  /** Tên app khi giao dịch do app trừ / hoàn qua Ví Ephata (ref = "app:<product id>"). */
+  appTitle?: string;
 }
 
 export interface Topup {
@@ -36,11 +39,21 @@ export async function getLedger(userId: string, limit = 20): Promise<LedgerEntry
   const supabase = createStoreAdminClient();
   const { data } = await supabase
     .from("point_ledger")
-    .select("id,amount,balance_after,kind,note,created_at")
+    .select("id,amount,balance_after,kind,ref,note,created_at")
     .eq("user_id", userId)
     .order("created_at", { ascending: false })
     .limit(limit);
-  return (data ?? []) as LedgerEntry[];
+  const rows = (data ?? []) as LedgerEntry[];
+  const appIds = [...new Set(rows.map((r) => r.ref?.match(/^app:(.+)$/)?.[1]).filter((x): x is string => !!x))];
+  if (appIds.length) {
+    const { data: prods } = await supabase.from("products").select("id,title").in("id", appIds);
+    const titles = new Map((prods ?? []).map((p) => [p.id as string, p.title as string]));
+    for (const r of rows) {
+      const id = r.ref?.match(/^app:(.+)$/)?.[1];
+      if (id) r.appTitle = titles.get(id);
+    }
+  }
+  return rows;
 }
 
 /** Đơn nạp của user (kiểm cả chủ sở hữu). */
