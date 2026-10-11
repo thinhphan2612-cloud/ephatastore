@@ -82,7 +82,11 @@ export function SoftwareReleases({
                     <form action={deleteRelease}>
                       <input type="hidden" name="id" value={r.id} />
                       <ConfirmSubmit
-                        confirm={`Xóa bản ${r.version} (${PLATFORM_LABEL[r.platform]})? File cũng bị xóa.`}
+                        confirm={
+                          latestIds.has(r.id)
+                            ? `Bản ${r.version} đang là bản PHÁT HÀNH của ${PLATFORM_LABEL[r.platform]} — khách tải và app kiểm cập nhật sẽ chuyển sang bản trước đó (không còn bản nào thì báo chưa có bộ cài). Xóa luôn file?`
+                            : `Xóa bản ${r.version} (${PLATFORM_LABEL[r.platform]})? File cũng bị xóa.`
+                        }
                         className="text-text-faint hover:text-danger"
                       >
                         Xóa

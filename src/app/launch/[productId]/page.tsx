@@ -57,8 +57,22 @@ export default async function LaunchPage({ params }: { params: Promise<{ product
   // App không trừ point: kết nối tự động (để app đổi token lấy mã kết nối / kiểm quyền về sau).
   if (!product.uses_wallet) await connect(product.id, user.id);
 
+  // URL app sai định dạng (nhập thiếu https://…) → báo lỗi thân thiện, không để khách đã trả tiền gặp trang lỗi.
+  let url: URL;
+  try {
+    url = new URL(product.app_url);
+  } catch {
+    return (
+      <Box>
+        <h1 className="text-xl font-bold">{product.title}</h1>
+        <p className="mt-2 text-text-muted">Ứng dụng đang được cấu hình lại. Thử lại sau ít phút hoặc báo chúng tôi ở trang Liên hệ.</p>
+        <Link href="/lien-he?chu-de=mua-hang" className={btn}>
+          Liên hệ
+        </Link>
+      </Box>
+    );
+  }
   const token = await createLaunchToken(product, user);
-  const url = new URL(product.app_url);
   url.searchParams.set("ephata_token", token);
   redirect(url.toString());
 }

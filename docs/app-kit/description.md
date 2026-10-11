@@ -5,6 +5,10 @@
 bày, phần còn lại tự bị loại (không báo lỗi). Viết đúng quy tắc dưới đây để không mất nội dung và **không làm vỡ
 layout trang trên điện thoại**.
 
+- **Tối đa 100.000 ký tự** mã HTML — quá thì form báo lỗi khi lưu (thường do ảnh base64 hoặc CSS dán thừa).
+- Trang sản phẩm **chỉ hiện ~360px đầu** của mục Giới thiệu, kèm nút **"Xem thêm"** → đặt đoạn mở + tính năng chính lên đầu;
+  phần dài (FAQ, bảng, video) để sau.
+
 ## Viết gì (cấu trúc gợi ý)
 1. **Đoạn mở** 2–3 câu: sản phẩm là gì, giúp ai, giải quyết việc gì.
 2. **Tính năng chính**: danh sách 4–7 ý, mỗi ý một dòng, bắt đầu bằng động từ.

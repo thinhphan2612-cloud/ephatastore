@@ -24,10 +24,13 @@ Bạn đăng nhập admin Ephata bằng tài khoản admin được cấp và t�
    **hai nơi phải giống hệt nhau** và **không đổi sau khi đã bán key** (đổi là mọi key đã bán hỏng).
    Key sinh ra có tiền tố = 4 ký tự đầu slug viết hoa (`LICH-XXXX-XXXX-XXXX`) — chọn slug có 4 chữ đầu dễ nhận.
 2. **Giá key** (VND, 100đ = 1 point; mua 1 lần dùng vĩnh viễn; **không bao giờ** miễn phí cho Pro Giáo Lý Số / Full Topping),
-   **số thiết bị / key** (thường 2),
+   **số thiết bị / key** (thường 2 — đổi sau chỉ áp cho key bán sau đó; khách tự gỡ máy cũ ở Thư viện 1 lần / 30 ngày / key),
    **hạn dùng offline** (thường 30 ngày — app không có mạng quá số ngày này thì phải bật mạng để xác minh lại;
    hoặc tick **Vĩnh viễn**: kích hoạt 1 lần dùng mãi, nhưng thu hồi key / gỡ thiết bị chỉ có hiệu lực khi app có mạng lại).
 3. **Tài khoản Microsoft Partner Center** dùng để nộp Store (nếu app lên Store): hỏi Felix dùng tài khoản chung nào.
+
+Thu hồi: admin bấm **Thu hồi** quyền phần mềm của một khách (Admin → Người dùng) → key bị **khóa** (`LICENSE_REVOKED`), app về
+trạng thái `revoked` ở lần kiểm tiếp theo; admin **Cấp lại** → key mở lại, khách không phải nhập key mới.
 
 ---
 
@@ -58,12 +61,21 @@ Mỗi file có hướng dẫn cài phụ thuộc + cách dùng ở đầu file. 
    | Mã | Gợi ý câu hiển thị |
    |---|---|
    | `LICENSE_NOT_FOUND` | Key không đúng. Kiểm tra lại (key ở Thư viện trên Ephata). |
-   | `LICENSE_REVOKED` | Key đã bị thu hồi. Liên hệ hỗ trợ. |
-   | `DEVICE_LIMIT` | Key đã dùng đủ số máy. Hủy kích hoạt ở máy cũ rồi thử lại. |
+   | `LICENSE_REVOKED` | Key đã bị thu hồi. Liên hệ hỗ trợ Ephata. |
+   | `DEVICE_LIMIT` | Key đã dùng đủ số máy. Hủy kích hoạt ở máy cũ, hoặc gỡ máy cũ ở **Thư viện trên Ephata** (1 lần / 30 ngày / key), rồi thử lại. |
    | `PRODUCT_MISMATCH` | Key này của sản phẩm khác. |
    | `NETWORK_ERROR` | Không kết nối được. Kiểm tra mạng. |
-   | `SERVER_ERROR` / `TOKEN_INVALID` | Máy chủ phản hồi không hợp lệ. Thử lại sau. |
+   | `SERVER_ERROR` / `TOKEN_INVALID` / `TOKEN_MALFORMED` / `BAD_REQUEST` | Máy chủ phản hồi không hợp lệ. Thử lại sau (lặp lại → báo nhà phát hành). |
    | `KEY_EMPTY` | Nhập key trước khi kích hoạt. |
+
+   Trạng thái sau `refresh()` (thư viện client trả về, không ném lỗi):
+
+   | `status` | Ý nghĩa | Gợi ý câu hiển thị |
+   |---|---|---|
+   | `revoked` | Key bị thu hồi (vd hoàn tiền / vi phạm) | Bản quyền đã bị thu hồi. Liên hệ hỗ trợ Ephata. |
+   | `removed` | Máy này đã bị **gỡ khỏi key** (khách tự gỡ ở Thư viện, hoặc hủy kích hoạt từ máy khác) | Máy này chưa được kích hoạt. Nhập lại key để dùng tiếp. |
+
+   **Đừng** hiện "key bị thu hồi" cho `removed` — khách chỉ vừa đổi máy.
 
 5. **Trạng thái `needs_verify`** (quá hạn offline): coi là CHƯA Pro, nhắc người dùng bật mạng; app tự refresh lần mở sau.
    **Hạn offline vĩnh viễn**: server ký `offlineExpiresAt` lùi ~100 năm — nếu `offlineUntil` cách hiện tại hơn 50 năm,
@@ -123,7 +135,9 @@ Build `.exe` tại máy Windows (không cần CI): `npx tauri build --bundles ns
 → `src-tauri/target/release/bundle/nsis/`.
 
 Build sai, cần chạy lại cùng version: xóa tag rồi đặt lại vào commit mới
-(`git tag -d v1.0.0`, `git push origin :refs/tags/v1.0.0`, rồi tag + push lại).
+(`git tag -d v1.0.0`, `git push origin :refs/tags/v1.0.0`, rồi tag + push lại). **Đã upload bản đó lên Ephata** thì Ephata từ chối
+upload lại cùng số phiên bản ("Đã có bản 1.0.0 cho windows") — xóa bản đó ở **Lịch sử phiên bản** trên trang Sửa trước (hoặc tăng
+version, vd 1.0.1). Xóa bản đang phát hành: khách tải / app kiểm cập nhật chuyển sang bản trước đó.
 
 ### 3.2 Electron — dùng `ci/electron-release.yml`
 Tag như trên → tab **Actions** → lần chạy → mục **Artifacts** tải `windows-installer`, `macos-installer`.
@@ -190,11 +204,12 @@ build `npx tauri build --features msstore --no-bundle`. Electron → biến môi
 ### 5.3 Đóng gói
 **Tauri / Python (exe hoặc thư mục):** cần Windows SDK (có `makeappx.exe`).
 ```powershell
-./msstore/pack.ps1 -Source src-tauri/target/release/myapp.exe -Exe myapp.exe -Logos src-tauri/icons -Version 1.0.0 -DisplayName 'My App' -Description 'Mô tả ngắn' -IdentityName '<Package/Identity/Name>' -Publisher '<CN=...>' -PublisherDisplayName '<Tên NPH>' -Out MyApp.msix
+./tools/app-kit/msstore/pack.ps1 -Source src-tauri/target/release/myapp.exe -Exe myapp.exe -Logos src-tauri/icons -Version 1.0.0 -DisplayName 'My App' -Description 'Mô tả ngắn' -IdentityName '<Package/Identity/Name>' -Publisher '<CN=...>' -PublisherDisplayName '<Tên NPH>' -Out MyApp.msix
 ```
 `-Source` nhận file exe (Tauri) hoặc thư mục (Nuitka/PyInstaller `--onedir`). `-Logos` là thư mục có
 `StoreLogo.png`, `Square44x44Logo.png`, `Square150x150Logo.png` (Tauri có sẵn trong `src-tauri/icons`).
-Hoặc để CI làm: job `msstore` trong `ci/tauri-release.yml` (đặt 3 Repository variables `MSSTORE_*`).
+Hoặc để CI làm: job `msstore` trong `ci/tauri-release.yml` (đặt 3 Repository variables `MSSTORE_*`; sửa `myapp.exe` cho đúng tên exe;
+đường dẫn script mặc định `./tools/app-kit/msstore/pack.ps1` — đổi nếu đặt kit chỗ khác).
 
 **Electron:** khối `appx` trong cấu hình electron-builder:
 `"appx": { "identityName": "...", "publisher": "CN=...", "publisherDisplayName": "...", "applicationId": "..." }`,
@@ -233,7 +248,10 @@ sản phẩm trên admin → Lưu. Nút Windows trên Ephata tự chuyển sang 
 | App báo "Máy chủ phản hồi không hợp lệ" (`SERVER_ERROR`) | Server trả HTML thay vì JSON — thường do sai `API_BASE` hoặc API chưa triển khai ở production. Thử `curl …/public-key` phải ra JSON. |
 | Mọi key báo `PRODUCT_MISMATCH` | `PRODUCT` trong app ≠ slug trên Ephata. |
 | Kích hoạt xong báo `TOKEN_INVALID` | `PUBLIC_KEY` trong app sai (còn khóa cũ/khóa test). Lấy đúng giá trị trong kit hoặc `curl …/public-key`. |
-| `latest` trả `NO_RELEASE` | Chưa upload bộ cài cho nền tảng đó trên Ephata. |
+| `latest` trả `NO_RELEASE` | Chưa upload bộ cài cho nền tảng đó trên Ephata, sai slug, hoặc sản phẩm chưa tick **Đang bán** / **Hiện trên store**. |
+| Upload bộ cài báo "Đã có bản X cho …" | Trùng số phiên bản — xóa bản đó ở Lịch sử phiên bản hoặc tăng version. |
+| Admin không cho tick "Đang bán" | Phần mềm cần ít nhất 1 bộ cài hoặc link Microsoft Store. |
+| Khách báo app hiện "chưa kích hoạt" sau khi đổi máy | Bình thường (`removed`): khách đã gỡ máy cũ ở Thư viện — nhập lại key trên máy đang dùng. |
 | CI Tauri: `Missing script: "tauri"` | Thiếu script `"tauri": "tauri"` trong package.json. |
 | CI Tauri: `failed to import keychain certificate` | Có khai báo `APPLE_*` trong env workflow mà không có chứng thư → xóa. |
 | CI Tauri: `Resource not accessible by integration` | Thiếu `permissions: contents: write` trong workflow. |

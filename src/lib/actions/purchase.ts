@@ -129,10 +129,10 @@ async function purchaseSoftware(
   const supabase = createStoreAdminClient();
   const { data: product } = await supabase
     .from("products")
-    .select("id,slug,type,price_month,published")
+    .select("id,slug,type,price_month,published,active")
     .eq("id", productId)
     .maybeSingle();
-  if (!product || !product.published || product.type !== "software") redirect("/library");
+  if (!product || !product.published || !product.active || product.type !== "software") redirect("/library");
 
   for (let attempt = 1; ; attempt++) {
     const { error } = await supabase.rpc("purchase_software", {

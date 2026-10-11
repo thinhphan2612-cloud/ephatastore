@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { uploadHostedBuild } from "@/lib/hosted-upload";
 import { replaceHostedBuild, rollbackHostedBuild } from "@/lib/actions/game-upload";
+import { unwrap } from "@/lib/action-result";
 
 /**
  * Trang Sửa game / công cụ web: tải bản build mới (.zip) để THAY TẠI CHỖ.
@@ -30,7 +31,7 @@ export function HostedBuildUploader({
     setError(null);
     setBusy(true);
     try {
-      await rollbackHostedBuild(productId);
+      unwrap(await rollbackHostedBuild(productId));
       setProgress("Đã quay lại bản trước. Người chơi mở lại sẽ thấy bản này.");
       setConfirmRollback(false);
       router.refresh();
@@ -48,7 +49,7 @@ export function HostedBuildUploader({
     try {
       const { gameId: newId } = await uploadHostedBuild(file, setProgress);
       setProgress("Đang chuyển sang bản mới…");
-      await replaceHostedBuild(productId, newId);
+      unwrap(await replaceHostedBuild(productId, newId));
       setProgress("Đã thay bản build. Người chơi mở lại sẽ thấy bản mới.");
       setFile(null);
       setInputKey((k) => k + 1);

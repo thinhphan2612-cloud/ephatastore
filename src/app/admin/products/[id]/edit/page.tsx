@@ -32,8 +32,16 @@ export default async function EditProductPage({
   const isSoftware = product.type === "software";
   const hosted = parseGameUrl(product.game_url);
   const releases = isSoftware ? await listReleases(id) : [];
-  // App ngoài (Link ngoài / Tính năng có URL): khóa bí mật server để gọi /api/apps/v1.
-  const isExternalApp = !hosted && (product.type === "tool" || product.type === "feature");
+  // App ngoài (Link ngoài): khóa bí mật server để gọi /api/apps/v1. Tính năng Giáo Lý Số không dùng.
+  const isExternalApp = !hosted && product.type === "tool";
+  // Form theo đúng loại hiện tại — không cho chuyển loại tùy ý (đổi loại sau khi bán làm sai giá / cách giao hàng).
+  const preset =
+    isSoftware ? "software"
+    : hosted ? "hosted"
+    : product.type === "asset" || product.type === "image" ? "download"
+    : product.type === "feature" ? "feature"
+    : product.type === "tool" ? "link"
+    : "full";
   const site = (process.env.NEXT_PUBLIC_SITE_URL || "https://www.ephatastore.com").replace(/\/$/, "");
   let publicKey = "(chưa cấu hình SOFTWARE_LICENSE_SIGNING_JWK)";
   try {
@@ -64,11 +72,16 @@ export default async function EditProductPage({
         categories={categories}
         publishers={publishers}
         product={product}
-        preset={isSoftware ? "software" : hosted ? "hosted" : "full"}
+        preset={preset}
         currentReleases={currentReleases}
         slugLockedReason={slugLockReason(usage)}
       />
       {isSoftware && <SoftwareReleases slug={product.slug} releases={releases} />}
+      {isExternalApp && product.uses_wallet && !product.has_app_secret && (
+        <p className="rounded-md border border-warn/40 bg-warn/10 px-3 py-2 text-sm text-warn">
+          Đã bật “App trừ point qua Ví Ephata” nhưng chưa có khóa bí mật — app chưa gọi được API Ví. Tạo khóa ở khung dưới.
+        </p>
+      )}
       {isExternalApp && (
         <AppSecretPanel
           productId={product.id}

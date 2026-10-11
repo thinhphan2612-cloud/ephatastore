@@ -8,6 +8,8 @@ import { createStoreAdminClient } from "@/lib/supabase/store-admin";
  */
 export interface ProductUsage {
   entitlements: number;
+  /** Quyền tính năng Giáo Lý Số của giáo xứ (0024). */
+  parishEntitlements: number;
   purchases: number;
   licenses: number;
   charges: number;
@@ -19,21 +21,23 @@ export async function getProductUsage(productId: string): Promise<ProductUsage> 
   const supabase = createStoreAdminClient();
   const count = async (table: string) =>
     (await supabase.from(table).select("product_id", { count: "exact", head: true }).eq("product_id", productId)).count ?? 0;
-  const [entitlements, purchases, licenses, charges, giaolyLinks, releases] = await Promise.all([
+  const [entitlements, parishEntitlements, purchases, licenses, charges, giaolyLinks, releases] = await Promise.all([
     count("entitlements"),
+    count("parish_entitlements"),
     count("purchases"),
     count("licenses"),
     count("app_charges"),
     count("giaoly_game_links"),
     count("software_releases"),
   ]);
-  return { entitlements, purchases, licenses, charges, giaolyLinks, releases };
+  return { entitlements, parishEntitlements, purchases, licenses, charges, giaolyLinks, releases };
 }
 
 /** Lý do chặn xóa cứng (null = xóa được). */
 export function deleteBlockReason(u: ProductUsage): string | null {
   const parts = [
     u.entitlements && `${u.entitlements} người có quyền dùng`,
+    u.parishEntitlements && `${u.parishEntitlements} giáo xứ có quyền dùng`,
     u.purchases && `${u.purchases} lượt mua`,
     u.licenses && `${u.licenses} key đã cấp`,
     u.charges && `${u.charges} lượt trừ point trong app`,

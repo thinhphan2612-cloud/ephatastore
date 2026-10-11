@@ -9,7 +9,7 @@ Dùng:
     lic = EphataLicense(product="your-app-slug",   # PHẢI trùng slug trên Ephata
                         app_name="your-app",        # tên thư mục dữ liệu
                         app_version="1.0.0")
-    lic.current()            -> {"status": "inactive|active|needs_verify|revoked", "key_masked", "offline_until"}
+    lic.current()            -> {"status": "inactive|active|needs_verify|revoked|removed", "key_masked", "offline_until"}
     lic.activate(key)        -> view, hoặc raise LicenseError(code)
     lic.refresh()            # gọi ngầm 1 lần khi mở app (thread riêng để không chặn UI)
     lic.deactivate()
@@ -212,9 +212,12 @@ class EphataLicense:
             "deviceId": self.device_id(), "appVersion": self.app_version,
         })
         if not r.get("ok"):
+            # LICENSE_REVOKED = key bị thu hồi; LICENSE_NOT_FOUND khi refresh = máy này đã bị gỡ khỏi key
+            # (khách tự gỡ ở Thư viện Ephata / hủy kích hoạt ở máy khác) — KHÔNG báo "thu hồi" cho trường hợp này.
             if r.get("error") in ("LICENSE_REVOKED", "LICENSE_NOT_FOUND"):
                 self._clear()
-                return {"status": "revoked", "key_masked": None, "offline_until": None}
+                status = "revoked" if r.get("error") == "LICENSE_REVOKED" else "removed"
+                return {"status": status, "key_masked": None, "offline_until": None}
             raise LicenseError(r.get("error") or "SERVER_ERROR")  # lỗi khác: giữ token cũ
         view = self._view(r.get("licenseToken"))
         if view["status"] != "active":

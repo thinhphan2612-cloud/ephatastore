@@ -70,11 +70,12 @@ soạn theo `description.md` (đã tự kiểm theo mục "Được dùng" / "Gi
 
 | | 1 Tải về | 2 Chạy trên store | 3 Link ngoài | 4 Tính năng GLS | 5 Phần mềm bán key |
 |---|---|---|---|---|---|
-| Giao cho Ephata | 1 file | 1 file `.zip` bản build | 1 URL HTTPS | Feature key (+ URL) | `.exe` + `.dmg` (+ `.msix`) |
+| Giao cho Ephata | 1 file | 1 file `.zip` bản build | 1 URL HTTPS | Feature key | `.exe` + `.dmg` (+ `.msix`) |
 | Ai host | Ephata | Ephata | Bạn | Giáo Lý Số | Ephata (bộ cài) |
-| Cách bán | Free / mua vĩnh viễn | Game: free / mua vĩnh viễn · Công cụ: free | Free / thuê bao | Free / thuê bao | Mua key vĩnh viễn |
+| Cách bán | Free / mua vĩnh viễn | Game: free / mua vĩnh viễn · Công cụ: luôn free | Free / thuê bao | Free / thuê bao (quyền **theo giáo xứ**) | Mua key vĩnh viễn |
 | Trừ point theo lượt (Ví Ephata) | — | Có (gọi từ trình duyệt) | Có (server gọi, khóa bí mật) | — | — |
-| Miễn phí cho Pro Giáo Lý Số | Tùy ô tick | Tùy ô tick (game) | Tùy ô tick | Tùy ô tick | **Không bao giờ** |
+| Miễn phí cho Pro Giáo Lý Số (khi gói Pro còn hạn) | Tùy ô tick | Tùy ô tick (game) | Tùy ô tick | Tùy ô tick | **Không bao giờ** |
+| Full Topping mở được | Có | Có (game có phí) | Có | **Không** | **Không** |
 | Ephata chặn người chưa mua | Có (link tải ký 24h) | Có (file riêng tư + mã truy cập theo người chơi) | Có (launch token + `verify`) | Có (bật cho giáo xứ qua `provision`) | Có (key + chữ ký) |
 | Mục trên admin | Tải về | Chạy trên store | Link ngoài | Tính năng Giáo Lý Số | Phần mềm cài đặt |
 
@@ -86,11 +87,19 @@ soạn theo `description.md` (đã tự kiểm theo mục "Được dùng" / "Gi
   (Store đang ở chế độ "Sắp ra mắt": khách chỉ thấy trang chờ, tài khoản admin thấy toàn bộ.)
 - **Tiền**: giá nhập bằng VND ở khung **Bán** của form (Miễn phí / Mua vĩnh viễn / Thuê bao tùy loại), người mua trả bằng
   **point** (100đ = 1 point), nạp point bằng chuyển khoản ở trang Ví. Ô **"Miễn phí cho Pro Giáo Lý Số"** quyết định tài khoản
-  Pro có được dùng free không — không tick thì Pro vẫn phải mua.
+  Pro có được dùng free không — không tick thì Pro vẫn phải mua. "Free cho Pro" chỉ **trong thời gian gói Pro của giáo xứ còn hạn**
+  (không phải vĩnh viễn). **Full Topping** (thuê bao 365 ngày của khách) mở mọi sản phẩm có phí **trừ** phần mềm bán key và tính năng
+  Giáo Lý Số — viết mô tả cho đúng điều này.
+- **Đang bán + Hiện trên store**: sản phẩm chỉ hiện và mua được khi bật **cả hai** ô. Tắt "Đang bán" = gỡ hẳn (người đã mua cũng
+  không mở được game / công cụ / app); tắt "Hiện trên store" = ẩn khỏi danh mục, người đã mua vẫn dùng. Admin **không cho bật
+  Đang bán** khi chưa có thứ để giao (file tải về / URL app / feature key / bộ cài phần mềm).
+- **Đã có người dùng thì khóa**: slug, **loại sản phẩm** và **feature key** không đổi được (muốn bán loại khác → tạo sản phẩm mới).
+- **Hai người cùng sửa một sản phẩm**: người lưu sau bằng form mở từ trước bị chặn ("vừa được người khác sửa") — tải lại trang rồi sửa.
 - **Slug**: chữ thường không dấu, số, gạch ngang; không trùng; **không đổi sau khi đã bán**.
 - **Ảnh bìa**: 16:9 (vd 1600×900), PNG/JPG/WebP, có tên sản phẩm dễ đọc ở cỡ nhỏ.
 - **Mô tả**: dòng tagline ngắn (≤ 140 ký tự) + mô tả chi tiết **bằng HTML** theo `description.md`: làm được gì, cho ai,
   cần gì để dùng. Chỉ dùng thẻ trong danh sách cho phép — phần khác tự bị loại; bấm **Xem trước** trên form trước khi lưu.
+  Tối đa 100.000 ký tự (quá thì form báo lỗi). Trang sản phẩm chỉ hiện ~360px đầu kèm nút "Xem thêm" → đặt thông tin chính lên đầu.
 - **Tiếng Việt có dấu** trong nội dung; tên file và slug **không dấu**.
 - **Nội dung Công giáo**: chính xác giáo lý, ghi nguồn; bản dịch Kinh Thánh, sách lễ, thánh ca thường có bản quyền.
 - **Mua thử**: dùng tài khoản admin nạp point và mua thật để kiểm từ đầu đến cuối.
