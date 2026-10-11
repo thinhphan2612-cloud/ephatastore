@@ -82,7 +82,7 @@ export async function saveRelease(input: {
     if (error.code === "23505") throw new Error(`Đã có bản ${version} cho ${input.platform}.`);
     throw new Error(error.message);
   }
-  revalidatePath(`/admin/products/${input.productId}/releases`);
+  revalidatePath(`/admin/products/${input.productId}/edit`);
 }
 
 /** Xóa một phiên bản (row + file). */
@@ -99,5 +99,5 @@ export async function deleteRelease(formData: FormData) {
   const { error } = await supabase.from("software_releases").delete().eq("id", id);
   if (error) throw new Error(error.message);
   await supabase.storage.from(FILES_BUCKET).remove([rel.storage_path]);
-  revalidatePath(`/admin/products/${rel.product_id}/releases`);
+  revalidatePath(`/admin/products/${rel.product_id}/edit`);
 }

@@ -17,7 +17,7 @@ const PRESETS: Record<string, { title: string; hint: string }> = {
   },
   software: {
     title: "Phần mềm cài đặt (bán key)",
-    hint: "Phần mềm desktop Windows/macOS. Khách tải miễn phí, mua key bằng point để kích hoạt. Lưu xong → tab Phiên bản để upload bộ cài.",
+    hint: "Phần mềm desktop Windows/macOS. Khách tải miễn phí, mua key bằng point để kích hoạt. Bộ cài .exe / .dmg và link Microsoft Store nhập ngay trong form này.",
   },
 };
 

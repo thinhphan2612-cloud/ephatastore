@@ -84,6 +84,23 @@ export async function saveProduct(
   _prev: SaveState,
   formData: FormData
 ): Promise<SaveState> {
+  const res = await persistProduct(formData);
+  if (res.error) return res;
+  revalidatePath("/admin");
+  redirect("/admin");
+}
+
+/**
+ * Lưu sản phẩm phần mềm, KHÔNG redirect: form cần id để upload bộ cài thẳng từ trình duyệt
+ * lên Storage sau đó (file bộ cài không đi qua server action — giới hạn body ~4.5MB).
+ */
+export async function saveSoftwareProduct(formData: FormData): Promise<SaveState & { id?: string }> {
+  const res = await persistProduct(formData);
+  if (!res.error) revalidatePath("/admin");
+  return res;
+}
+
+async function persistProduct(formData: FormData): Promise<SaveState & { id?: string }> {
   await assertAdmin();
 
   const id = String(formData.get("id") ?? "").trim();
@@ -163,8 +180,7 @@ export async function saveProduct(
     );
   if (catErr) return { error: catErr.message };
 
-  revalidatePath("/admin");
-  redirect(isSoftware ? `/admin/products/${saved.id}/releases` : "/admin");
+  return { id: saved.id };
 }
 
 const GAMES_BUCKET = "games";

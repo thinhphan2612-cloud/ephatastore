@@ -1,11 +1,18 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import Link from "next/link";
-import { saveProduct, type SaveState } from "@/lib/actions/admin";
+import { useRouter } from "next/navigation";
+import { saveProduct, saveSoftwareProduct, type SaveState } from "@/lib/actions/admin";
+import { createReleaseUpload, saveRelease } from "@/lib/actions/software";
+import { createStoreAuthBrowserClient } from "@/lib/supabase/store-auth-browser";
 import type { AdminProductDetail } from "@/data/admin";
 import { TYPE_LABEL } from "@/lib/labels";
 import type { ProductType } from "@/lib/types";
+import { PLATFORMS, PLATFORM_LABEL, SEMVER_RE, type Platform } from "@/lib/software/version";
+
+/** Supabase gói Free: tối đa 50MB/file (bucket product-files). */
+const MAX_INSTALLER_BYTES = 50 * 1024 * 1024;
 
 const ALL_TYPES: ProductType[] = ["tool", "game", "asset", "image", "feature"];
 
@@ -25,16 +32,94 @@ export function ProductForm({
   publishers,
   product,
   preset = "full",
+  currentReleases = {},
 }: {
   categories: { id: string; name: string }[];
   publishers: { id: string; name: string }[];
   product?: AdminProductDetail | null;
   preset?: ProductPreset;
+  /** Bản mới nhất đang có của mỗi nền tảng (software, khi sửa). */
+  currentReleases?: Partial<Record<Platform, { version: string; file_name: string }>>;
 }) {
+  const router = useRouter();
   const [state, formAction, pending] = useActionState<SaveState, FormData>(
     saveProduct,
     {}
   );
+
+  // ---- Software: lưu thông tin → upload bộ cài thẳng trình duyệt → Storage → ghi phiên bản ----
+  const [savedId, setSavedId] = useState<string | null>(null);
+  const [version, setVersion] = useState("");
+  const [notes, setNotes] = useState("");
+  const [files, setFiles] = useState<Partial<Record<Platform, File | null>>>({});
+  const [fileKeys, setFileKeys] = useState<Record<Platform, number>>({ windows: 0, macos: 0 });
+  const [swBusy, setSwBusy] = useState(false);
+  const [swProgress, setSwProgress] = useState("");
+  const [swError, setSwError] = useState<string | null>(null);
+
+  async function onSoftwareSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const form = e.currentTarget;
+    setSwError(null);
+    const v = version.trim();
+    const chosen = PLATFORMS.filter((pf) => files[pf]);
+    if (chosen.length && !SEMVER_RE.test(v))
+      return setSwError("Nhập phiên bản dạng semver (vd 1.2.8) cho bộ cài.");
+    for (const pf of chosen)
+      if (files[pf]!.size > MAX_INSTALLER_BYTES)
+        return setSwError(`Bộ cài ${PLATFORM_LABEL[pf]} vượt 50MB (giới hạn Supabase gói Free).`);
+
+    setSwBusy(true);
+    try {
+      setSwProgress("Đang lưu thông tin…");
+      const res = await saveSoftwareProduct(new FormData(form));
+      if (res.error || !res.id) throw new Error(res.error ?? "Lỗi lưu sản phẩm.");
+      // Lưu được rồi → lần bấm sau (nếu upload lỗi) là cập nhật, không tạo trùng.
+      setSavedId(res.id);
+
+      const supabase = createStoreAuthBrowserClient();
+      for (const pf of chosen) {
+        const f = files[pf]!;
+        setSwProgress(`Đang tải bộ cài ${PLATFORM_LABEL[pf]} (${(f.size / 1048576).toFixed(1)}MB)…`);
+        const { path, token } = await createReleaseUpload({
+          productId: res.id,
+          platform: pf,
+          version: v,
+          fileName: f.name,
+        });
+        const { error: upErr } = await supabase.storage
+          .from("product-files")
+          .uploadToSignedUrl(path, token, f, {
+            contentType: f.type || "application/octet-stream",
+            upsert: true,
+          });
+        if (upErr) throw new Error(`Lỗi tải bộ cài ${PLATFORM_LABEL[pf]}: ${upErr.message}`);
+        await saveRelease({
+          productId: res.id,
+          platform: pf,
+          version: v,
+          path,
+          fileName: f.name,
+          sizeBytes: f.size,
+          notes,
+        });
+        // Xong nền tảng này → bấm lại sẽ không upload lại.
+        setFiles((prev) => ({ ...prev, [pf]: null }));
+        setFileKeys((prev) => ({ ...prev, [pf]: prev[pf] + 1 }));
+      }
+
+      setVersion("");
+      setNotes("");
+      setSwProgress(chosen.length ? "Đã lưu và tải bộ cài." : "Đã lưu.");
+      router.push(`/admin/products/${res.id}/edit`);
+      router.refresh();
+    } catch (err) {
+      setSwError(err instanceof Error ? err.message : "Có lỗi khi lưu.");
+      setSwProgress("");
+    } finally {
+      setSwBusy(false);
+    }
+  }
 
   const p = product;
   const types = PRESET_TYPES[preset];
@@ -46,8 +131,12 @@ export function ProductForm({
   const defaultType = p?.type ?? types[0];
 
   return (
-    <form action={formAction} className="space-y-5">
-      {p && <input type="hidden" name="id" value={p.id} />}
+    <form
+      action={isSoftware ? undefined : formAction}
+      onSubmit={isSoftware ? onSoftwareSubmit : undefined}
+      className="space-y-5"
+    >
+      {(p || savedId) && <input type="hidden" name="id" value={p?.id ?? savedId ?? ""} />}
 
       <Field label="Tiêu đề *">
         <input name="title" required defaultValue={p?.title} className={input} />
@@ -156,7 +245,48 @@ export function ProductForm({
 
       {isSoftware && (
         <div className="rounded-lg border border-border bg-surface-hover/40 p-4">
-          <div className="mb-3 text-sm font-semibold text-text">Cấp phép & phát hành</div>
+          <div className="mb-1 text-sm font-semibold text-text">Bộ cài & phân phối</div>
+          <p className="mb-4 text-xs text-text-faint">
+            Khách tải miễn phí (không cần đăng nhập). Chọn file nào thì file đó được tải lên làm bản mới;
+            bỏ trống = giữ bản hiện tại. Tối đa 50MB/file.
+          </p>
+
+          <div className="grid gap-5 sm:grid-cols-[160px_1fr]">
+            <Field label="Phiên bản (semver)">
+              <input value={version} onChange={(e) => setVersion(e.target.value)} placeholder="1.2.8" className={input} />
+            </Field>
+            <Field label="Ghi chú phát hành">
+              <input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Có gì mới trong bản này" className={input} />
+            </Field>
+          </div>
+
+          <div className="mt-4 grid gap-4 sm:grid-cols-2">
+            <div className="space-y-3 rounded-md border border-border bg-surface p-3">
+              <div className="text-sm font-semibold text-text">Windows</div>
+              <Field label="Link Microsoft Store (để trống nếu chưa lên Store)">
+                <input name="ms_store_url" defaultValue={p?.ms_store_url ?? ""} className={input} placeholder="https://apps.microsoft.com/detail/…" />
+              </Field>
+              <InstallerInput
+                key={`windows-${fileKeys.windows}`}
+                label="Bộ cài .exe — tải trực tiếp nếu chưa có Store; có Store thì làm link dự phòng"
+                accept=".exe,.msi"
+                current={currentReleases.windows}
+                onChange={(f) => setFiles((prev) => ({ ...prev, windows: f }))}
+              />
+            </div>
+            <div className="space-y-3 rounded-md border border-border bg-surface p-3">
+              <div className="text-sm font-semibold text-text">macOS</div>
+              <InstallerInput
+                key={`macos-${fileKeys.macos}`}
+                label="Bộ cài .dmg"
+                accept=".dmg"
+                current={currentReleases.macos}
+                onChange={(f) => setFiles((prev) => ({ ...prev, macos: f }))}
+              />
+            </div>
+          </div>
+
+          <div className="mb-3 mt-5 text-sm font-semibold text-text">Cấp phép</div>
           <div className="grid gap-5 sm:grid-cols-2">
             <Field label="Số thiết bị / key">
               <input type="number" name="license_device_limit" min={1} max={50} defaultValue={p?.license_device_limit ?? 2} className={input} />
@@ -165,14 +295,8 @@ export function ProductForm({
               <input type="number" name="license_offline_days" min={1} max={365} defaultValue={p?.license_offline_days ?? 30} className={input} />
             </Field>
           </div>
-          <div className="mt-4">
-            <Field label="Link Microsoft Store (để trống nếu chưa lên Store)">
-              <input name="ms_store_url" defaultValue={p?.ms_store_url ?? ""} className={input} placeholder="https://apps.microsoft.com/detail/…" />
-            </Field>
-          </div>
           <p className="mt-3 text-xs text-text-faint">
-            Bộ cài Windows/macOS upload ở tab <b>Phiên bản</b> (mở sau khi lưu). Phần mềm luôn trả point —
-            không miễn phí cho Pro Giáo Lý Số / Full Topping.
+            Phần mềm luôn trả point — không miễn phí cho Pro Giáo Lý Số / Full Topping.
           </p>
         </div>
       )}
@@ -226,23 +350,24 @@ export function ProductForm({
         <Check name="is_popular" label="Phổ biến" defaultChecked={p?.is_popular} />
       </div>
 
-      {state.error && (
+      {(state.error || swError) && (
         <p className="rounded-md border border-danger/40 bg-danger/10 px-3 py-2 text-sm text-danger">
-          {state.error}
+          {state.error || swError}
         </p>
       )}
 
       <div className="flex items-center gap-3 border-t border-border pt-4">
         <button
           type="submit"
-          disabled={pending}
+          disabled={pending || swBusy}
           className="rounded-md bg-accent px-5 py-2 font-semibold text-accent-contrast hover:bg-accent-hover disabled:opacity-60"
         >
-          {pending ? "Đang lưu…" : "Lưu"}
+          {pending || swBusy ? "Đang lưu…" : "Lưu"}
         </button>
         <Link href="/admin" className="text-sm text-text-muted hover:text-text">
           Huỷ
         </Link>
+        {swProgress && <span className="text-sm text-text-muted">{swProgress}</span>}
       </div>
     </form>
   );
@@ -273,6 +398,36 @@ function Check({
     <label className="flex items-center gap-2 text-sm text-text">
       <input type="checkbox" name={name} defaultChecked={defaultChecked} className="h-4 w-4" />
       {label}
+    </label>
+  );
+}
+
+/** Chọn file bộ cài (không có name → không gửi qua server action; upload thẳng lên Storage). */
+function InstallerInput({
+  label,
+  accept,
+  current,
+  onChange,
+}: {
+  label: string;
+  accept: string;
+  current?: { version: string; file_name: string };
+  onChange: (f: File | null) => void;
+}) {
+  return (
+    <label className="block">
+      <span className="mb-1 block text-sm text-text-muted">{label}</span>
+      {current && (
+        <span className="mb-1.5 block text-xs text-text-muted">
+          Hiện tại: <b className="text-text">v{current.version}</b> · {current.file_name}
+        </span>
+      )}
+      <input
+        type="file"
+        accept={accept}
+        onChange={(e) => onChange(e.target.files?.[0] ?? null)}
+        className="block w-full text-sm text-text-muted file:mr-3 file:rounded-md file:border-0 file:bg-surface-hover file:px-3 file:py-1.5 file:text-text"
+      />
     </label>
   );
 }
