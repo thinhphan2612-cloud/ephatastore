@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { getAdminUser, getCurrentUser } from "@/lib/auth";
 import { connect, disconnect, getAppProductById, rotateAppSecret } from "@/data/apps";
 import { logAdmin } from "@/lib/admin-audit";
+import { attempt, type ActionResult } from "@/lib/action-result";
 
 /** Người dùng đồng ý cho app trừ point (màn hình xin phép ở /launch hoặc /play). */
 export async function acceptAppConnection(formData: FormData) {
@@ -27,10 +28,12 @@ export async function disconnectApp(formData: FormData) {
 }
 
 /** Admin tạo khóa bí mật server mới cho app ngoài — trả khóa rõ, chỉ hiện một lần. */
-export async function createAppSecret(productId: string): Promise<string> {
-  const admin = await getAdminUser();
-  if (!admin) throw new Error("Không có quyền admin.");
-  const secret = await rotateAppSecret(productId);
-  await logAdmin(admin, "app.secret_rotate", { type: "product", id: productId }); // không ghi khóa
-  return secret;
+export async function createAppSecret(productId: string): Promise<ActionResult<string>> {
+  return attempt(async () => {
+    const admin = await getAdminUser();
+    if (!admin) throw new Error("Không có quyền admin.");
+    const secret = await rotateAppSecret(productId);
+    await logAdmin(admin, "app.secret_rotate", { type: "product", id: productId }); // không ghi khóa
+    return secret;
+  });
 }

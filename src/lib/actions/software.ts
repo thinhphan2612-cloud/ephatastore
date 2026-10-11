@@ -5,6 +5,7 @@ import { getAdminUser } from "@/lib/auth";
 import { logAdmin } from "@/lib/admin-audit";
 import { createStoreAdminClient } from "@/lib/supabase/store-admin";
 import { isPlatform, SEMVER_RE, type Platform } from "@/lib/software/version";
+import { attempt, type ActionResult } from "@/lib/action-result";
 
 const FILES_BUCKET = "product-files";
 
@@ -23,36 +24,38 @@ export async function createReleaseUpload(input: {
   platform: Platform;
   version: string;
   fileName: string;
-}): Promise<{ path: string; token: string }> {
-  await assertAdmin();
-  if (!isPlatform(input.platform)) throw new Error("Nền tảng không hợp lệ.");
-  const version = input.version.trim();
-  if (!SEMVER_RE.test(version)) throw new Error("Phiên bản phải dạng semver, vd 1.2.8.");
+}): Promise<ActionResult<{ path: string; token: string }>> {
+  return attempt(async () => {
+    await assertAdmin();
+    if (!isPlatform(input.platform)) throw new Error("Nền tảng không hợp lệ.");
+    const version = input.version.trim();
+    if (!SEMVER_RE.test(version)) throw new Error("Phiên bản phải dạng semver, vd 1.2.8.");
 
-  const supabase = createStoreAdminClient();
-  const { data: prod } = await supabase
-    .from("products")
-    .select("id")
-    .eq("id", input.productId)
-    .eq("type", "software")
-    .maybeSingle();
-  if (!prod) throw new Error("Sản phẩm phần mềm không tồn tại.");
+    const supabase = createStoreAdminClient();
+    const { data: prod } = await supabase
+      .from("products")
+      .select("id")
+      .eq("id", input.productId)
+      .eq("type", "software")
+      .maybeSingle();
+    if (!prod) throw new Error("Sản phẩm phần mềm không tồn tại.");
 
-  const { count } = await supabase
-    .from("software_releases")
-    .select("id", { count: "exact", head: true })
-    .eq("product_id", input.productId)
-    .eq("platform", input.platform)
-    .eq("version", version);
-  if (count) throw new Error(`Đã có bản ${version} cho ${input.platform}.`);
+    const { count } = await supabase
+      .from("software_releases")
+      .select("id", { count: "exact", head: true })
+      .eq("product_id", input.productId)
+      .eq("platform", input.platform)
+      .eq("version", version);
+    if (count) throw new Error(`Đã có bản ${version} cho ${input.platform}.`);
 
-  const safeName = input.fileName.replace(/[^a-zA-Z0-9._-]/g, "_");
-  const path = `software/${input.productId}/${input.platform}/${version}/${safeName}`;
-  const { data, error } = await supabase.storage
-    .from(FILES_BUCKET)
-    .createSignedUploadUrl(path, { upsert: true });
-  if (error || !data) throw new Error(`Lỗi tạo link upload: ${error?.message}`);
-  return { path, token: data.token };
+    const safeName = input.fileName.replace(/[^a-zA-Z0-9._-]/g, "_");
+    const path = `software/${input.productId}/${input.platform}/${version}/${safeName}`;
+    const { data, error } = await supabase.storage
+      .from(FILES_BUCKET)
+      .createSignedUploadUrl(path, { upsert: true });
+    if (error || !data) throw new Error(`Lỗi tạo link upload: ${error?.message}`);
+    return { path, token: data.token };
+  });
 }
 
 /** Bước 2: file đã lên Storage → ghi software_releases. */
@@ -64,33 +67,35 @@ export async function saveRelease(input: {
   fileName: string;
   sizeBytes: number;
   notes: string;
-}): Promise<void> {
-  const admin = await assertAdmin();
-  const version = input.version.trim();
-  const prefix = `software/${input.productId}/${input.platform}/${version}/`;
-  if (!isPlatform(input.platform) || !SEMVER_RE.test(version) || !input.path.startsWith(prefix))
-    throw new Error("Dữ liệu phiên bản không hợp lệ.");
+}): Promise<ActionResult<void>> {
+  return attempt(async () => {
+    const admin = await assertAdmin();
+    const version = input.version.trim();
+    const prefix = `software/${input.productId}/${input.platform}/${version}/`;
+    if (!isPlatform(input.platform) || !SEMVER_RE.test(version) || !input.path.startsWith(prefix))
+      throw new Error("Dữ liệu phiên bản không hợp lệ.");
 
-  const supabase = createStoreAdminClient();
-  const { error } = await supabase.from("software_releases").insert({
-    product_id: input.productId,
-    platform: input.platform,
-    version,
-    storage_path: input.path,
-    file_name: input.fileName,
-    size_bytes: input.sizeBytes,
-    notes: input.notes.trim(),
+    const supabase = createStoreAdminClient();
+    const { error } = await supabase.from("software_releases").insert({
+      product_id: input.productId,
+      platform: input.platform,
+      version,
+      storage_path: input.path,
+      file_name: input.fileName,
+      size_bytes: input.sizeBytes,
+      notes: input.notes.trim(),
+    });
+    if (error) {
+      if (error.code === "23505") throw new Error(`Đã có bản ${version} cho ${input.platform}.`);
+      throw new Error(error.message);
+    }
+    await logAdmin(admin, "release.create", { type: "product", id: input.productId }, {
+      platform: input.platform,
+      version,
+      file: input.fileName,
+    });
+    revalidatePath(`/admin/products/${input.productId}/edit`);
   });
-  if (error) {
-    if (error.code === "23505") throw new Error(`Đã có bản ${version} cho ${input.platform}.`);
-    throw new Error(error.message);
-  }
-  await logAdmin(admin, "release.create", { type: "product", id: input.productId }, {
-    platform: input.platform,
-    version,
-    file: input.fileName,
-  });
-  revalidatePath(`/admin/products/${input.productId}/edit`);
 }
 
 /** Xóa một phiên bản (row + file). */

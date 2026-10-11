@@ -51,8 +51,10 @@ pub enum Status {
     Active,
     /// Token hợp lệ nhưng quá hạn offline — cần mạng để refresh. Coi như CHƯA Pro.
     NeedsVerify,
-    /// Server báo key bị thu hồi / thiết bị bị gỡ.
+    /// Server báo key bị thu hồi (LICENSE_REVOKED).
     Revoked,
+    /// Máy này đã bị gỡ khỏi key (khách tự gỡ ở Thư viện Ephata / hủy kích hoạt ở máy khác) — nhập lại key để dùng tiếp.
+    Removed,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -190,9 +192,14 @@ pub async fn refresh(app_version: &str) -> Result<LicenseView, String> {
     })).await?;
     if !r.ok {
         return match r.error.as_deref() {
-            Some("LICENSE_REVOKED") | Some("LICENSE_NOT_FOUND") => {
+            Some("LICENSE_REVOKED") => {
                 clear_token();
                 Ok(LicenseView { status: Status::Revoked, key_masked: None, offline_until: None })
+            }
+            // Khi refresh, LICENSE_NOT_FOUND = thiết bị không còn trong danh sách của key (đã bị gỡ) — không phải "thu hồi".
+            Some("LICENSE_NOT_FOUND") => {
+                clear_token();
+                Ok(LicenseView { status: Status::Removed, key_masked: None, offline_until: None })
             }
             _ => Err(r.error.unwrap_or_else(|| "SERVER_ERROR".into())),   // lỗi khác: giữ token cũ
         };

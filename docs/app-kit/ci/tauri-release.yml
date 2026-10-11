@@ -70,10 +70,11 @@ jobs:
       - run: npm ci
       - run: npx tauri build --features msstore --no-bundle
       - shell: pwsh
-        # SỬA: tên exe, DisplayName, Description cho đúng app. Version lấy từ tag (bỏ chữ v).
+        # SỬA: tên exe (myapp.exe — 2 chỗ), DisplayName, Description cho đúng app. Version lấy từ tag (bỏ chữ v).
+        # Kit nằm ở tools/app-kit/ (PROMPT.md) → script ở tools/app-kit/msstore/pack.ps1.
         run: |
           $version = '${{ github.ref_name }}'.TrimStart('v')
-          ./msstore/pack.ps1 `
+          ./tools/app-kit/msstore/pack.ps1 `
             -Source src-tauri/target/release/myapp.exe -Exe myapp.exe -Logos src-tauri/icons `
             -Version $version -DisplayName 'My App' -Description 'Mô tả ngắn' `
             -IdentityName '${{ vars.MSSTORE_IDENTITY_NAME }}' `

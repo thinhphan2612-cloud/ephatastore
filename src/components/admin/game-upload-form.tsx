@@ -7,6 +7,7 @@ import { saveGameProduct } from "@/lib/actions/game-upload";
 import { createProductUpload } from "@/lib/actions/admin";
 import { uploadHostedBuild } from "@/lib/hosted-upload";
 import { SelectWithCreate } from "@/components/admin/catalog-fields";
+import { unwrap } from "@/lib/action-result";
 
 /** product-covers giới hạn 5MB / ảnh. */
 const MAX_COVER_BYTES = 5 * 1024 * 1024;
@@ -31,6 +32,7 @@ export function GameUploadForm({
   const [tier, setTier] = useState<"free" | "pro">("free");
   const [price, setPrice] = useState(0);
   const [proFree, setProFree] = useState(false);
+  const [usesWallet, setUsesWallet] = useState(false);
   const [desc, setDesc] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [cover, setCover] = useState<File | null>(null);
@@ -48,6 +50,7 @@ export function GameUploadForm({
     if (!categoryId) return setError("Chọn danh mục.");
     if (!publisherId) return setError("Chọn nhà phát hành.");
     if (!file) return setError("Chọn file .zip của game.");
+    if (kind === "game" && tier === "pro" && !(price > 0)) return setError("Game PRO cần giá lớn hơn 0 — hoặc chọn FREE.");
 
     setBusy(true);
     try {
@@ -57,7 +60,7 @@ export function GameUploadForm({
       let coverPath: string | undefined;
       if (cover) {
         setProgress("Đang tải ảnh bìa…");
-        const t = await createProductUpload({ purpose: "cover", fileName: cover.name });
+        const t = unwrap(await createProductUpload({ purpose: "cover", fileName: cover.name }));
         const { error: upErr } = await createStoreAuthBrowserClient()
           .storage.from(t.bucket)
           .uploadToSignedUrl(t.path, t.token, cover, { contentType: cover.type || "image/png", upsert: true });
@@ -66,7 +69,7 @@ export function GameUploadForm({
       }
 
       setProgress("Đang tạo sản phẩm…");
-      const { slug } = await saveGameProduct({
+      const { slug } = unwrap(await saveGameProduct({
         gameId,
         title: title.trim(),
         categoryId,
@@ -77,7 +80,8 @@ export function GameUploadForm({
         description: desc,
         coverPath,
         kind,
-      });
+        usesWallet,
+      }));
 
       router.push(`/product/${slug}`);
     } catch (err) {
@@ -128,7 +132,7 @@ export function GameUploadForm({
       {kind === "game" && tier === "pro" && (
         <label className="block">
           <span className="mb-1 block text-sm text-text-muted">Giá mua vĩnh viễn (VND)</span>
-          <input type="number" min={0} step={1000} value={price} onChange={(e) => setPrice(Number(e.target.value))} className={input} />
+          <input type="number" min={1000} step={1000} required value={price} onChange={(e) => setPrice(Number(e.target.value))} className={input} />
         </label>
       )}
       {kind === "game" && tier === "pro" && (
@@ -137,6 +141,16 @@ export function GameUploadForm({
           Miễn phí cho tài khoản Pro Giáo Lý Số
         </label>
       )}
+
+      <label className="flex items-start gap-2 text-sm text-text">
+        <input type="checkbox" checked={usesWallet} onChange={(e) => setUsesWallet(e.target.checked)} className="mt-0.5 h-4 w-4" />
+        <span>
+          {kind === "tool" ? "Công cụ" : "Game"} trừ point theo lượt qua Ví Ephata
+          <span className="block text-xs text-text-faint">
+            Chỉ tick khi app có gọi /api/apps/v1/charge (xem App Kit → hosted). Không tick thì API Ví từ chối.
+          </span>
+        </span>
+      </label>
 
       <label className="block">
         <span className="mb-1 block text-sm text-text-muted">Mô tả ngắn</span>
@@ -193,6 +207,9 @@ export function GameUploadForm({
       >
         {busy ? "Đang xử lý…" : "Tải lên & thêm game"}
       </button>
+      <p className="text-xs text-text-faint">
+        Sản phẩm <b>hiện trên store ngay</b> sau khi tải lên. Mô tả chi tiết (HTML) thêm ở trang Sửa sau khi tạo.
+      </p>
     </form>
   );
 }

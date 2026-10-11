@@ -56,6 +56,15 @@ export default async function AdminProductsPage({
                     <div>
                       <div className="font-medium text-text">{p.title}</div>
                       <div className="text-xs text-text-faint">{p.slug}</div>
+                      {/* Cả hai cờ phải bật thì khách mới thấy / mua được. */}
+                      <div className="mt-0.5 flex gap-2 text-[11px]">
+                        <span className={p.published ? "text-success" : "text-danger"} title="Tắt = gỡ hẳn, người đã mua cũng không mở được">
+                          {p.published ? "✓" : "✕"} Đang bán
+                        </span>
+                        <span className={p.active ? "text-success" : "text-danger"} title="Tắt = ẩn khỏi store, người đã mua vẫn dùng">
+                          {p.active ? "✓" : "✕"} Hiện
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </td>

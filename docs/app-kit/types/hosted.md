@@ -12,7 +12,8 @@ Không phải loại này nếu: cần tài khoản riêng, lưu dữ liệu dù
 cần cài đặt/truy cập máy tính (→ Phần mềm bán key).
 
 ## Sản phẩm giao cho Ephata
-- **1 file `.zip`** chứa bản build: `index.html` ở gốc (hoặc trong 1 thư mục con — Ephata tự bóc lớp thư mục ngoài cùng).
+- **1 file `.zip`** chứa bản build: `index.html` (**đúng chữ thường**) ở gốc (hoặc trong 1 thư mục con — Ephata tự bóc lớp thư mục
+  ngoài cùng). Tên file / thư mục **không dấu**: a–z, 0–9, `. _ -` (Ephata từ chối tên có dấu / ký tự đặc biệt trước khi tải lên).
 - **Ảnh bìa** 16:9 (vd 1600×900), tối đa 5MB.
 - Tên, mô tả ngắn, danh mục; game có phí: giá mua vĩnh viễn.
 
@@ -26,7 +27,7 @@ cần cài đặt/truy cập máy tính (→ Phần mềm bán key).
 | Liên kết | Link tới trang store phải là URL tuyệt đối `https://www.ephatastore.com/...` kèm `target="_top"` (app chạy trên domain khác, trong khung). |
 | Loại file | Lưu đúng content-type theo đuôi file: html, js, css, json, wasm, ảnh (png/jpg/webp/avif/gif/svg/ico), âm thanh (mp3/m4a/aac/wav/ogg/flac), video (mp4/webm), font (woff/woff2/ttf/otf), glb/gltf. Đuôi khác lưu `application/octet-stream`. |
 | Engine game | Phaser, PixiJS, Three.js, JS thuần: ổn. Unity/Godot (`.wasm`): wasm phục vụ đúng `application/wasm`; **tắt nén khi build** (không dùng `.br/.gz`). Chưa thử engine thật — kiểm kỹ lần đầu. |
-| Dung lượng | Mỗi file ≤ 50MB; số file không giới hạn (tải lên từng file). Giữ tổng nhỏ để mở nhanh. |
+| Dung lượng | **html / htm / js / mjs / css / json: mỗi file < 4MB** (các file này được trả qua máy chủ Ephata, Vercel giới hạn ~4.5MB/response — file lớn hơn sẽ trắng màn hình; Ephata chặn ngay lúc tải lên). Bundle lớn → tách chunk (Vite `build.rollupOptions.output.manualChunks`, dynamic `import()`); dữ liệu lớn → đưa ra file nhị phân / ảnh. **Ảnh / âm thanh / video / wasm / font / glb: mỗi file ≤ 50MB.** Số file: gom asset (atlas / sprite sheet) cho ít file — mỗi file tải lên một lượt. |
 | Giao diện | Chạy trong khung cao ~78% màn hình, có nút Toàn màn hình (iframe cho phép `fullscreen; autoplay`). Thiết kế co giãn, dùng được trên điện thoại. |
 | Âm thanh | Chỉ phát sau khi người dùng bấm (chính sách trình duyệt). |
 
@@ -34,7 +35,9 @@ cần cài đặt/truy cập máy tính (→ Phần mềm bán key).
 File bản build nằm ở kho **riêng tư**. Trang chơi chỉ cấp **mã truy cập** (ký, gắn với người chơi, hạn 12 giờ) cho người đã
 có quyền; link không mã / mã giả / mã hết hạn đều bị chặn. App chạy trên domain riêng `play.ephatastore.com` trong khung có
 `sandbox` → **không đọc được phiên đăng nhập của store** và không tự điều hướng được trang store (chỉ khi người dùng bấm).
-App không cần làm gì thêm, miễn là dùng đường dẫn tương đối.
+App không cần làm gì thêm, miễn là dùng đường dẫn tương đối. Lưu ý: ảnh / âm thanh / video / wasm / font được chuyển hướng (302)
+sang link ký của kho lưu trữ (domain khác, hạn 1 giờ) — vẽ ảnh lên `<canvas>` / WebGL thì đặt `img.crossOrigin = "anonymous"`;
+`fetch()` asset không dùng `credentials: "include"`. Phiên mở quá 1 giờ mà tải asset mới thì nạp lại trang.
 
 ## Thu tiền theo lượt dùng — Ví Ephata
 Bật ô **"App trừ point qua Ví Ephata"** trên admin. Người dùng được hỏi cho phép một lần khi mở công cụ. Gọi API bằng đường
@@ -62,27 +65,35 @@ if (r.ok) {
   // mời nạp point: <a href={r.topupUrl} target="_top">Nạp point</a>  (URL tuyệt đối tới trang Ví; target="_top" thoát khỏi khung)
 }
 ```
-Mã lỗi: `INSUFFICIENT_POINTS` (kèm `needed`, `balance`, `topupUrl`) · `CONNECTION_REVOKED` (người dùng đã ngắt kết nối —
-mời mở lại từ trang sản phẩm) · `TOKEN_INVALID` (phiên chơi hết hạn sau 12 giờ — mời mở lại từ Ephata) · `WALLET_DISABLED`
-(chưa bật ô Ví) · `IDEMPOTENCY_CONFLICT` · `BAD_REQUEST`.
+Mã lỗi: `INSUFFICIENT_POINTS` (kèm `needed`, `balance`, `topupUrl`) · `CONNECTION_REVOKED` (người dùng đã ngắt kết nối, **hoặc
+ô Ví chưa bật trên admin**, hoặc người dùng mở từ Giáo Lý Số mà chưa từng cho phép trên Ephata — mời mở từ trang sản phẩm trên
+Ephata) · `TOKEN_INVALID` (phiên chơi hết hạn sau 12 giờ — mời mở lại từ Ephata) · `PRODUCT_NOT_FOUND` (phiên đang mở trên bản
+build vừa bị thay — mời tải lại trang) · `IDEMPOTENCY_CONFLICT` · `BAD_REQUEST` · `NOT_SIGNED_IN` (chỉ gặp khi chạy local / preview).
 Nên **báo trước giá** cho người dùng và trừ khi họ bấm xác nhận.
 
 ## Giá & quyền
-- **Công cụ web**: mở tự do cho người đã đăng nhập; doanh thu qua Ví Ephata (nếu bật).
+- **Công cụ web**: **luôn miễn phí** cho người đã đăng nhập (admin chặn đặt PRO); doanh thu qua Ví Ephata (nếu bật).
 - **Game miễn phí**: ai đăng nhập cũng chơi.
-- **Game có phí**: mua 1 lần dùng vĩnh viễn (giá nhập bằng VND, trả bằng point). Ô **"Miễn phí cho Pro Giáo Lý Số"**: tick thì
-  tài khoản Pro Giáo Lý Số chơi miễn phí; không tick thì ai cũng mua.
+- **Game có phí**: mua 1 lần dùng vĩnh viễn (giá nhập bằng VND > 0, trả bằng point). **Full Topping** cũng chơi được. Ô **"Miễn phí
+  cho Pro Giáo Lý Số"**: tick thì tài khoản Pro Giáo Lý Số chơi miễn phí **trong thời gian gói Pro còn hạn**; không tick thì ai cũng mua.
+- Người dùng Pro có thể **thêm game vào Giáo Lý Số**: game chạy trong khung của Giáo Lý Số qua link nhúng ổn định (mã nhúng 365 ngày,
+  mỗi lần mở cấp mã chơi 12 giờ và **kiểm lại quyền** — hết quyền thì link báo hết quyền). Thay bản build không làm gãy link này.
 
 ## Đưa lên admin
 1. **Admin → Thêm sản phẩm → Chạy trên store**.
-2. Chọn **Game** hoặc **Công cụ web**, nhập tên, danh mục, (game) Tier + Giá mua vĩnh viễn + ô Pro, mô tả ngắn, ảnh bìa, file `.zip`.
-3. Bấm tải lên → chờ tải từng file → chuyển sang trang sản phẩm. Slug tự tạo = tên + 6 ký tự ngẫu nhiên.
-4. Công cụ có thu tiền: mở **Sửa** sản phẩm → tick **App trừ point qua Ví Ephata** → Lưu.
+2. Chọn **Game** hoặc **Công cụ web**, nhập tên, danh mục, (game) Tier + Giá mua vĩnh viễn + ô Pro, ô **trừ point qua Ví Ephata**
+   (chỉ tick khi app có gọi `/charge`), mô tả ngắn, ảnh bìa, file `.zip`.
+3. Bấm tải lên → Ephata kiểm file (tên, dung lượng) → tải từng file → chuyển sang trang sản phẩm. Slug tự tạo = tên + 6 ký tự ngẫu
+   nhiên. **Sản phẩm hiện trên store ngay** sau khi tải lên.
+4. Mở **Sửa** sản phẩm → dán **Mô tả chi tiết (HTML)** (xem `description.md`) → Lưu. Form tạo mới chỉ có mô tả ngắn.
 
 **Phát hành bản mới**: mở **Sửa** sản phẩm → khung **Bản build** → chọn `.zip` mới → **Tải bản build mới**. Thay tại chỗ:
-cùng sản phẩm, cùng slug, người đã mua giữ quyền, bản cũ bị xóa.
+cùng sản phẩm, cùng slug, người đã mua giữ quyền, link Giáo Lý Số không gãy. Bản đang chạy được **giữ làm "bản trước"** — lỗi thì
+bấm **↺ Quay lại bản trước**; chỉ bản cũ hơn nữa bị xóa. Đã có người dùng thì **không đổi được loại** (game ↔ công cụ).
 
 ## Kiểm sau khi lên
+- Sản phẩm phải tick **Đang bán** + **Hiện trên store** thì trang chơi / API Ví mới chạy. Store đang bật Coming Soon thì kiểm
+  bằng tài khoản admin.
 - Mở trang sản phẩm → **Chơi ngay / Mở công cụ** → app chạy, ảnh/âm thanh tải đủ (DevTools không có lỗi 404).
 - Bấm Toàn màn hình, thử trên điện thoại.
 - Có Ví: chạy 1 lần dịch vụ có phí → số dư giảm đúng, lịch sử Ví ghi đúng lý do; thử thiếu point.

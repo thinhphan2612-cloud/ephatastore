@@ -12,7 +12,7 @@
 //     encrypt: (s) => safeStorage.encryptString(s),   // token lưu mã hóa bằng kho bí mật hệ điều hành
 //     decrypt: (b) => safeStorage.decryptString(b),
 //   });
-//   license.current()            → { status, keyMasked, offlineUntil }   (status: inactive|active|needs_verify|revoked)
+//   license.current()            → { status, keyMasked, offlineUntil }   (status: inactive|active|needs_verify|revoked|removed)
 //   await license.activate(key)  → view, hoặc throw Error(code)
 //   license.refresh().catch(() => {})   // gọi ngầm 1 lần khi mở app
 //   await license.deactivate()
@@ -166,9 +166,11 @@ function createLicenseClient({ product, appVersion, dataDir, encrypt, decrypt })
         product, licenseToken: token, deviceId: deviceId(), appVersion,
       });
       if (!r.ok) {
+        // LICENSE_REVOKED = key bị thu hồi; LICENSE_NOT_FOUND khi refresh = máy này đã bị gỡ khỏi key
+        // (khách tự gỡ ở Thư viện Ephata / hủy kích hoạt ở máy khác) — KHÔNG báo "thu hồi" cho trường hợp này.
         if (r.error === "LICENSE_REVOKED" || r.error === "LICENSE_NOT_FOUND") {
           clearToken();
-          return { status: "revoked", keyMasked: null, offlineUntil: null };
+          return { status: r.error === "LICENSE_REVOKED" ? "revoked" : "removed", keyMasked: null, offlineUntil: null };
         }
         throw new Error(r.error || "SERVER_ERROR"); // lỗi khác: giữ token cũ
       }

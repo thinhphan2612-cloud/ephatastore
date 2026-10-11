@@ -9,6 +9,7 @@ import { slugify } from "@/lib/slug";
 import { htmlToText, sanitizeDescription } from "@/lib/rich-text";
 import { removeStorageFolder } from "@/lib/storage-folder";
 import { retryProvisionJob, syncParishFeature } from "@/lib/giaoly-provision";
+import { attempt, type ActionResult } from "@/lib/action-result";
 
 const assertAdmin = requireAdmin;
 
@@ -28,18 +29,20 @@ export interface SaveState {
 export async function createProductUpload(input: {
   purpose: "cover" | "download";
   fileName: string;
-}): Promise<{ bucket: string; path: string; token: string }> {
-  await assertAdmin();
-  const supabase = createStoreAdminClient();
-  const bucket = input.purpose === "cover" ? COVER_BUCKET : FILES_BUCKET;
-  const ext = (input.fileName.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "") || "jpg";
-  const path =
-    input.purpose === "cover"
-      ? `${crypto.randomUUID()}.${ext}`
-      : `${crypto.randomUUID()}/${input.fileName.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
-  const { data, error } = await supabase.storage.from(bucket).createSignedUploadUrl(path);
-  if (error || !data) throw new Error(`Lỗi tạo link upload: ${error?.message}`);
-  return { bucket, path, token: data.token };
+}): Promise<ActionResult<{ bucket: string; path: string; token: string }>> {
+  return attempt(async () => {
+    await assertAdmin();
+    const supabase = createStoreAdminClient();
+    const bucket = input.purpose === "cover" ? COVER_BUCKET : FILES_BUCKET;
+    const ext = (input.fileName.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "") || "jpg";
+    const path =
+      input.purpose === "cover"
+        ? `${crypto.randomUUID()}.${ext}`
+        : `${crypto.randomUUID()}/${input.fileName.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
+    const { data, error } = await supabase.storage.from(bucket).createSignedUploadUrl(path);
+    if (error || !data) throw new Error(`Lỗi tạo link upload: ${error?.message}`);
+    return { bucket, path, token: data.token };
+  });
 }
 
 const UUID = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
@@ -50,6 +53,20 @@ const DOWNLOAD_PATH_RE = new RegExp(`^${UUID}/[A-Za-z0-9._-]+$`);
 function coverPathFromUrl(url: string | null | undefined): string | null {
   const m = url?.match(/\/storage\/v1\/object\/public\/product-covers\/(.+)$/);
   return m ? m[1] : null;
+}
+
+const MAX_PRICE_VND = 100_000_000;
+const PRODUCT_TYPES = ["tool", "game", "asset", "image", "feature", "software"];
+const FEATURE_KEY_RE = /^[a-z0-9_]{3,50}$/;
+
+/** URL https hợp lệ (app ngoài) — trước đây gõ thiếu https:// làm trang /launch của khách đã trả tiền bị lỗi. */
+function isHttpsUrl(v: unknown): boolean {
+  if (typeof v !== "string" || !v) return false;
+  try {
+    return new URL(v).protocol === "https:";
+  } catch {
+    return false;
+  }
 }
 
 /** Loại bán MỘT LẦN dùng vĩnh viễn; còn lại (tool/feature) là thuê bao. */
@@ -105,6 +122,7 @@ function parsePricing(
   type: string
 ): Record<string, unknown> | { error: string } {
   const price = Math.max(0, Math.round(Number(formData.get("price") ?? 0) || 0));
+  if (price > MAX_PRICE_VND) return { error: `Giá tối đa ${MAX_PRICE_VND.toLocaleString("vi-VN")}đ — kiểm tra lại số 0.` };
   if (type === "software") {
     return {
       tier: price > 0 ? "pro" : "free",
@@ -153,14 +171,56 @@ async function persistProduct(formData: FormData): Promise<SaveState & { id?: st
   const row = parseProduct(formData);
 
   if (!row.title) return { error: "Thiếu tiêu đề." };
+  if (!row.slug) return { error: "Không tạo được slug từ tiêu đề — nhập slug (chữ không dấu, số, gạch ngang)." };
+  if (!PRODUCT_TYPES.includes(row.type)) return { error: "Loại sản phẩm không hợp lệ." };
   if (!row.category_id) return { error: "Chưa chọn danh mục." };
   if (!row.publisher_id) return { error: "Chưa chọn nhà phát hành." };
+  const rawDesc = String(formData.get("description_html") ?? "");
+  if (rawDesc.length > 100_000)
+    return { error: `Mô tả HTML dài ${rawDesc.length.toLocaleString("vi-VN")} ký tự — tối đa 100.000 (bớt ảnh base64 / CSS thừa).` };
 
   const pricing = parsePricing(formData, row.type);
   if ("error" in pricing) return { error: String(pricing.error) };
 
   const supabase = createStoreAdminClient();
   const payload: Record<string, unknown> = { ...row, ...pricing };
+  if (formData.has("active_field")) payload.active = formData.get("active") === "on";
+
+  // Bản hiện tại (khi sửa) — để kiểm khóa loại / feature key, ràng buộc theo loại, dọn file cũ, nhật ký.
+  const { data: before } = id
+    ? await supabase
+        .from("products")
+        .select(
+          "category_id,cover_url,download_path,slug,title,type,tier,price_month,published,active,giaoly_pro_free,giaoly_feature_key,app_url,game_url,uses_wallet,ms_store_url,updated_at"
+        )
+        .eq("id", id)
+        .maybeSingle()
+    : { data: null };
+  if (id && !before) return { error: "Sản phẩm không tồn tại (có thể đã bị xóa)." };
+
+  // Hai admin cùng sửa: form mở từ trước (updated_at cũ) không được ghi đè thay đổi mới hơn.
+  const openedAt = String(formData.get("updated_at") ?? "");
+  if (before && openedAt && before.updated_at && openedAt !== before.updated_at)
+    return { error: "Sản phẩm vừa được người khác sửa sau khi bạn mở form. Tải lại trang (F5) rồi sửa lại — tránh ghi đè thay đổi của họ." };
+
+  // Đã có người dùng → không đổi loại / feature key (đổi loại làm sai giá & cách giao hàng; đổi key làm GLS mất đồng bộ).
+  const merged = { ...(before ?? {}), ...payload } as Record<string, unknown>;
+  if (before && (before.type !== row.type || (before.giaoly_feature_key ?? null) !== (merged.giaoly_feature_key ?? null))) {
+    const locked = slugLockReason(await getProductUsage(id));
+    if (locked && before.type !== row.type)
+      return { error: `Không đổi được loại sản phẩm — đã có ${locked}. Muốn bán loại khác, hãy tạo sản phẩm mới.` };
+    if (locked && before.giaoly_feature_key !== merged.giaoly_feature_key)
+      return { error: `Không đổi được feature key — đã có ${locked}. Key giữ nguyên "${before.giaoly_feature_key ?? ""}".` };
+  }
+
+  // Ràng buộc theo loại — không để bán sản phẩm không giao được.
+  const hostedApp = !!merged.game_url;
+  if (row.type === "feature" && !FEATURE_KEY_RE.test(String(merged.giaoly_feature_key ?? "")))
+    return { error: "Tính năng Giáo Lý Số cần Feature key: 3–50 ký tự a–z, 0–9, gạch dưới (vd diem_danh_qr) — thống nhất với Giáo Lý Số." };
+  if (row.type === "tool" && !hostedApp && !isHttpsUrl(merged.app_url))
+    return { error: "Link ngoài cần URL app bắt đầu bằng https:// (vd https://app.example.com)." };
+  if (row.type === "tool" && hostedApp && payload.tier === "pro")
+    return { error: "Công cụ chạy trên store luôn miễn phí (thu tiền theo lượt qua Ví Ephata) — chọn Miễn phí." };
   // Ô "App trừ point qua Ví Ephata" chỉ có ở form của loại app (đánh dấu bằng uses_wallet_field).
   if (formData.has("uses_wallet_field")) payload.uses_wallet = formData.get("uses_wallet") === "on";
 
@@ -192,14 +252,20 @@ async function persistProduct(formData: FormData): Promise<SaveState & { id?: st
     });
   }
 
-  // Bản cũ (khi sửa): danh mục để gỡ liên kết nếu đổi; file cũ để dọn sau khi thay; giá trị cũ cho nhật ký.
-  const { data: before } = id
-    ? await supabase
-        .from("products")
-        .select("category_id,cover_url,download_path,slug,title,tier,price_month,published,giaoly_pro_free")
-        .eq("id", id)
-        .maybeSingle()
-    : { data: null };
+  // Đang bán mà chưa có thứ để giao → chặn.
+  if (row.published) {
+    if ((row.type === "asset" || row.type === "image") && !(payload.download_path ?? before?.download_path))
+      return { error: "Chưa có file tải về — tải file lên trước, hoặc bỏ tick “Đang bán”." };
+    if (row.type === "software" && !payload.ms_store_url) {
+      const { count } = id
+        ? await supabase.from("software_releases").select("id", { count: "exact", head: true }).eq("product_id", id)
+        : { count: 0 };
+      const addingInstaller = formData.get("has_installer") === "1";
+      if (!count && !addingInstaller)
+        return { error: "Phần mềm chưa có bộ cài nào và chưa có link Microsoft Store — thêm bộ cài, hoặc bỏ tick “Đang bán”." };
+    }
+  }
+  payload.updated_at = new Date().toISOString();
 
   // Slug khóa khi sản phẩm đã có người dùng / đã phát hành phần mềm (link, API phần mềm, Giáo Lý Số dựa vào slug).
   if (before && before.slug !== row.slug) {
@@ -242,10 +308,17 @@ async function persistProduct(formData: FormData): Promise<SaveState & { id?: st
   const after: Record<string, unknown> = {
     slug: row.slug,
     title: row.title,
+    type: row.type,
     tier: payload.tier,
     price_month: payload.price_month,
     published: row.published,
+    active: merged.active,
     giaoly_pro_free: payload.giaoly_pro_free,
+    giaoly_feature_key: merged.giaoly_feature_key ?? null,
+    app_url: merged.app_url ?? null,
+    download_path: merged.download_path ?? null,
+    uses_wallet: merged.uses_wallet,
+    ms_store_url: merged.ms_store_url ?? null,
   };
   const changed = before
     ? Object.fromEntries(
@@ -406,7 +479,13 @@ export async function updateProductConfig(formData: FormData) {
   const id = String(formData.get("id") ?? "").trim();
   if (!id) return;
 
+  const supabase = createStoreAdminClient();
+  const { data: cur } = await supabase.from("products").select("type,game_url").eq("id", id).maybeSingle();
+  if (!cur) return;
+  const notice = (m: string): never => redirect(`/admin?notice=${encodeURIComponent(m)}`);
   const tier = formData.get("tier") === "pro" ? "pro" : "free";
+  if (tier === "pro" && cur.type === "tool" && cur.game_url)
+    notice("Công cụ chạy trên store luôn miễn phí (thu tiền theo lượt qua Ví Ephata) — không đặt PRO.");
   // Giá: số nguyên 0 – 100 triệu (trước đây giá âm làm DB từ chối → trang lỗi).
   const priceMonth = tier === "pro" ? Math.min(100_000_000, Math.max(0, Math.floor(Number(formData.get("price_month") ?? 0) || 0))) : 0;
   const patch = {
@@ -414,13 +493,15 @@ export async function updateProductConfig(formData: FormData) {
     min_plan: tier,
     price_month: priceMonth,
     price_vnd: priceMonth,
-    trial: tier === "pro" && formData.get("trial") === "on",
+    // Dùng thử chỉ cho loại thuê bao (công cụ / tính năng); loại mua vĩnh viễn không có dùng thử.
+    trial: tier === "pro" && !PERPETUAL_TYPES.includes(cur.type) && formData.get("trial") === "on",
     trial_days: Math.min(60, Math.max(1, Math.floor(Number(formData.get("trial_days") ?? 7) || 7))),
     active: formData.get("active") === "on",
     giaoly_pro_free: tier === "pro" && formData.get("giaoly_pro_free") === "on",
+    updated_at: new Date().toISOString(),
   };
+  if (tier === "pro" && priceMonth <= 0) notice("Sản phẩm PRO cần giá lớn hơn 0 — hoặc chọn FREE.");
 
-  const supabase = createStoreAdminClient();
   const { error } = await supabase.from("products").update(patch).eq("id", id);
   if (error) throw new Error(error.message);
   await logAdmin(admin, "product.config", { type: "product", id }, patch);

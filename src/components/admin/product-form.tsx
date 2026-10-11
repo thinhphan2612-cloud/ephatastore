@@ -13,6 +13,7 @@ import { DescriptionEditor } from "@/components/admin/description-editor";
 import { vndToPoints } from "@/lib/points";
 import type { ProductType } from "@/lib/types";
 import { PLATFORMS, PLATFORM_LABEL, SEMVER_RE, type Platform } from "@/lib/software/version";
+import { unwrap } from "@/lib/action-result";
 
 /** Giới hạn theo bucket Supabase: product-files 50MB, product-covers 5MB. */
 const MAX_FILE_BYTES = 50 * 1024 * 1024;
@@ -30,7 +31,7 @@ export type ProductPreset = "download" | "link" | "feature" | "software" | "host
 
 const PRESET_TYPES: Record<ProductPreset, ProductType[]> = {
   download: ["asset", "image"],
-  link: ["tool", "feature"],
+  link: ["tool"],
   feature: ["feature"],
   software: ["software"],
   hosted: ["game", "tool"],
@@ -62,11 +63,14 @@ export function ProductForm({
   const isSoftware = preset === "software";
   const isHosted = preset === "hosted";
   const showDownload = preset === "download" || preset === "full";
-  const showLink = preset === "link" || preset === "full";
-  const showFeature = preset === "feature" || preset === "full";
+  // Ô giao hàng theo loại đang chọn (form 'full' đổi loại thì ô đổi theo).
+  const showLinkBase = preset === "link" || preset === "full";
+  const showFeatureBase = preset === "feature" || preset === "full";
   const showGameUrl = preset === "full";
 
   const [type, setType] = useState<ProductType>((p?.type as ProductType) ?? types[0]);
+  const showLink = showLinkBase && type === "tool";
+  const showFeature = showFeatureBase && type === "feature";
   const [sale, setSale] = useState<"free" | "paid">(p?.tier === "pro" ? "paid" : "free");
   const [price, setPrice] = useState<string>(p?.price_month ? String(p.price_month) : "");
   const [trial, setTrial] = useState(p?.trial ?? false);
@@ -117,18 +121,19 @@ export function ProductForm({
       const fd = new FormData(form);
       if (cover) {
         setProgress(`Đang tải ảnh bìa (${mb(cover.size)}MB)…`);
-        const t = await createProductUpload({ purpose: "cover", fileName: cover.name });
+        const t = unwrap(await createProductUpload({ purpose: "cover", fileName: cover.name }));
         await upload(t.bucket, t.path, t.token, cover);
         fd.set("cover_path", t.path);
       }
       if (download) {
         setProgress(`Đang tải file (${mb(download.size)}MB)…`);
-        const t = await createProductUpload({ purpose: "download", fileName: download.name });
+        const t = unwrap(await createProductUpload({ purpose: "download", fileName: download.name }));
         await upload(t.bucket, t.path, t.token, download);
         fd.set("download_path", t.path);
       }
 
       setProgress("Đang lưu thông tin…");
+      fd.set("has_installer", chosen.length ? "1" : "0");
       const res = await saveProductData(fd);
       if (res.error || !res.id) throw new Error(res.error ?? "Lỗi lưu sản phẩm.");
       // Lưu được rồi → bấm lại (nếu bước sau lỗi) là cập nhật, không tạo trùng, không tải lại file đã lưu.
@@ -139,9 +144,9 @@ export function ProductForm({
       for (const pf of chosen) {
         const f = installers[pf]!;
         setProgress(`Đang tải bộ cài ${PLATFORM_LABEL[pf]} (${mb(f.size)}MB)…`);
-        const { path, token } = await createReleaseUpload({ productId: res.id, platform: pf, version: v, fileName: f.name });
+        const { path, token } = unwrap(await createReleaseUpload({ productId: res.id, platform: pf, version: v, fileName: f.name }));
         await upload("product-files", path, token, f);
-        await saveRelease({ productId: res.id, platform: pf, version: v, path, fileName: f.name, sizeBytes: f.size, notes });
+        unwrap(await saveRelease({ productId: res.id, platform: pf, version: v, path, fileName: f.name, sizeBytes: f.size, notes }));
         setInstallers((prev) => ({ ...prev, [pf]: null }));
         resetFile(pf);
       }
@@ -149,7 +154,8 @@ export function ProductForm({
       setProgress("Đã lưu.");
       setVersion("");
       setNotes("");
-      router.push(isSoftware ? `/admin/products/${res.id}/edit` : "/admin");
+      // Phần mềm (thêm bộ cài) và link ngoài mới (tạo khóa bí mật cho Ví) cần quay lại trang Sửa.
+      router.push(isSoftware || (!p && preset === "link") ? `/admin/products/${res.id}/edit` : "/admin");
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Có lỗi khi lưu.");
@@ -165,6 +171,9 @@ export function ProductForm({
   return (
     <form onSubmit={onSubmit} className="space-y-5">
       {(p || savedId) && <input type="hidden" name="id" value={p?.id ?? savedId ?? ""} />}
+      {/* Mốc lúc mở form — server từ chối ghi nếu người khác đã sửa sau mốc này (tránh ghi đè). Sau khi lưu xong trong
+          cùng phiên thì bỏ (savedId) để lưu tiếp không bị chặn bởi chính mình. */}
+      {p && !savedId && <input type="hidden" name="updated_at" value={p.updated_at} />}
 
       <Field label="Tiêu đề *">
         <input name="title" required defaultValue={p?.title} className={input} />
@@ -354,6 +363,7 @@ export function ProductForm({
           <div className="grid gap-5 sm:grid-cols-2">
             <Field label="Số thiết bị / key">
               <input type="number" name="license_device_limit" min={1} max={50} defaultValue={p?.license_device_limit ?? 2} className={input} />
+              <Hint>Đổi số này chỉ áp cho key cấp sau đó; key đã bán giữ số cũ.</Hint>
             </Field>
             <div>
               <Field label="Hạn dùng offline (ngày)">
@@ -400,7 +410,10 @@ export function ProductForm({
                 </div>
               )}
               <FileInput key={`download-${fileKeys.download ?? 0}`} onChange={setDownload} />
-              <Hint>Tối đa 50MB. Tên file không dấu. Chỉ người đã mua mới tải được (link ký có hạn 24 giờ).</Hint>
+              <Hint>
+                Tối đa 50MB. Tên file không dấu. Chỉ người đã mua mới tải được (link ký có hạn 24 giờ).
+                {p?.download_path && " Chọn file mới = file cũ bị xóa ngay khi lưu; người đã mua tải bản mới."}
+              </Hint>
             </div>
           )}
 
@@ -412,19 +425,42 @@ export function ProductForm({
             )}
             {showLink && (
               <Field label="URL app ngoài — mở khi đã sở hữu">
-                <input name="app_url" defaultValue={p?.app_url ?? ""} className={input} placeholder="https://…" />
+                <input
+                  name="app_url"
+                  type="url"
+                  required
+                  pattern="https://.+"
+                  title="URL bắt đầu bằng https://"
+                  defaultValue={p?.app_url ?? ""}
+                  className={input}
+                  placeholder="https://app.example.com"
+                />
               </Field>
             )}
             {showFeature && (
               <Field label="Feature key (bật tính năng bên Giáo Lý Số)">
-                <input name="giaoly_feature_key" defaultValue={p?.giaoly_feature_key ?? ""} className={input} placeholder="vd: lich_phung_vu" />
+                <input
+                  name="giaoly_feature_key"
+                  required
+                  pattern="[a-z0-9_]{3,50}"
+                  title="3–50 ký tự a–z, 0–9, gạch dưới"
+                  readOnly={!!slugLockedReason && !!p?.giaoly_feature_key}
+                  defaultValue={p?.giaoly_feature_key ?? ""}
+                  className={input}
+                  placeholder="vd: lich_phung_vu"
+                />
+                <Hint>
+                  {slugLockedReason && p?.giaoly_feature_key
+                    ? `Khóa vì sản phẩm đã có ${slugLockedReason} — đổi key làm Giáo Lý Số mất đồng bộ.`
+                    : "Phải trùng đúng key bên Giáo Lý Số. Đã bán thì không đổi được."}
+                </Hint>
               </Field>
             )}
           </div>
         </div>
       )}
 
-      {!isSoftware && preset !== "download" && (type === "tool" || type === "feature" || type === "game") && (
+      {!isSoftware && preset !== "download" && (type === "tool" || type === "game") && (
         <div className="rounded-lg border border-border bg-surface-hover/40 p-4">
           <input type="hidden" name="uses_wallet_field" value="1" />
           <label className="flex items-start gap-2 text-sm text-text">
@@ -441,11 +477,19 @@ export function ProductForm({
       )}
 
       <div className="flex flex-wrap gap-5">
-        <Check name="published" label="Đang bán" defaultChecked={p ? p.published : true} />
+        <Check name="published" label="Đang bán" defaultChecked={p ? p.published : !isSoftware} />
+        <input type="hidden" name="active_field" value="1" />
+        <Check name="active" label="Hiện trên store" defaultChecked={p ? p.active : true} />
         <Check name="featured" label="Nổi bật" defaultChecked={p?.featured} />
         <Check name="is_new" label="Mới" defaultChecked={p?.is_new} />
         <Check name="is_popular" label="Phổ biến" defaultChecked={p?.is_popular} />
       </div>
+
+      <Hint>
+        Sản phẩm chỉ hiện và mua được khi bật <b>cả hai</b> ô. Tắt <b>Đang bán</b> = gỡ hẳn: người đã mua cũng không mở được game /
+        công cụ / app. Tắt <b>Hiện trên store</b> = ẩn khỏi danh mục và không bán thêm, người đã mua vẫn dùng được từ Thư viện.
+        {isSoftware && " Phần mềm cần ít nhất một bộ cài (hoặc link Microsoft Store) mới bật được Đang bán."}
+      </Hint>
 
       {error && (
         <p className="rounded-md border border-danger/40 bg-danger/10 px-3 py-2 text-sm text-danger">{error}</p>

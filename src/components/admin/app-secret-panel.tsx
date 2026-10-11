@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { createAppSecret } from "@/lib/actions/apps";
+import { unwrap } from "@/lib/action-result";
 
 /**
  * Trang Sửa sản phẩm Link ngoài / Tính năng: khóa bí mật server để app ngoài gọi /api/apps/v1.
@@ -31,7 +32,7 @@ export function AppSecretPanel({
     setBusy(true);
     setError(null);
     try {
-      setSecret(await createAppSecret(productId));
+      setSecret(unwrap(await createAppSecret(productId)));
       setConfirming(false);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Không tạo được khóa.");
