@@ -20,14 +20,18 @@ const ALL_TYPES: ProductType[] = ["tool", "game", "asset", "image", "feature"];
 /** Bán một lần dùng vĩnh viễn; tool/feature là thuê bao. Khớp PERPETUAL_TYPES ở lib/actions/admin. */
 const PERPETUAL: ProductType[] = ["asset", "image", "game", "software"];
 
-/** Preset quyết định form hiện field nào. 'full' = đủ (dùng khi sửa, trừ software). */
-export type ProductPreset = "download" | "link" | "feature" | "software" | "full";
+/**
+ * Preset quyết định form hiện field nào. 'full' = đủ (dùng khi sửa).
+ * 'hosted' = sửa game / công cụ web host trên store (bản build thay ở khung riêng trên trang Sửa).
+ */
+export type ProductPreset = "download" | "link" | "feature" | "software" | "hosted" | "full";
 
 const PRESET_TYPES: Record<ProductPreset, ProductType[]> = {
   download: ["asset", "image"],
   link: ["tool", "feature"],
   feature: ["feature"],
   software: ["software"],
+  hosted: ["game", "tool"],
   full: ALL_TYPES,
 };
 
@@ -51,6 +55,7 @@ export function ProductForm({
   const p = product;
   const types = PRESET_TYPES[preset];
   const isSoftware = preset === "software";
+  const isHosted = preset === "hosted";
   const showDownload = preset === "download" || preset === "full";
   const showLink = preset === "link" || preset === "full";
   const showFeature = preset === "feature" || preset === "full";
@@ -213,7 +218,11 @@ export function ProductForm({
       {/* ===== Bán ===== */}
       <div className="rounded-lg border border-border bg-surface-hover/40 p-4">
         <div className="mb-3 text-sm font-semibold text-text">Bán</div>
-        {isSoftware ? (
+        {isHosted && type === "tool" ? (
+          <p className="text-sm text-text-muted">
+            Công cụ web mở tự do cho người đã đăng nhập. Thu tiền theo lượt dùng qua <b>Ví Ephata</b> (trừ point trong công cụ).
+          </p>
+        ) : isSoftware ? (
           <Field label="Giá key (VND) — mua 1 lần, dùng vĩnh viễn">
             <input type="number" name="price" min={0} step={1000} value={price} onChange={(e) => setPrice(e.target.value)} className={input} />
             <Hint>
@@ -381,7 +390,7 @@ export function ProductForm({
         </div>
       )}
 
-      {!isSoftware && (
+      {!isSoftware && !isHosted && (
         <div className="rounded-lg border border-border bg-surface-hover/40 p-4">
           <div className="mb-3 text-sm font-semibold text-text">Giao hàng</div>
 

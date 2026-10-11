@@ -2,39 +2,13 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import JSZip from "jszip";
 import { createStoreAuthBrowserClient } from "@/lib/supabase/store-auth-browser";
-import {
-  createGameUploadTokens,
-  saveGameProduct,
-} from "@/lib/actions/game-upload";
+import { saveGameProduct } from "@/lib/actions/game-upload";
+import { createProductUpload } from "@/lib/actions/admin";
+import { uploadHostedBuild } from "@/lib/hosted-upload";
 
-const MIME: Record<string, string> = {
-  html: "text/html",
-  htm: "text/html",
-  js: "text/javascript",
-  mjs: "text/javascript",
-  css: "text/css",
-  json: "application/json",
-  png: "image/png",
-  jpg: "image/jpeg",
-  jpeg: "image/jpeg",
-  gif: "image/gif",
-  webp: "image/webp",
-  svg: "image/svg+xml",
-  ico: "image/x-icon",
-  mp3: "audio/mpeg",
-  wav: "audio/wav",
-  ogg: "audio/ogg",
-  mp4: "video/mp4",
-  webm: "video/webm",
-  woff: "font/woff",
-  woff2: "font/woff2",
-  ttf: "font/ttf",
-  otf: "font/otf",
-};
-const mimeOf = (p: string) =>
-  MIME[p.split(".").pop()?.toLowerCase() ?? ""] ?? "application/octet-stream";
+/** product-covers giới hạn 5MB / ảnh. */
+const MAX_COVER_BYTES = 5 * 1024 * 1024;
 
 const input =
   "w-full rounded-md border border-border bg-bg-elevated px-3 py-2 text-text focus:border-accent focus:outline-none";
@@ -50,6 +24,7 @@ export function GameUploadForm({
   const [categorySlug, setCategorySlug] = useState("game-store");
   const [tier, setTier] = useState<"free" | "pro">("free");
   const [price, setPrice] = useState(0);
+  const [proFree, setProFree] = useState(false);
   const [desc, setDesc] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [cover, setCover] = useState<File | null>(null);
@@ -65,60 +40,18 @@ export function GameUploadForm({
 
     setBusy(true);
     try {
-      setProgress("Đang giải nén…");
-      const zip = await JSZip.loadAsync(file);
+      if (cover && cover.size > MAX_COVER_BYTES) throw new Error("Ảnh bìa tối đa 5MB.");
+      const { gameId } = await uploadHostedBuild(file, setProgress);
 
-      // gom file (bỏ thư mục + rác macOS)
-      const entries = Object.values(zip.files).filter(
-        (f) => !f.dir && !f.name.includes("__MACOSX") && !f.name.endsWith(".DS_Store")
-      );
-      // tìm index.html nông nhất -> lấy tiền tố thư mục gốc để bóc
-      const idx = entries
-        .filter((f) => f.name.toLowerCase().endsWith("index.html"))
-        .sort((a, b) => a.name.length - b.name.length)[0];
-      if (!idx) throw new Error("Không tìm thấy index.html trong zip.");
-      const base = idx.name.slice(0, idx.name.length - "index.html".length);
-
-      const files = entries
-        .filter((f) => f.name.startsWith(base))
-        // chuẩn hoá "\" -> "/" để zip nén trên Windows không hỏng đường dẫn con
-        .map((f) => ({ rel: f.name.slice(base.length).replace(/\\/g, "/"), entry: f }))
-        .filter((f) => f.rel.length > 0);
-
-      setProgress("Đang chuẩn bị tải lên…");
-      const coverPath = cover
-        ? `__cover.${cover.name.split(".").pop()?.toLowerCase() || "png"}`
-        : undefined;
-      const relPaths = files.map((f) => f.rel);
-      if (coverPath) relPaths.push(coverPath);
-      const { gameId, tokens } = await createGameUploadTokens(relPaths);
-      const tokenMap = new Map(tokens.map((t) => [t.path, t.token]));
-
-      const supabase = createStoreAuthBrowserClient();
-      let done = 0;
-      for (const f of files) {
-        const token = tokenMap.get(f.rel)!;
-        const blob = await f.entry.async("blob");
-        const { error: upErr } = await supabase.storage
-          .from("games")
-          .uploadToSignedUrl(`${gameId}/${f.rel}`, token, blob, {
-            contentType: mimeOf(f.rel),
-            upsert: true,
-          });
-        if (upErr) throw new Error(`Lỗi tải ${f.rel}: ${upErr.message}`);
-        done++;
-        setProgress(`Đang tải lên… ${done}/${files.length}`);
-      }
-
-      if (coverPath && cover) {
+      let coverPath: string | undefined;
+      if (cover) {
         setProgress("Đang tải ảnh bìa…");
-        const { error: upErr } = await supabase.storage
-          .from("games")
-          .uploadToSignedUrl(`${gameId}/${coverPath}`, tokenMap.get(coverPath)!, cover, {
-            contentType: cover.type || mimeOf(coverPath),
-            upsert: true,
-          });
+        const t = await createProductUpload({ purpose: "cover", fileName: cover.name });
+        const { error: upErr } = await createStoreAuthBrowserClient()
+          .storage.from(t.bucket)
+          .uploadToSignedUrl(t.path, t.token, cover, { contentType: cover.type || "image/png", upsert: true });
         if (upErr) throw new Error(`Lỗi tải ảnh bìa: ${upErr.message}`);
+        coverPath = t.path;
       }
 
       setProgress("Đang tạo sản phẩm…");
@@ -128,6 +61,7 @@ export function GameUploadForm({
         categorySlug,
         tier,
         priceMonth: price,
+        giaolyProFree: proFree,
         description: desc,
         coverPath,
         kind,
@@ -181,8 +115,14 @@ export function GameUploadForm({
 
       {kind === "game" && tier === "pro" && (
         <label className="block">
-          <span className="mb-1 block text-sm text-text-muted">Giá/tháng (VND)</span>
+          <span className="mb-1 block text-sm text-text-muted">Giá mua vĩnh viễn (VND)</span>
           <input type="number" min={0} step={1000} value={price} onChange={(e) => setPrice(Number(e.target.value))} className={input} />
+        </label>
+      )}
+      {kind === "game" && tier === "pro" && (
+        <label className="flex items-center gap-2 text-sm text-text">
+          <input type="checkbox" checked={proFree} onChange={(e) => setProFree(e.target.checked)} className="h-4 w-4" />
+          Miễn phí cho tài khoản Pro Giáo Lý Số
         </label>
       )}
 
