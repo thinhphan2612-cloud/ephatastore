@@ -84,6 +84,23 @@ export async function saveProduct(
   _prev: SaveState,
   formData: FormData
 ): Promise<SaveState> {
+  const res = await persistProduct(formData);
+  if (res.error) return res;
+  revalidatePath("/admin");
+  redirect("/admin");
+}
+
+/**
+ * Lưu sản phẩm phần mềm, KHÔNG redirect: form cần id để upload bộ cài thẳng từ trình duyệt
+ * lên Storage sau đó (file bộ cài không đi qua server action — giới hạn body ~4.5MB).
+ */
+export async function saveSoftwareProduct(formData: FormData): Promise<SaveState & { id?: string }> {
+  const res = await persistProduct(formData);
+  if (!res.error) revalidatePath("/admin");
+  return res;
+}
+
+async function persistProduct(formData: FormData): Promise<SaveState & { id?: string }> {
   await assertAdmin();
 
   const id = String(formData.get("id") ?? "").trim();
@@ -115,18 +132,76 @@ export async function saveProduct(
     }
   }
 
+  // Phần mềm bán key: giá mua 1 lần = price_month; luôn trả point (không gate theo gói).
+  const isSoftware = row.type === "software";
+  if (isSoftware) {
+    const msStoreUrl = String(formData.get("ms_store_url") ?? "").trim();
+    if (msStoreUrl && !/^https:\/\//.test(msStoreUrl))
+      return { error: "Link Microsoft Store phải bắt đầu bằng https://" };
+    Object.assign(payload, {
+      price_month: row.price_vnd,
+      tier: row.price_vnd > 0 ? "pro" : "free",
+      min_plan: null,
+      license_device_limit: Math.max(1, Number(formData.get("license_device_limit")) || 2),
+      license_offline_days: Math.max(1, Number(formData.get("license_offline_days")) || 30),
+      ms_store_url: msStoreUrl || null,
+    });
+  }
+
   const supabase = createStoreAdminClient();
-  const { error } = id
-    ? await supabase.from("products").update(payload).eq("id", id)
-    : await supabase.from("products").insert(payload);
+
+  // Danh mục cũ (khi sửa) để gỡ liên kết nếu đổi danh mục chính.
+  const { data: before } = id
+    ? await supabase.from("products").select("category_id").eq("id", id).maybeSingle()
+    : { data: null };
+
+  const { data: saved, error } = id
+    ? await supabase.from("products").update(payload).eq("id", id).select("id").single()
+    : await supabase.from("products").insert(payload).select("id").single();
 
   if (error) {
     if (error.code === "23505") return { error: `Slug "${row.slug}" đã tồn tại.` };
     return { error: error.message };
   }
 
-  revalidatePath("/admin");
-  redirect("/admin");
+  // Catalog đọc danh mục qua product_categories (nhiều-nhiều) → phải gắn danh mục chính vào đó.
+  if (before?.category_id && before.category_id !== row.category_id) {
+    await supabase
+      .from("product_categories")
+      .delete()
+      .eq("product_id", saved.id)
+      .eq("category_id", before.category_id);
+  }
+  const { error: catErr } = await supabase
+    .from("product_categories")
+    .upsert(
+      { product_id: saved.id, category_id: row.category_id },
+      { onConflict: "product_id,category_id", ignoreDuplicates: true }
+    );
+  if (catErr) return { error: catErr.message };
+
+  return { id: saved.id };
+}
+
+const GAMES_BUCKET = "games";
+
+/** Xóa đệ quy mọi file trong 1 thư mục của bucket (best-effort). */
+async function removeStorageFolder(
+  supabase: ReturnType<typeof createStoreAdminClient>,
+  bucket: string,
+  prefix: string
+) {
+  const { data } = await supabase.storage.from(bucket).list(prefix, { limit: 1000 });
+  if (!data?.length) return;
+  const files: string[] = [];
+  const folders: string[] = [];
+  for (const item of data) {
+    // Supabase trả thư mục với id === null.
+    if (item.id === null) folders.push(`${prefix}/${item.name}`);
+    else files.push(`${prefix}/${item.name}`);
+  }
+  if (files.length) await supabase.storage.from(bucket).remove(files);
+  for (const f of folders) await removeStorageFolder(supabase, bucket, f);
 }
 
 export async function deleteProduct(formData: FormData) {
@@ -135,81 +210,37 @@ export async function deleteProduct(formData: FormData) {
   if (!id) return;
 
   const supabase = createStoreAdminClient();
+
+  // Lấy thông tin để dọn Storage sau khi xóa row.
+  const { data: prod } = await supabase
+    .from("products")
+    .select("type,game_url,download_path")
+    .eq("id", id)
+    .maybeSingle();
+
+  // Xóa row (entitlements + product_categories cascade; order_items RESTRICT sẽ chặn).
   const { error } = await supabase.from("products").delete().eq("id", id);
-  if (error) throw new Error(error.message);
+  if (error) {
+    if (error.code === "23503")
+      throw new Error(
+        prod?.type === "software"
+          ? "Phần mềm đã bán key nên không xóa cứng được. Hãy bỏ tích 'Hiện' để ẩn khỏi store."
+          : "Sản phẩm đã nằm trong đơn hàng nên không xóa cứng được. Hãy bỏ tích 'Hiện' để ẩn khỏi store."
+      );
+    throw new Error(error.message);
+  }
+
+  // Dọn Storage (best-effort): thư mục game/tool host + file tải về.
+  const gameId = prod?.game_url?.match(/^\/g\/([^/]+)\//)?.[1];
+  if (gameId) await removeStorageFolder(supabase, GAMES_BUCKET, gameId);
+  if (prod?.download_path)
+    await supabase.storage.from(FILES_BUCKET).remove([prod.download_path]);
+  // Bộ cài phần mềm (software_releases cascade theo row).
+  if (prod?.type === "software")
+    await removeStorageFolder(supabase, FILES_BUCKET, `software/${id}`);
 
   revalidatePath("/admin");
   redirect("/admin");
-}
-
-// ---- Đơn hàng ----
-
-/** Duyệt đơn: đánh dấu đã thanh toán + cấp sở hữu các sản phẩm trong đơn. */
-export async function approveOrder(formData: FormData) {
-  await assertAdmin();
-  const id = String(formData.get("id") ?? "").trim();
-  if (!id) return;
-
-  const supabase = createStoreAdminClient();
-  const { data: order } = await supabase
-    .from("orders")
-    .select("id,store_user_id,status,kind,access_days,order_items(product_id)")
-    .eq("id", id)
-    .maybeSingle();
-  if (!order) throw new Error("Không tìm thấy đơn.");
-
-  const expires =
-    order.access_days != null
-      ? new Date(Date.now() + order.access_days * 86400000).toISOString()
-      : null;
-
-  if (order.kind === "topping") {
-    // Full Topping → thuê bao all-access cấp user (không gắn sản phẩm).
-    const { error: sErr } = await supabase.from("subscriptions").insert({
-      store_user_id: order.store_user_id,
-      kind: "topping",
-      expires_at: expires ?? new Date(Date.now() + 365 * 86400000).toISOString(),
-    });
-    if (sErr) throw new Error(sErr.message);
-  } else {
-    const items = (order.order_items ?? []) as { product_id: string }[];
-    if (items.length) {
-      const rows = items.map((it) => ({
-        store_user_id: order.store_user_id,
-        product_id: it.product_id,
-        source: order.kind ?? "purchase",
-        expires_at: expires,
-      }));
-      const { error: eErr } = await supabase
-        .from("entitlements")
-        .upsert(rows, { onConflict: "store_user_id,product_id", ignoreDuplicates: false });
-      if (eErr) throw new Error(eErr.message);
-    }
-  }
-
-  const { error } = await supabase
-    .from("orders")
-    .update({ status: "paid", paid_at: new Date().toISOString() })
-    .eq("id", id);
-  if (error) throw new Error(error.message);
-
-  revalidatePath("/admin/orders");
-}
-
-/** Huỷ đơn (không cấp sở hữu). */
-export async function cancelOrder(formData: FormData) {
-  await assertAdmin();
-  const id = String(formData.get("id") ?? "").trim();
-  if (!id) return;
-
-  const supabase = createStoreAdminClient();
-  const { error } = await supabase
-    .from("orders")
-    .update({ status: "cancelled" })
-    .eq("id", id);
-  if (error) throw new Error(error.message);
-
-  revalidatePath("/admin/orders");
 }
 
 // ---- Quyền sở hữu của user ----

@@ -6,6 +6,7 @@ import type { Product } from "@/lib/types";
  *  - game            → chơi trên store (/play)
  *  - tool / feature  → mở web-app (app_url) tab mới
  *  - asset / image   → tải về (link ký có hạn)
+ *  - software        → trang sản phẩm (chọn bộ cài theo hệ điều hành)
  */
 export function OwnedActions({
   product,
@@ -44,6 +45,14 @@ export function OwnedActions({
       >
         Sắp có
       </span>
+    );
+  }
+
+  if (product.type === "software") {
+    return (
+      <Link href={`/product/${product.slug}`} className={`${base} ${className}`}>
+        ⬇ Tải bộ cài
+      </Link>
     );
   }
 

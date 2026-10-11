@@ -5,7 +5,9 @@ import {
   adminListCategories,
   adminListPublishers,
 } from "@/data/admin";
+import { listReleases } from "@/data/software";
 import { ProductForm } from "@/components/admin/product-form";
+import { SoftwareReleases } from "@/components/admin/software-releases";
 
 export default async function EditProductPage({
   params,
@@ -21,6 +23,13 @@ export default async function EditProductPage({
 
   if (!product) notFound();
 
+  const isSoftware = product.type === "software";
+  const releases = isSoftware ? await listReleases(id) : [];
+  const currentReleases = {
+    windows: releases.find((r) => r.platform === "windows"),
+    macos: releases.find((r) => r.platform === "macos"),
+  };
+
   return (
     <div className="space-y-5">
       <div className="text-sm text-text-faint">
@@ -34,7 +43,10 @@ export default async function EditProductPage({
         categories={categories}
         publishers={publishers}
         product={product}
+        preset={isSoftware ? "software" : "full"}
+        currentReleases={currentReleases}
       />
+      {isSoftware && <SoftwareReleases slug={product.slug} releases={releases} />}
     </div>
   );
 }

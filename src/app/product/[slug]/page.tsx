@@ -1,17 +1,21 @@
 import Link from "next/link";
+import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { getProductBySlug, getRelated } from "@/data/products";
 import { CATEGORY_BY_ID } from "@/data/categories";
 import { getCurrentUser } from "@/lib/auth";
 import { getCurrentUserPlan } from "@/lib/plan";
-import { getGiaolyContext } from "@/lib/giaoly-context";
 import { isOwned, hasActiveTopping } from "@/data/store-user";
 import { getSettings } from "@/data/settings";
-import { claimProduct, startTrial, claimFreedom } from "@/lib/actions/store";
+import { claimProduct, startTrial } from "@/lib/actions/store";
+import { vndToPoints } from "@/lib/points";
 import { formatPrice } from "@/lib/format";
 import { TYPE_LABEL } from "@/lib/labels";
 import { OwnedActions } from "@/components/owned-actions";
+import { AddToGiaolyButton } from "@/components/add-to-giaoly-button";
 import { ProductRow } from "@/components/product-row";
+import { getMyLicenseKey, getSoftwareProduct, latestReleases } from "@/data/software";
+import { PLATFORMS, PLATFORM_LABEL, type Platform } from "@/lib/software/version";
 
 export async function generateMetadata({
   params,
@@ -34,28 +38,25 @@ export default async function ProductPage({
 
   const category = CATEGORY_BY_ID.get(product.categoryId);
   const related = await getRelated(product);
-  const isPro = product.tier === "pro";
+  const isGame = product.type === "game";
+  const isHostedTool = product.type === "tool" && !!product.gameUrl;
+  const isProTier = product.tier === "pro";
+  const isSoftware = product.type === "software";
 
   const user = await getCurrentUser();
-  const settings = await getSettings();
-  const mode = settings.accessMode;
-  const annual = product.priceMonth * 12;
-  const giaolyUrl = process.env.NEXT_PUBLIC_APP_GIAOLY_URL ?? "#";
+  const plan = user ? await getCurrentUserPlan() : "free";
+  const ownedEnt = user && !isSoftware ? await isOwned(user.id, product.id) : false;
+  const topping = user && !isGame && isProTier ? await hasActiveTopping(user.id) : false;
 
-  // Xác định quyền dùng theo chế độ.
-  let owned = false;
-  let plan: "free" | "pro" = "free";
-  let linked = false;
-  if (mode === "giaoly_pro") {
-    if (user) {
-      plan = await getCurrentUserPlan();
-      linked = !!(await getGiaolyContext());
-    }
-    owned = plan === "pro";
-  } else {
-    const topping = user && isPro ? await hasActiveTopping(user.id) : false;
-    owned = (user ? await isOwned(user.id, product.id) : false) || topping;
-  }
+  const annual = product.priceMonth * 12;
+  const annualPoints = vndToPoints(annual);
+  const freedomPoints = vndToPoints(product.priceMonth);
+  const gamePoints = vndToPoints(product.priceMonth);
+  const perpetualPoints = vndToPoints(product.priceMonth);
+  const { freedomDays } = await getSettings();
+  const hasPro = plan === "pro";
+  const isFreeGame = isGame && !isProTier && product.priceMonth <= 0;
+  const isDownloadable = product.type === "asset" || product.type === "image";
 
   return (
     <div className="mx-auto w-[min(1180px,calc(100%-40px))] py-10">
@@ -85,19 +86,14 @@ export default async function ProductPage({
             <div className="absolute inset-0 bg-gradient-to-b from-black/20 to-black/70" />
             <span className="relative z-10 text-[64px]">{product.icon ?? "✦"}</span>
           </div>
-
           <div>
             <h2 className="font-display mb-2 text-2xl font-bold">Giới thiệu</h2>
             <p className="leading-relaxed text-text-muted">{product.description}</p>
           </div>
-
           {product.tags.length > 0 && (
             <div className="flex flex-wrap gap-2">
               {product.tags.map((t) => (
-                <span
-                  key={t}
-                  className="rounded-full border border-border bg-white/[0.03] px-3 py-1 text-sm text-text-muted"
-                >
+                <span key={t} className="rounded-full border border-border bg-white/[0.03] px-3 py-1 text-sm text-text-muted">
                   {t}
                 </span>
               ))}
@@ -113,160 +109,186 @@ export default async function ProductPage({
               </div>
               <span
                 className={`rounded-full border px-2.5 py-1.5 text-[9px] font-black tracking-[0.14em] ${
-                  isPro ? "border-accent text-accent" : "border-success text-success"
+                  isProTier ? "border-accent text-accent" : "border-success text-success"
                 }`}
               >
-                {isPro ? "PRO" : "FREE"}
+                {isSoftware ? "PHẦN MỀM" : isHostedTool ? "CÔNG CỤ" : isGame ? "GAME" : isProTier ? "PRO" : "FREE"}
               </span>
             </div>
-
             <div className="mb-1 text-xs uppercase tracking-[0.13em] text-text-faint">
               {TYPE_LABEL[product.type]}
             </div>
             <h1 className="font-display text-[26px] font-bold">{product.title}</h1>
             <p className="mt-1 text-text-muted">{product.tagline}</p>
 
-            {mode === "giaoly_pro" ? (
-              /* ===== GIAI ĐOẠN ĐẦU: gate bằng gói Pro giaoly ===== */
+            {isSoftware ? (
+              <SoftwarePanel productId={product.id} slug={product.slug} priceVnd={product.priceMonth} userId={user?.id} />
+            ) : isHostedTool ? (
+              /* ===== CÔNG CỤ WEB host nội bộ: mở tự do, AI trừ point ===== */
               <>
                 <div className="mt-5 rounded-2xl border border-border bg-white/[0.03] p-4 text-sm">
-                  <div className="font-semibold text-text">Truy cập Ephata Store</div>
+                  <div className="font-semibold text-text">Công cụ web trên Ephata Store</div>
                   <p className="mt-1 text-text-muted">
-                    {owned
-                      ? "Giáo xứ của bạn có gói Pro Giáo Lý Số — dùng miễn phí toàn bộ Store."
-                      : "Miễn phí với gói Pro của Giáo Lý Số (giaoly.com.vn). Cần gói Pro để dùng."}
+                    Mở và dùng trực tiếp trong store. Tác vụ AI sẽ trừ point trong Ví của bạn.
                   </p>
                 </div>
-
                 <div className="mt-5 space-y-2">
-                  {owned ? (
-                    <>
-                      <OwnedActions product={product} className="w-full" />
-                      <Link
-                        href="/library"
-                        className="block text-center text-xs text-text-faint hover:text-text"
-                      >
-                        Mở Thư viện
-                      </Link>
-                    </>
-                  ) : !user ? (
+                  {user ? (
                     <Link
-                      href={`/login?next=/product/${product.slug}`}
+                      href={`/play/${product.slug}`}
+                      className="block w-full rounded-xl bg-accent px-4 py-3 text-center font-extrabold text-accent-contrast hover:bg-accent-hover"
+                    >
+                      Mở công cụ →
+                    </Link>
+                  ) : (
+                    <Link
+                      href={`/login?next=/play/${product.slug}`}
                       className="block w-full rounded-xl bg-accent px-4 py-3 text-center font-extrabold text-accent-contrast hover:bg-accent-hover"
                     >
                       Đăng nhập để dùng →
                     </Link>
-                  ) : !linked ? (
+                  )}
+                  <Link href="/wallet" className="block text-center text-xs text-text-faint hover:text-text">
+                    Nạp point cho tác vụ AI →
+                  </Link>
+                </div>
+              </>
+            ) : isGame ? (
+              /* ===== GAME: Pro Giáo Lý Số free, còn lại mua bằng point ===== */
+              <>
+                <div className="mt-5 rounded-2xl border border-border bg-white/[0.03] p-4 text-sm">
+                  <div className="font-semibold text-text">Game trên Ephata Store</div>
+                  <p className="mt-1 text-text-muted">
+                    {hasPro
+                      ? "Bạn có gói Pro Giáo Lý Số — chơi miễn phí và thêm được vào Giáo Lý Số."
+                      : isFreeGame
+                        ? "Game miễn phí — chơi ngay."
+                        : "Có Pro Giáo Lý Số thì chơi miễn phí, hoặc mua bằng point."}
+                  </p>
+                </div>
+                <div className="mt-5 space-y-2">
+                  {hasPro || ownedEnt || isFreeGame ? (
                     <>
-                      <Link
-                        href="/account"
-                        className="block w-full rounded-xl bg-accent px-4 py-3 text-center font-extrabold text-accent-contrast hover:bg-accent-hover"
-                      >
-                        Liên kết Giáo Lý Số →
-                      </Link>
-                      <p className="text-center text-xs text-text-faint">
-                        Cần liên kết Giáo Lý Số (có gói Pro) để dùng Store.
-                      </p>
+                      <OwnedActions product={product} className="w-full" />
+                      {hasPro && <AddToGiaolyButton productId={product.id} />}
                     </>
                   ) : (
-                    <>
-                      <a
-                        href={giaolyUrl}
-                        className="block w-full rounded-xl bg-accent px-4 py-3 text-center font-extrabold text-accent-contrast hover:bg-accent-hover"
-                      >
-                        Nâng cấp gói Pro Giáo Lý Số →
-                      </a>
-                      <p className="text-center text-xs text-text-faint">
-                        Giáo xứ của bạn chưa có gói Pro Giáo Lý Số.
-                      </p>
-                    </>
+                    <Link
+                      href={`/buy/${product.id}?kind=perpetual`}
+                      className="block w-full rounded-xl bg-accent px-4 py-3 text-center font-extrabold text-accent-contrast hover:bg-accent-hover"
+                    >
+                      Mua bằng point · {gamePoints.toLocaleString("vi-VN")} point →
+                    </Link>
+                  )}
+                </div>
+              </>
+            ) : !isProTier ? (
+              /* ===== SẢN PHẨM FREE ===== */
+              <>
+                <div className="mt-5 rounded-2xl border border-border bg-white/[0.03] p-4 text-sm">
+                  <b className="text-[24px]">
+                    0đ <small className="text-xs font-semibold text-text-muted">/ miễn phí</small>
+                  </b>
+                </div>
+                <div className="mt-5 space-y-2">
+                  {ownedEnt ? (
+                    <OwnedActions product={product} className="w-full" />
+                  ) : (
+                    <form action={claimProduct}>
+                      <input type="hidden" name="product_id" value={product.id} />
+                      <input type="hidden" name="slug" value={product.slug} />
+                      <button type="submit" className="w-full rounded-xl bg-accent px-4 py-3 font-extrabold text-accent-contrast hover:bg-accent-hover">
+                        Nhận miễn phí →
+                      </button>
+                    </form>
+                  )}
+                </div>
+              </>
+            ) : isDownloadable ? (
+              /* ===== FILE TẢI VỀ: mua vĩnh viễn ===== */
+              <>
+                <div className="mt-5 grid grid-cols-2 gap-3 rounded-2xl border border-border bg-white/[0.03] p-4">
+                  <div>
+                    <span className="mb-1.5 block text-[11px] text-text-faint">Mua vĩnh viễn</span>
+                    <b className="text-[27px]">
+                      {perpetualPoints.toLocaleString("vi-VN")}
+                      <small className="ml-1 text-xs font-semibold text-text-muted">point</small>
+                    </b>
+                  </div>
+                  <div className="border-l border-border pl-4 text-xs leading-5 text-text-muted">
+                    {hasPro ? (
+                      <strong className="text-accent">Miễn phí với Pro Giáo Lý Số</strong>
+                    ) : (
+                      <>≈ {formatPrice(product.priceMonth)} · tải về dùng mãi</>
+                    )}
+                  </div>
+                </div>
+                <div className="mt-5 space-y-2">
+                  {hasPro || ownedEnt ? (
+                    <OwnedActions product={product} className="w-full" />
+                  ) : (
+                    <Link
+                      href={`/buy/${product.id}?kind=perpetual`}
+                      className="block w-full rounded-xl bg-accent px-4 py-3 text-center font-extrabold text-accent-contrast hover:bg-accent-hover"
+                    >
+                      Mua · {perpetualPoints.toLocaleString("vi-VN")} point (vĩnh viễn) →
+                    </Link>
                   )}
                 </div>
               </>
             ) : (
-              /* ===== GIAI ĐOẠN SAU: bán trên store ===== */
+              /* ===== SẢN PHẨM PRO (tool/feature — thuê bao) ===== */
               <>
                 <div className="mt-5 grid grid-cols-2 gap-3 rounded-2xl border border-border bg-white/[0.03] p-4">
                   <div>
-                    <span className="mb-1.5 block text-[11px] text-text-faint">Giá sử dụng</span>
-                    {isPro ? (
-                      <b className="text-[27px]">
-                        {formatPrice(product.priceMonth)}
-                        <small className="text-xs font-semibold text-text-muted">/tháng</small>
-                      </b>
-                    ) : (
-                      <b className="text-[27px]">
-                        0đ <small className="text-xs font-semibold text-text-muted">/ miễn phí</small>
-                      </b>
-                    )}
+                    <span className="mb-1.5 block text-[11px] text-text-faint">Gói năm</span>
+                    <b className="text-[27px]">
+                      {annualPoints.toLocaleString("vi-VN")}
+                      <small className="ml-1 text-xs font-semibold text-text-muted">point</small>
+                    </b>
                   </div>
                   <div className="border-l border-border pl-4 text-xs leading-5 text-text-muted">
-                    {isPro ? (
-                      <>
-                        Thanh toán theo năm ·{" "}
-                        <strong className="text-text">{formatPrice(annual)}/năm</strong>
-                      </>
+                    {hasPro ? (
+                      <strong className="text-accent">Miễn phí với Pro Giáo Lý Số</strong>
                     ) : (
-                      "Không yêu cầu thanh toán."
+                      <>≈ {formatPrice(annual)} · 100đ = 1 point</>
                     )}
                   </div>
                 </div>
-
                 <div className="mt-5 space-y-2">
-                  {owned ? (
+                  {hasPro || ownedEnt || topping ? (
                     <>
                       <OwnedActions product={product} className="w-full" />
-                      <Link
-                        href="/library"
-                        className="block text-center text-xs text-text-faint hover:text-text"
-                      >
+                      <Link href="/library" className="block text-center text-xs text-text-faint hover:text-text">
                         Mở Thư viện
                       </Link>
                     </>
                   ) : (
                     <>
-                      <form action={claimProduct}>
-                        <input type="hidden" name="product_id" value={product.id} />
-                        <input type="hidden" name="slug" value={product.slug} />
-                        <button
-                          type="submit"
-                          className="w-full rounded-xl bg-accent px-4 py-3 font-extrabold text-accent-contrast hover:bg-accent-hover"
-                        >
-                          {isPro ? "Mua gói năm →" : "Nhận miễn phí →"}
-                        </button>
-                      </form>
-                      {isPro && (
-                        <form action={claimFreedom}>
-                          <input type="hidden" name="product_id" value={product.id} />
-                          <input type="hidden" name="slug" value={product.slug} />
-                          <button
-                            type="submit"
-                            className="w-full rounded-xl border border-border-strong bg-white/5 px-4 py-3 text-sm font-bold text-text hover:border-accent/50"
-                          >
-                            Mua lẻ {settings.freedomDays} ngày · {formatPrice(product.priceMonth)}
-                          </button>
-                        </form>
-                      )}
-                      {isPro && product.trial && (
+                      <Link
+                        href={`/buy/${product.id}?kind=annual`}
+                        className="block w-full rounded-xl bg-accent px-4 py-3 text-center font-extrabold text-accent-contrast hover:bg-accent-hover"
+                      >
+                        Mua gói năm · {annualPoints.toLocaleString("vi-VN")} point →
+                      </Link>
+                      <Link
+                        href={`/buy/${product.id}?kind=freedom`}
+                        className="block w-full rounded-xl border border-border-strong bg-white/5 px-4 py-3 text-center text-sm font-bold text-text hover:border-accent/50"
+                      >
+                        Mua lẻ {freedomDays} ngày · {freedomPoints.toLocaleString("vi-VN")} point
+                      </Link>
+                      {product.trial && (
                         <form action={startTrial}>
                           <input type="hidden" name="product_id" value={product.id} />
                           <input type="hidden" name="slug" value={product.slug} />
-                          <button
-                            type="submit"
-                            className="w-full rounded-xl border border-border px-4 py-3 text-sm font-bold text-text-muted hover:border-accent/50 hover:text-text"
-                          >
+                          <button type="submit" className="w-full rounded-xl border border-border px-4 py-3 text-sm font-bold text-text-muted hover:border-accent/50 hover:text-text">
                             Dùng thử {product.trialDays} ngày miễn phí
                           </button>
                         </form>
                       )}
-                      {isPro && (
-                        <Link
-                          href="/topping"
-                          className="block pt-1 text-center text-xs text-accent-hover hover:underline"
-                        >
-                          hoặc mở khoá tất cả PRO với Full Topping →
-                        </Link>
-                      )}
+                      <Link href="/topping" className="block pt-1 text-center text-xs text-accent-hover hover:underline">
+                        hoặc mở khoá tất cả PRO với Full Topping →
+                      </Link>
                     </>
                   )}
                 </div>
@@ -282,5 +304,113 @@ export default async function ProductPage({
         </div>
       )}
     </div>
+  );
+}
+
+/** Đoán hệ điều hành từ user-agent — chỉ để làm nổi bật nút, không ẩn nút nào. */
+function guessPlatform(ua: string): Platform | null {
+  if (/iPhone|iPad|Android/i.test(ua)) return null;
+  if (/Windows/i.test(ua)) return "windows";
+  if (/Macintosh|Mac OS X/i.test(ua)) return "macos";
+  return null;
+}
+
+/* ===== PHẦN MỀM CÀI ĐẶT: tải miễn phí + mua key bằng point (không free theo Pro / topping) ===== */
+async function SoftwarePanel({
+  productId,
+  slug,
+  priceVnd,
+  userId,
+}: {
+  productId: string;
+  slug: string;
+  priceVnd: number;
+  userId?: string;
+}) {
+  const [sw, releases, key, ua] = await Promise.all([
+    getSoftwareProduct(slug),
+    latestReleases(productId),
+    userId ? getMyLicenseKey(userId, productId) : Promise.resolve(null),
+    headers().then((h) => h.get("user-agent") ?? ""),
+  ]);
+  const points = vndToPoints(priceVnd);
+  const os = guessPlatform(ua);
+  const btn = (p: Platform) =>
+    `block w-full rounded-xl px-4 py-3 text-center text-sm font-bold ${
+      os === p
+        ? "bg-accent text-accent-contrast hover:bg-accent-hover"
+        : "border border-border-strong bg-white/5 text-text hover:border-accent/50"
+    }`;
+  const soon =
+    "block w-full cursor-not-allowed rounded-xl border border-border px-4 py-3 text-center text-sm font-bold text-text-faint opacity-60";
+
+  return (
+    <>
+      <div className="mt-5 grid grid-cols-2 gap-3 rounded-2xl border border-border bg-white/[0.03] p-4">
+        <div>
+          <span className="mb-1.5 block text-[11px] text-text-faint">Key vĩnh viễn</span>
+          <b className="text-[27px]">
+            {points.toLocaleString("vi-VN")}
+            <small className="ml-1 text-xs font-semibold text-text-muted">point</small>
+          </b>
+        </div>
+        <div className="border-l border-border pl-4 text-xs leading-5 text-text-muted">
+          ≈ {formatPrice(priceVnd)} · mua 1 lần
+          <br />
+          Dùng trên {sw?.license_device_limit ?? 2} thiết bị
+        </div>
+      </div>
+
+      <div className="mt-5 space-y-2">
+        <div className="text-[11px] uppercase tracking-[0.13em] text-text-faint">Tải về miễn phí</div>
+        {PLATFORMS.map((p) => {
+          const rel = releases[p];
+          if (p === "windows" && sw?.ms_store_url) {
+            return (
+              <div key={p}>
+                <a href={sw.ms_store_url} target="_blank" rel="noopener noreferrer" className={btn(p)}>
+                  {PLATFORM_LABEL[p]} · Microsoft Store ↗
+                </a>
+                {rel && (
+                  <a href={`/dl/${slug}/windows`} className="mt-1 block text-center text-xs text-text-faint hover:text-text">
+                    Không dùng được Store? Tải .exe (v{rel.version})
+                  </a>
+                )}
+              </div>
+            );
+          }
+          return rel ? (
+            <a key={p} href={`/dl/${slug}/${p}`} className={btn(p)}>
+              {PLATFORM_LABEL[p]} · Tải {p === "windows" ? ".exe" : ".dmg"} (v{rel.version})
+            </a>
+          ) : (
+            <span key={p} className={soon}>
+              {PLATFORM_LABEL[p]} · Sắp có
+            </span>
+          );
+        })}
+      </div>
+
+      <div className="mt-5 space-y-2 border-t border-border pt-5">
+        {key ? (
+          <Link
+            href="/library"
+            className="block w-full rounded-xl bg-accent px-4 py-3 text-center font-extrabold text-accent-contrast hover:bg-accent-hover"
+          >
+            Xem key →
+          </Link>
+        ) : (
+          <Link
+            href={`/buy/${productId}?kind=software`}
+            className="block w-full rounded-xl bg-accent px-4 py-3 text-center font-extrabold text-accent-contrast hover:bg-accent-hover"
+          >
+            Mua key — {points.toLocaleString("vi-VN")} point →
+          </Link>
+        )}
+        <p className="text-center text-xs text-text-faint">
+          Cài app, mở mục Bản quyền và nhập key để kích hoạt.
+        </p>
+      </div>
+    </>
   );
 }

@@ -3,6 +3,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { getMyLibrary, hasActiveTopping } from "@/data/store-user";
 import { ProductCard } from "@/components/product-card";
 import { OwnedActions } from "@/components/owned-actions";
+import { getMyLicenseKeys } from "@/data/software";
 
 export const metadata = { title: "Thư viện" };
 
@@ -26,9 +27,10 @@ export default async function LibraryPage() {
     );
   }
 
-  const [products, topping] = await Promise.all([
+  const [products, topping, licenseKeys] = await Promise.all([
     getMyLibrary(user.id),
     hasActiveTopping(user.id),
+    getMyLicenseKeys(user.id),
   ]);
 
   return (
@@ -63,11 +65,29 @@ export default async function LibraryPage() {
           {products.map((p) => (
             <div key={p.id} className="space-y-2">
               <ProductCard product={p} />
+              {licenseKeys.has(p.id) && <LicenseKeyBox licenseKey={licenseKeys.get(p.id)!} />}
               <OwnedActions product={p} className="w-full" />
             </div>
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+/** Key phần mềm + hướng dẫn kích hoạt. */
+function LicenseKeyBox({ licenseKey }: { licenseKey: string }) {
+  return (
+    <div className="rounded-xl border border-accent/40 bg-accent/5 p-3 text-sm">
+      <div className="text-[11px] uppercase tracking-[0.13em] text-text-faint">Key bản quyền</div>
+      <code className="mt-1 block select-all break-all font-mono text-base font-bold text-text">
+        {licenseKey}
+      </code>
+      <ol className="mt-2 list-decimal space-y-0.5 pl-4 text-xs text-text-muted">
+        <li>Tải và cài bộ cài cho máy của bạn.</li>
+        <li>Mở app → mục Bản quyền / Kích hoạt.</li>
+        <li>Dán key trên rồi bấm Kích hoạt (cần mạng lần đầu).</li>
+      </ol>
     </div>
   );
 }

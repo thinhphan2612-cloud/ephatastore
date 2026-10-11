@@ -6,6 +6,7 @@ export const TYPE_LABEL: Record<ProductType, string> = {
   asset: "Asset",
   image: "Hình ảnh",
   feature: "Tính năng",
+  software: "Phần mềm",
 };
 
 export const TYPE_ICON: Record<ProductType, string> = {
@@ -14,4 +15,5 @@ export const TYPE_ICON: Record<ProductType, string> = {
   asset: "🎨",
   image: "🖼️",
   feature: "🧩",
+  software: "💻",
 };
