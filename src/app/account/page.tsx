@@ -22,7 +22,12 @@ export default async function AccountPage() {
   return (
     <div className="mx-auto max-w-xl px-4 py-10">
       <h1 className="text-2xl font-bold">Tài khoản</h1>
-      <p className="mt-1 text-sm text-text-muted">{user.email}</p>
+      <p className="mt-1 text-sm text-text-muted">
+        {user.email} ·{" "}
+        <Link href="/account/password" className="text-brand hover:text-brand-hover">
+          Đổi mật khẩu
+        </Link>
+      </p>
 
       {/* Lối tắt — trên điện thoại thanh đầu trang ẩn Thư viện / Ví / Thoát, nên đặt ở đây. */}
       <nav aria-label="Lối tắt tài khoản" className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-3">

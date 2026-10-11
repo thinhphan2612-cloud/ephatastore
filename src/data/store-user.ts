@@ -116,6 +116,19 @@ export async function hasActiveTopping(userId: string): Promise<boolean> {
   return (count ?? 0) > 0;
 }
 
+/** Hạn Full Topping xa nhất còn hiệu lực (ISO) hoặc null. */
+export async function getToppingUntil(userId: string): Promise<string | null> {
+  const { data } = await createStoreAdminClient()
+    .from("subscriptions")
+    .select("expires_at")
+    .eq("store_user_id", userId)
+    .gt("expires_at", new Date().toISOString())
+    .order("expires_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  return data?.expires_at ?? null;
+}
+
 /** true nếu user đã sở hữu product. */
 export async function isOwned(userId: string, productId: string): Promise<boolean> {
   const supabase = createStoreAdminClient();

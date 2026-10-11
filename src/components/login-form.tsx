@@ -3,12 +3,13 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+import { safeNext } from "@/lib/safe-next";
 import { createStoreAuthBrowserClient } from "@/lib/supabase/store-auth-browser";
 
 export function LoginForm() {
   const router = useRouter();
   const params = useSearchParams();
-  const next = params.get("next") || "/";
+  const next = safeNext(params.get("next"));
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -51,7 +52,12 @@ export function LoginForm() {
         />
       </div>
       <div>
-        <label className="mb-1 block text-sm text-text-muted">Mật khẩu</label>
+        <div className="mb-1 flex items-center justify-between gap-2">
+          <label className="block text-sm text-text-muted">Mật khẩu</label>
+          <Link href="/forgot-password" className="text-xs text-brand hover:text-brand-hover">
+            Quên mật khẩu?
+          </Link>
+        </div>
         <input
           type="password"
           required

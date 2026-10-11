@@ -10,6 +10,7 @@ import { vndToPoints } from "@/lib/points";
 import { generateLicenseKey } from "@/lib/software/license";
 import { isParishAdmin } from "@/lib/giaoly-context";
 import { syncFeatureProvision } from "@/lib/giaoly-provision";
+import { isOwned } from "@/data/store-user";
 
 const YEAR_DAYS = 365;
 
@@ -38,7 +39,8 @@ export async function confirmPurchase(formData: FormData) {
   const user = await getCurrentUser();
   const productId = String(formData.get("product_id") ?? "").trim();
   const kind = String(formData.get("kind") ?? "") as PurchaseKind;
-  if (!user) redirect(`/login?next=/buy/${productId}?kind=${kind}`);
+  if (!user)
+    redirect(kind === "topping" ? "/login?next=/buy/topping" : `/login?next=/buy/${productId}?kind=${kind}`);
 
   const supabase = createStoreAdminClient();
   if (kind === "software") return purchaseSoftware(user.id, productId);
@@ -59,6 +61,8 @@ export async function confirmPurchase(formData: FormData) {
     if (product.giaoly_feature_key && !(await isParishAdmin())) redirect(`/product/${product.slug}`);
     priceMonth = product.price_month ?? 0;
     proFree = product.giaoly_pro_free;
+    // Đã sở hữu vĩnh viễn → không trừ point lần nữa (form cũ / bấm Back / mở lại link mua).
+    if (kind === "perpetual" && (await isOwned(user.id, productId))) redirect("/library");
   }
 
   // Full Topping (không gắn sản phẩm) luôn trả point.
