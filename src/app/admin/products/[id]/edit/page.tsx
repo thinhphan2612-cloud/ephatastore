@@ -10,6 +10,8 @@ import { parseGameUrl } from "@/lib/hosted-access";
 import { ProductForm } from "@/components/admin/product-form";
 import { SoftwareReleases } from "@/components/admin/software-releases";
 import { HostedBuildUploader } from "@/components/admin/hosted-build-uploader";
+import { AppSecretPanel } from "@/components/admin/app-secret-panel";
+import { publicKeyBase64 } from "@/lib/software/license";
 
 export default async function EditProductPage({
   params,
@@ -28,6 +30,13 @@ export default async function EditProductPage({
   const isSoftware = product.type === "software";
   const hosted = parseGameUrl(product.game_url);
   const releases = isSoftware ? await listReleases(id) : [];
+  // App ngoài (Link ngoài / Tính năng có URL): khóa bí mật server để gọi /api/apps/v1.
+  const isExternalApp = !hosted && (product.type === "tool" || product.type === "feature");
+  const site = (process.env.NEXT_PUBLIC_SITE_URL || "https://www.ephatastore.com").replace(/\/$/, "");
+  let publicKey = "(chưa cấu hình SOFTWARE_LICENSE_SIGNING_JWK)";
+  try {
+    publicKey = publicKeyBase64();
+  } catch {}
   const currentReleases = {
     windows: releases.find((r) => r.platform === "windows"),
     macos: releases.find((r) => r.platform === "macos"),
@@ -51,6 +60,15 @@ export default async function EditProductPage({
         currentReleases={currentReleases}
       />
       {isSoftware && <SoftwareReleases slug={product.slug} releases={releases} />}
+      {isExternalApp && (
+        <AppSecretPanel
+          productId={product.id}
+          slug={product.slug}
+          hasSecret={product.has_app_secret}
+          apiBase={`${site}/api/apps/v1`}
+          publicKey={publicKey}
+        />
+      )}
     </div>
   );
 }

@@ -151,6 +151,8 @@ async function persistProduct(formData: FormData): Promise<SaveState & { id?: st
 
   const supabase = createStoreAdminClient();
   const payload: Record<string, unknown> = { ...row, ...pricing };
+  // Ô "App trừ point qua Ví Ephata" chỉ có ở form của loại app (đánh dấu bằng uses_wallet_field).
+  if (formData.has("uses_wallet_field")) payload.uses_wallet = formData.get("uses_wallet") === "on";
 
   // File đã được trình duyệt tải thẳng lên Storage (createProductUpload) → chỉ nhận đường dẫn.
   const coverPath = String(formData.get("cover_path") ?? "").trim();

@@ -73,6 +73,8 @@ export interface Product {
   gameUrl?: string;
   /** true = tài khoản có gói Pro Giáo Lý Số dùng/nhận miễn phí (không áp cho phần mềm bán key) */
   giaolyProFree: boolean;
+  /** App tính phí theo lượt dùng — trừ point qua Ví Ephata */
+  usesWallet: boolean;
 
   /** 0..5 */
   rating: number;

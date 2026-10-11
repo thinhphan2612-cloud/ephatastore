@@ -54,6 +54,9 @@ export interface AdminProductDetail {
   trial: boolean;
   trial_days: number;
   giaoly_pro_free: boolean;
+  uses_wallet: boolean;
+  /** Đã có khóa bí mật server cho app ngoài (không gửi hash ra client). */
+  has_app_secret: boolean;
 }
 
 export async function adminListProducts(): Promise<AdminProductRow[]> {
@@ -73,12 +76,14 @@ export async function adminGetProduct(id: string): Promise<AdminProductDetail | 
   const { data, error } = await supabase
     .from("products")
     .select(
-      "id,slug,title,tagline,description,type,category_id,publisher_id,price_vnd,original_price_vnd,cover_url,tags,min_plan,released_at,featured,is_new,is_popular,published,download_path,game_url,app_url,giaoly_feature_key,license_device_limit,license_offline_days,ms_store_url,tier,price_month,trial,trial_days,giaoly_pro_free"
+      "id,slug,title,tagline,description,type,category_id,publisher_id,price_vnd,original_price_vnd,cover_url,tags,min_plan,released_at,featured,is_new,is_popular,published,download_path,game_url,app_url,giaoly_feature_key,license_device_limit,license_offline_days,ms_store_url,tier,price_month,trial,trial_days,giaoly_pro_free,uses_wallet,app_secret_hash"
     )
     .eq("id", id)
     .maybeSingle();
   if (error) throw new Error(error.message);
-  return data as AdminProductDetail | null;
+  if (!data) return null;
+  const { app_secret_hash, ...rest } = data as typeof data & { app_secret_hash: string | null };
+  return { ...(rest as unknown as Omit<AdminProductDetail, "has_app_secret">), has_app_secret: !!app_secret_hash };
 }
 
 export async function adminListCategories(): Promise<{ id: string; name: string }[]> {

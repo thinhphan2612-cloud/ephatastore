@@ -5,6 +5,8 @@ import { canAccessProduct } from "@/lib/access";
 import { createStoreAdminClient } from "@/lib/supabase/store-admin";
 import { GameFrame } from "@/components/game-frame";
 import { hostedPlayUrl } from "@/lib/hosted-access";
+import { hasActiveConnection } from "@/data/apps";
+import { acceptAppConnection } from "@/lib/actions/apps";
 
 export const metadata = { title: "Chơi game" };
 
@@ -18,7 +20,7 @@ export default async function PlayPage({
   const supabase = createStoreAdminClient();
   const { data: product } = await supabase
     .from("products")
-    .select("id,title,type,tier,price_month,giaoly_pro_free,game_url,published")
+    .select("id,title,type,tier,price_month,giaoly_pro_free,uses_wallet,game_url,published")
     .eq("slug", slug)
     .maybeSingle();
 
@@ -54,6 +56,29 @@ export default async function PlayPage({
       <div className="mx-auto max-w-md px-4 py-16 text-center">
         <h1 className="text-xl font-bold">{product.title}</h1>
         <p className="mt-2 text-text-muted">Game chưa được cấu hình để chơi.</p>
+      </div>
+    );
+  }
+
+  // App trừ point qua Ví Ephata: xin phép người dùng lần đầu.
+  if (product.uses_wallet && !(await hasActiveConnection(product.id, user.id))) {
+    return (
+      <div className="mx-auto max-w-lg px-4 py-16">
+        <h1 className="text-xl font-bold">Cho phép {product.title} dùng Ví Ephata?</h1>
+        <p className="mt-3 text-text-muted">
+          Một số dịch vụ trong ứng dụng này tính phí theo lượt dùng và sẽ <b className="text-text">trừ point trong Ví Ephata</b>{" "}
+          của bạn. Mỗi lần trừ đều ghi rõ trong lịch sử Ví; bạn ngắt kết nối được bất cứ lúc nào ở trang Ví.
+        </p>
+        <form action={acceptAppConnection} className="mt-6 flex flex-wrap gap-3">
+          <input type="hidden" name="product_id" value={product.id} />
+          <input type="hidden" name="next" value={`/play/${slug}`} />
+          <button type="submit" className="rounded-xl bg-accent px-5 py-2.5 font-bold text-accent-contrast hover:bg-accent-hover">
+            Cho phép và mở
+          </button>
+          <Link href={`/product/${slug}`} className="rounded-xl border border-border px-5 py-2.5 text-text-muted hover:text-text">
+            Hủy
+          </Link>
+        </form>
       </div>
     );
   }
