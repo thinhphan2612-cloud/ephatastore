@@ -100,6 +100,8 @@ export interface LibraryItem {
   active: boolean;
   /** Số ngày còn lại (làm tròn lên) khi có hạn; null = vĩnh viễn. */
   daysLeft: number | null;
+  /** Quyền của giáo xứ (tính năng Giáo Lý Số) — dùng chung mọi quản trị giáo xứ. */
+  parish?: boolean;
 }
 
 /** Thư viện: quyền còn hạn + quyền đã hết hạn trong 180 ngày gần đây (để người dùng biết và gia hạn). */
@@ -127,9 +129,9 @@ export async function getMyLibrary(userId: string): Promise<LibraryItem[]> {
 }
 
 /** Quyền của user với một sản phẩm (kể cả đã hết hạn) — null nếu chưa từng có. */
-/** Trạng thái lần đồng bộ gần nhất sang Giáo Lý Số cho từng tính năng của user (productId → status). */
+/** Trạng thái lần đồng bộ gần nhất sang Giáo Lý Số cho từng tính năng của GIÁO XỨ (productId → status). */
 export async function getFeatureSyncStatus(
-  userId: string,
+  parishId: string,
   productIds: string[]
 ): Promise<Map<string, "done" | "failed" | "pending">> {
   const out = new Map<string, "done" | "failed" | "pending">();
@@ -137,11 +139,54 @@ export async function getFeatureSyncStatus(
   const { data } = await createStoreAdminClient()
     .from("provision_jobs")
     .select("product_id,status,created_at")
-    .eq("store_user_id", userId)
+    .eq("parish_id", parishId)
     .in("product_id", productIds)
     .order("created_at", { ascending: false });
   for (const j of data ?? []) if (j.product_id && !out.has(j.product_id)) out.set(j.product_id, j.status);
   return out;
+}
+
+/** Quyền tính năng Giáo Lý Số của một giáo xứ (kể cả đã hết hạn / thu hồi) — null nếu giáo xứ chưa từng có. */
+export async function getParishEntitlement(
+  parishId: string,
+  productId: string
+): Promise<{ expiresAt: string | null; source: string; active: boolean } | null> {
+  const { data } = await createStoreAdminClient()
+    .from("parish_entitlements")
+    .select("expires_at,source")
+    .eq("parish_id", parishId)
+    .eq("product_id", productId)
+    .maybeSingle();
+  if (!data) return null;
+  return {
+    expiresAt: data.expires_at,
+    source: data.source,
+    active: !data.expires_at || new Date(data.expires_at).getTime() > Date.now(),
+  };
+}
+
+/** Thư viện: tính năng Giáo Lý Số của giáo xứ (còn hạn + hết hạn ≤180 ngày) — hiện cho quản trị giáo xứ. */
+export async function getParishLibrary(parishId: string): Promise<LibraryItem[]> {
+  const since = new Date(Date.now() - 180 * 86400000).toISOString();
+  const { data, error } = await createStoreAdminClient()
+    .from("parish_entitlements")
+    .select(`expires_at,source,product:products(${PRODUCT_SELECT})`)
+    .eq("parish_id", parishId)
+    .or(`expires_at.is.null,expires_at.gt.${since}`)
+    .order("updated_at", { ascending: false });
+  if (error) throw new Error(error.message);
+  const now = Date.now();
+  return (data ?? [])
+    .map((e) => e as unknown as { expires_at: string | null; source: string; product: Row | null })
+    .filter((e) => !!e.product)
+    .map((e) => ({
+      product: mapRow(e.product!),
+      expiresAt: e.expires_at,
+      source: e.source,
+      active: !e.expires_at || new Date(e.expires_at).getTime() > now,
+      daysLeft: e.expires_at ? Math.ceil((new Date(e.expires_at).getTime() - now) / 86400000) : null,
+      parish: true,
+    }));
 }
 
 export async function getEntitlement(

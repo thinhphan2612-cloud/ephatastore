@@ -73,3 +73,40 @@ export async function adminGetUserEmail(userId: string): Promise<string | null> 
     .maybeSingle();
   return data?.email ?? null;
 }
+
+export interface ParishItem {
+  product_id: string;
+  title: string;
+  slug: string;
+  source: string;
+  expires_at: string | null;
+  active: boolean;
+}
+
+/** Tính năng Giáo Lý Số của giáo xứ mà user thuộc về (quyền theo giáo xứ — 0024). */
+export async function adminGetUserParishItems(userId: string): Promise<{ parishId: string | null; items: ParishItem[] }> {
+  const supabase = createStoreAdminClient();
+  const { data: prof } = await supabase.from("profiles").select("parish_id").eq("id", userId).maybeSingle();
+  const parishId = (prof?.parish_id as string | null) ?? null;
+  if (!parishId) return { parishId: null, items: [] };
+  const { data } = await supabase
+    .from("parish_entitlements")
+    .select("product_id,source,expires_at,product:products(title,slug)")
+    .eq("parish_id", parishId)
+    .order("updated_at", { ascending: false });
+  const now = Date.now();
+  const items = ((data ?? []) as unknown as {
+    product_id: string;
+    source: string;
+    expires_at: string | null;
+    product: { title: string; slug: string } | null;
+  }[]).map((e) => ({
+    product_id: e.product_id,
+    title: e.product?.title ?? "Sản phẩm",
+    slug: e.product?.slug ?? "",
+    source: e.source,
+    expires_at: e.expires_at,
+    active: !e.expires_at || new Date(e.expires_at).getTime() > now,
+  }));
+  return { parishId, items };
+}

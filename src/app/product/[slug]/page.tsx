@@ -9,7 +9,7 @@ import { Expandable } from "@/components/expandable";
 import { getCurrentUser } from "@/lib/auth";
 import { getCurrentUserPlan } from "@/lib/plan";
 import { getGiaolyContext } from "@/lib/giaoly-context";
-import { getEntitlement, getToppingUntil } from "@/data/store-user";
+import { getEntitlement, getParishEntitlement, getToppingUntil } from "@/data/store-user";
 import { getSettings } from "@/data/settings";
 import { claimProduct, startTrial } from "@/lib/actions/store";
 import { vndToPoints } from "@/lib/points";
@@ -53,7 +53,15 @@ export default async function ProductPage({
   const user = await getCurrentUser();
   const plan = user ? await getCurrentUserPlan() : "free";
   // Quyền hiện tại (kể cả đã hết hạn — để báo "đã hết hạn" và ẩn nút dùng thử lần 2).
-  const ent = user && !isSoftware ? await getEntitlement(user.id, product.id) : null;
+  // Tính năng Giáo Lý Số: quyền của GIÁO XỨ người xem (mọi quản trị dùng chung); sản phẩm khác: quyền của chính người xem.
+  const viewerParish = user && product.giaolyFeatureKey ? (await getGiaolyContext())?.parishId : null;
+  const ent = !user || isSoftware
+    ? null
+    : product.giaolyFeatureKey
+      ? viewerParish
+        ? await getParishEntitlement(viewerParish, product.id)
+        : null
+      : await getEntitlement(user.id, product.id);
   const ownedEnt = !!ent?.active;
   // Full Topping mở mọi sản phẩm PRO (file tải về, game, công cụ) — trừ phần mềm bán key; tính năng GLS cần quyền thật.
   const toppingUntil = user && !isSoftware && isProTier ? await getToppingUntil(user.id) : null;
@@ -159,7 +167,9 @@ export default async function ProductPage({
             {ownedEnt && ent?.expiresAt ? (
               <p className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-success/40 bg-success/10 px-3 py-2 text-xs text-success">
                 <span>
-                  ✓ {ent.source === "trial" ? "Đang dùng thử" : "Bạn đang dùng"} đến <b>{formatDate(ent.expiresAt)}</b>
+                  ✓ {product.giaolyFeatureKey ? "Giáo xứ " : ""}
+                  {ent.source === "trial" ? (product.giaolyFeatureKey ? "đang dùng thử" : "Đang dùng thử") : product.giaolyFeatureKey ? "đang dùng" : "Bạn đang dùng"} đến{" "}
+                  <b>{formatDate(ent.expiresAt)}</b>
                 </span>
                 <Link href={`/buy/${product.id}?kind=annual`} className="font-semibold underline">
                   {ent.source === "trial" ? "Mua gói năm" : "Gia hạn"}

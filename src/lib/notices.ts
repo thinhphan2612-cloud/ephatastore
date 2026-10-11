@@ -8,6 +8,7 @@ export const NOTICES = {
   feature_parish_admin: "Tính năng Giáo Lý Số chỉ quản trị giáo xứ (đã liên kết tài khoản) mới nhận / dùng thử / mua được.",
   no_trial: "Sản phẩm này không có dùng thử.",
   trial_used: "Bạn đã dùng thử (hoặc đã từng mua) sản phẩm này — không dùng thử lại được.",
+  trial_used_parish: "Giáo xứ của bạn đã dùng thử (hoặc đã từng có) tính năng này — mỗi giáo xứ dùng thử một lần.",
   kind_invalid: "Gói mua này không áp dụng cho sản phẩm. Hãy chọn lại từ trang sản phẩm.",
   link_expired: "Liên kết đã hết hạn hoặc đã được dùng. Hãy yêu cầu gửi lại.",
   download_no_access: "Bạn chưa có quyền tải sản phẩm này (chưa mua hoặc đã hết hạn).",

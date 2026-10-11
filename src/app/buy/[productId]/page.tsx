@@ -13,7 +13,7 @@ import { getMyLicenseKey } from "@/data/software";
 import { getToppingUntil, isOwned } from "@/data/store-user";
 import { formatDate } from "@/lib/format";
 import { PendingSubmit } from "@/components/pending-submit";
-import { getEntitlement } from "@/data/store-user";
+import { getEntitlement, getParishEntitlement } from "@/data/store-user";
 
 export const metadata = { title: "Xác nhận mua" };
 
@@ -76,10 +76,10 @@ export default async function BuyPage({
     const supabase = createStoreAdminClient();
     const { data: product } = await supabase
       .from("products")
-      .select("id,slug,title,tagline,icon,type,price_month,giaoly_pro_free,giaoly_feature_key,published")
+      .select("id,slug,title,tagline,icon,type,price_month,giaoly_pro_free,giaoly_feature_key,published,active")
       .eq("id", productId)
       .maybeSingle();
-    if (!product || !product.published) notFound();
+    if (!product || !product.published || !product.active) notFound();
     // Gói mua phải hợp loại sản phẩm (server cũng kiểm lại) — link lạ → gói đúng của sản phẩm.
     const allowed = kindsFor(product.type);
     if (!allowed.includes(kind)) redirect(`/buy/${product.id}?kind=${allowed[0]}`);
@@ -92,11 +92,18 @@ export default async function BuyPage({
     const isPro = kind !== "software" && product.giaoly_pro_free && (await getCurrentUserPlan()) === "pro";
     const proUntil = isPro ? (await getGiaolyContext())?.planExpiresAt : null;
     // Gói năm / mua lẻ đang còn hạn → nói rõ mua thêm là cộng nối (giống Full Topping).
-    const ent = kind === "annual" || kind === "freedom" ? await getEntitlement(user.id, product.id) : null;
+    // Tính năng Giáo Lý Số: hạn của GIÁO XỨ (quản trị khác có thể đã mua).
+    const parishId = product.giaoly_feature_key ? (await getGiaolyContext())?.parishId : null;
+    const ent =
+      kind === "annual" || kind === "freedom"
+        ? parishId
+          ? await getParishEntitlement(parishId, product.id)
+          : await getEntitlement(user.id, product.id)
+        : null;
     const days = kind === "annual" ? 365 : settings.freedomDays;
     const renewNote =
       !isPro && ent?.active && ent.expiresAt
-        ? `Đang dùng đến ${formatDate(ent.expiresAt)} — mua thêm cộng nối ${days} ngày, đến ${formatDate(
+        ? `${parishId ? "Giáo xứ đang dùng" : "Đang dùng"} đến ${formatDate(ent.expiresAt)} — mua thêm cộng nối ${days} ngày, đến ${formatDate(
             new Date(new Date(ent.expiresAt).getTime() + days * 86400000).toISOString()
           )}`
         : null;

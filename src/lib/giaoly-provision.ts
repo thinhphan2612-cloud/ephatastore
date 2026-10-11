@@ -46,11 +46,11 @@ async function send(job: Job): Promise<void> {
 }
 
 /**
- * Đồng bộ quyền tính năng của một user (đã liên kết Giáo Lý Số, là quản trị giáo xứ) sang Giáo Lý Số.
- * Gọi sau mọi thay đổi quyền sản phẩm loại tính năng: mua, dùng thử, nhận miễn phí, admin cấp/thu hồi.
- * Không phải sản phẩm tính năng (không có feature key) → bỏ qua. Trả true nếu đã tạo + gửi job.
+ * Đồng bộ quyền tính năng của MỘT GIÁO XỨ (parish_entitlements) sang Giáo Lý Số: còn hạn → grant_feature, hết / thu hồi → revoke_feature.
+ * Gọi sau mọi thay đổi quyền tính năng: mua, dùng thử, nhận miễn phí, admin cấp/thu hồi. Không phải sản phẩm tính năng → bỏ qua.
+ * actorUserId: tài khoản gây ra thay đổi (ghi vào job để tra cứu). Trả true nếu đã tạo + gửi job.
  */
-export async function syncFeatureProvision(userId: string, productId: string): Promise<boolean> {
+export async function syncParishFeature(parishId: string, productId: string, actorUserId: string | null = null): Promise<boolean> {
   const supabase = createStoreAdminClient();
   const { data: product } = await supabase
     .from("products")
@@ -60,20 +60,16 @@ export async function syncFeatureProvision(userId: string, productId: string): P
   const featureKey = product?.giaoly_feature_key;
   if (!featureKey) return false;
 
-  const ctx = await getGiaolyContextFor(userId); // làm mới nếu cũ → đúng giáo xứ hiện tại
-  if (!ctx?.parishId) return false; // chưa liên kết Giáo Lý Số — luồng mua đã chặn trước
-  const prof = { parish_id: ctx.parishId };
-
   const now = new Date().toISOString();
   const { data: ent } = await supabase
-    .from("entitlements")
+    .from("parish_entitlements")
     .select("expires_at")
-    .eq("store_user_id", userId)
+    .eq("parish_id", parishId)
     .eq("product_id", productId)
     .or(`expires_at.is.null,expires_at.gt.${now}`)
     .maybeSingle();
 
-  const base = { parish_id: prof.parish_id, feature_key: featureKey, source: "ephata", ref: `${productId}:${userId}` };
+  const base = { parish_id: parishId, feature_key: featureKey, source: "ephata", ref: `${productId}:${parishId}` };
   const payload = ent
     ? {
         action: "grant_feature",
@@ -85,7 +81,7 @@ export async function syncFeatureProvision(userId: string, productId: string): P
 
   const { data: job, error } = await supabase
     .from("provision_jobs")
-    .insert({ action: payload.action, product_id: productId, store_user_id: userId, payload })
+    .insert({ action: payload.action, product_id: productId, store_user_id: actorUserId, parish_id: parishId, payload })
     .select("id,payload")
     .single();
   if (error || !job) throw new Error(error?.message ?? "Không tạo được job provision.");
@@ -93,25 +89,37 @@ export async function syncFeatureProvision(userId: string, productId: string): P
   return true;
 }
 
+/** Đồng bộ tính năng cho giáo xứ HIỆN TẠI của user (đã liên kết Giáo Lý Số). Chưa liên kết → bỏ qua. */
+export async function syncFeatureProvision(userId: string, productId: string): Promise<boolean> {
+  const ctx = await getGiaolyContextFor(userId); // làm mới nếu cũ → đúng giáo xứ hiện tại
+  if (!ctx?.parishId) return false;
+  return syncParishFeature(ctx.parishId, productId, userId);
+}
+
 /**
- * Admin: gửi lại một job lỗi = đồng bộ lại theo TRẠNG THÁI HIỆN TẠI (job mới), không gửi nguyên payload cũ —
+ * Admin: gửi lại một job lỗi = đồng bộ lại theo TRẠNG THÁI HIỆN TẠI của giáo xứ (job mới), không gửi nguyên payload cũ —
  * payload cũ có thể đã lỗi thời (quyền đã bị thu hồi / đã gia hạn sau đó). Job cũ đóng lại kèm ghi chú.
  */
 export async function retryProvisionJob(id: string): Promise<void> {
   const supabase = createStoreAdminClient();
   const { data: job } = await supabase
     .from("provision_jobs")
-    .select("id,store_user_id,product_id")
+    .select("id,store_user_id,product_id,parish_id")
     .eq("id", id)
     .maybeSingle();
-  if (!job?.store_user_id || !job.product_id) return;
-  const sent = await syncFeatureProvision(job.store_user_id, job.product_id);
+  if (!job?.product_id) return;
+  // Job mới có parish_id → không phụ thuộc người mua còn liên kết; job cũ (trước 0024) → theo giáo xứ hiện tại của người đó.
+  const sent = job.parish_id
+    ? await syncParishFeature(job.parish_id, job.product_id, job.store_user_id)
+    : job.store_user_id
+      ? await syncFeatureProvision(job.store_user_id, job.product_id)
+      : false;
   await supabase
     .from("provision_jobs")
     .update(
       sent
         ? { status: "done", last_error: "Đã thay bằng lần gửi mới theo trạng thái hiện tại (xem job mới nhất).", updated_at: new Date().toISOString() }
-        : { last_error: "Không gửi lại được: người dùng đã gỡ liên kết Giáo Lý Số hoặc không còn giáo xứ.", updated_at: new Date().toISOString() }
+        : { last_error: "Không gửi lại được: không xác định được giáo xứ (người dùng đã gỡ liên kết Giáo Lý Số).", updated_at: new Date().toISOString() }
     )
     .eq("id", job.id);
 }

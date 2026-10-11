@@ -132,32 +132,15 @@ export async function activateLicense(input: {
   const lic = await findLicense(input.key, input.product);
   const supabase = createStoreAdminClient();
 
-  const { data: existing } = await supabase
-    .from("license_devices")
-    .select("id")
-    .eq("license_id", lic.id)
-    .eq("device_id", input.deviceId)
-    .maybeSingle();
-
-  if (!existing) {
-    const { count } = await supabase
-      .from("license_devices")
-      .select("id", { count: "exact", head: true })
-      .eq("license_id", lic.id);
-    if ((count ?? 0) >= lic.device_limit) throw new LicenseError("DEVICE_LIMIT");
-  }
-
-  const { error } = await supabase.from("license_devices").upsert(
-    {
-      license_id: lic.id,
-      device_id: input.deviceId,
-      platform: input.platform ?? null,
-      app_version: input.appVersion ?? null,
-      last_seen: new Date().toISOString(),
-    },
-    { onConflict: "license_id,device_id" }
-  );
+  // Đếm + ghi thiết bị trong MỘT transaction có khóa key (0024) — kích hoạt song song không vượt giới hạn.
+  const { data: res, error } = await supabase.rpc("activate_license_device", {
+    p_license: lic.id,
+    p_device: input.deviceId,
+    p_platform: input.platform ?? null,
+    p_version: input.appVersion ?? null,
+  });
   if (error) throw new Error(error.message);
+  if (res === "DEVICE_LIMIT") throw new LicenseError("DEVICE_LIMIT");
 
   return tokenFor(lic, input.product, input.key, input.deviceId);
 }
