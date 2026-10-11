@@ -6,6 +6,7 @@ import { createStoreAuthBrowserClient } from "@/lib/supabase/store-auth-browser"
 import { saveGameProduct } from "@/lib/actions/game-upload";
 import { createProductUpload } from "@/lib/actions/admin";
 import { uploadHostedBuild } from "@/lib/hosted-upload";
+import { SelectWithCreate } from "@/components/admin/catalog-fields";
 
 /** product-covers giới hạn 5MB / ảnh. */
 const MAX_COVER_BYTES = 5 * 1024 * 1024;
@@ -15,13 +16,18 @@ const input =
 
 export function GameUploadForm({
   categories,
+  publishers,
+  defaultCategoryId,
+  defaultPublisherId,
 }: {
-  categories: { id: string; name: string; slug: string }[];
+  categories: { id: string; name: string }[];
+  publishers: { id: string; name: string }[];
+  defaultCategoryId?: string;
+  defaultPublisherId?: string;
 }) {
   const router = useRouter();
   const [kind, setKind] = useState<"game" | "tool">("game");
   const [title, setTitle] = useState("");
-  const [categorySlug, setCategorySlug] = useState("game-store");
   const [tier, setTier] = useState<"free" | "pro">("free");
   const [price, setPrice] = useState(0);
   const [proFree, setProFree] = useState(false);
@@ -32,10 +38,15 @@ export function GameUploadForm({
   const [progress, setProgress] = useState("");
   const [error, setError] = useState<string | null>(null);
 
-  async function onSubmit(e: React.FormEvent) {
+  async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
+    const fd = new FormData(e.currentTarget);
+    const categoryId = String(fd.get("category_id") ?? "");
+    const publisherId = String(fd.get("publisher_id") ?? "");
     if (!title.trim()) return setError("Nhập tên game.");
+    if (!categoryId) return setError("Chọn danh mục.");
+    if (!publisherId) return setError("Chọn nhà phát hành.");
     if (!file) return setError("Chọn file .zip của game.");
 
     setBusy(true);
@@ -58,7 +69,8 @@ export function GameUploadForm({
       const { slug } = await saveGameProduct({
         gameId,
         title: title.trim(),
-        categorySlug,
+        categoryId,
+        publisherId,
         tier,
         priceMonth: price,
         giaolyProFree: proFree,
@@ -91,17 +103,17 @@ export function GameUploadForm({
         <input value={title} onChange={(e) => setTitle(e.target.value)} className={input} />
       </label>
 
+      {/* div thay vì label: khung "+ Thêm mới" nằm bên trong, label sẽ cướp focus. */}
+      <div>
+        <span className="mb-1 block text-sm text-text-muted">Danh mục *</span>
+        <SelectWithCreate kind="category" name="category_id" options={categories} defaultValue={defaultCategoryId} />
+      </div>
+      <div>
+        <span className="mb-1 block text-sm text-text-muted">Nhà phát hành *</span>
+        <SelectWithCreate kind="publisher" name="publisher_id" options={publishers} defaultValue={defaultPublisherId} />
+      </div>
+
       <div className="grid gap-4 sm:grid-cols-2">
-        <label className="block">
-          <span className="mb-1 block text-sm text-text-muted">Danh mục</span>
-          <select value={categorySlug} onChange={(e) => setCategorySlug(e.target.value)} className={input}>
-            {categories.map((c) => (
-              <option key={c.id} value={c.slug}>
-                {c.name}
-              </option>
-            ))}
-          </select>
-        </label>
         {kind === "game" && (
           <label className="block">
             <span className="mb-1 block text-sm text-text-muted">Tier</span>

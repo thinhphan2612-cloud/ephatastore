@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { getAdminUser } from "@/lib/auth";
 import { createStoreAdminClient } from "@/lib/supabase/store-admin";
 import { slugify } from "@/lib/slug";
+import { htmlToText, sanitizeDescription } from "@/lib/rich-text";
 import { removeStorageFolder } from "@/lib/storage-folder";
 import { retryProvisionJob, syncFeatureProvision } from "@/lib/giaoly-provision";
 
@@ -70,11 +71,15 @@ function parseProduct(formData: FormData) {
     .map((t) => t.trim())
     .filter(Boolean);
 
+  // Mô tả chi tiết: HTML đã lọc (lib/rich-text) + bản text thuần rút ra cho trang chủ / meta / tìm kiếm.
+  const descriptionHtml = sanitizeDescription(String(formData.get("description_html") ?? ""));
+
   return {
     title,
     slug: slugInput ? slugify(slugInput) : slugify(title),
     tagline: String(formData.get("tagline") ?? "").trim(),
-    description: String(formData.get("description") ?? "").trim(),
+    description: htmlToText(descriptionHtml),
+    description_html: descriptionHtml || null,
     type: String(formData.get("type") ?? "tool"),
     category_id: String(formData.get("category_id") ?? ""),
     publisher_id: String(formData.get("publisher_id") ?? ""),
@@ -125,6 +130,12 @@ function parsePricing(
     trial_days: Math.min(60, Math.max(1, Number(formData.get("trial_days")) || 7)),
     giaoly_pro_free: paid && formData.get("giaoly_pro_free") === "on",
   };
+}
+
+/** Xem trước mô tả HTML trong form — trả đúng HTML sau khi lọc (như sẽ hiện trên trang sản phẩm). */
+export async function previewDescription(html: string): Promise<string> {
+  await assertAdmin();
+  return sanitizeDescription(String(html ?? ""));
 }
 
 /**

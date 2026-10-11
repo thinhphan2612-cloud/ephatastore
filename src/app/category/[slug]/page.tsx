@@ -1,12 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { CATEGORIES, CATEGORY_BY_SLUG } from "@/data/categories";
+import { getCategoryBySlug } from "@/data/categories";
 import { getProductsByCategory } from "@/data/products";
 import { ProductGrid } from "@/components/product-grid";
-
-export function generateStaticParams() {
-  return CATEGORIES.map((c) => ({ slug: c.slug }));
-}
 
 export async function generateMetadata({
   params,
@@ -14,7 +10,7 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const category = CATEGORY_BY_SLUG.get(slug);
+  const category = await getCategoryBySlug(slug);
   return { title: category?.name ?? "Danh mục" };
 }
 
@@ -24,7 +20,7 @@ export default async function CategoryPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const category = CATEGORY_BY_SLUG.get(slug);
+  const category = await getCategoryBySlug(slug);
   if (!category) notFound();
 
   const products = await getProductsByCategory(category.id);

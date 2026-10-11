@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CATEGORIES } from "@/data/categories";
+import { getCategories } from "@/data/categories";
 
 const STATS = [
   { b: "✦ Rõ đối tượng", s: "Linh mục · Giáo dân · Người tìm hiểu" },
@@ -31,7 +31,8 @@ const FEATURED = [
   },
 ];
 
-export default function HomePage() {
+export default async function HomePage() {
+  const categories = await getCategories();
   return (
     <div>
       {/* HERO */}
@@ -88,7 +89,7 @@ export default function HomePage() {
             Chọn đúng nơi bạn cần.
           </h2>
           <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-4">
-            {CATEGORIES.map((c, i) => (
+            {categories.map((c, i) => (
               <Link
                 key={c.id}
                 href={`/category/${c.slug}`}

@@ -8,6 +8,7 @@ rồi làm theo đúng hướng dẫn của loại đó.
 app-kit/
 ├── README.md            ← BẮT ĐẦU Ở ĐÂY (phỏng vấn ý tưởng + chọn loại)
 ├── PROMPT.md            ← đoạn dán cho AI để bắt đầu
+├── description.md       ← mô tả chi tiết sản phẩm bằng HTML (mọi loại)
 ├── types/
 │   ├── download.md      ← Loại 1: Tải về
 │   ├── hosted.md        ← Loại 2: Chạy trên store (game / công cụ web)
@@ -60,7 +61,8 @@ Không commit / push / tạo tag khi chưa hỏi. Báo kết quả kiểm thật
 
 ### Bước 5 — Bàn giao
 Kết thúc bằng **checklist đưa lên admin** của loại đó (mục "Đưa lên admin" + "Kiểm sau khi lên"), điền sẵn giá trị cụ thể
-của sản phẩm này (tiêu đề, slug gợi ý, mô tả ngắn, danh mục gợi ý, giá, file cần upload).
+của sản phẩm này (tiêu đề, slug gợi ý, mô tả ngắn, danh mục gợi ý, giá, file cần upload) và **mã HTML mô tả chi tiết**
+soạn theo `description.md` (đã tự kiểm theo mục "Được dùng" / "Giữ trang không vỡ").
 
 ---
 
@@ -87,7 +89,8 @@ của sản phẩm này (tiêu đề, slug gợi ý, mô tả ngắn, danh mục
   Pro có được dùng free không — không tick thì Pro vẫn phải mua.
 - **Slug**: chữ thường không dấu, số, gạch ngang; không trùng; **không đổi sau khi đã bán**.
 - **Ảnh bìa**: 16:9 (vd 1600×900), PNG/JPG/WebP, có tên sản phẩm dễ đọc ở cỡ nhỏ.
-- **Mô tả**: dòng tagline ngắn (≤ 140 ký tự) + mô tả chi tiết: làm được gì, cho ai, cần gì để dùng.
+- **Mô tả**: dòng tagline ngắn (≤ 140 ký tự) + mô tả chi tiết **bằng HTML** theo `description.md`: làm được gì, cho ai,
+  cần gì để dùng. Chỉ dùng thẻ trong danh sách cho phép — phần khác tự bị loại; bấm **Xem trước** trên form trước khi lưu.
 - **Tiếng Việt có dấu** trong nội dung; tên file và slug **không dấu**.
 - **Nội dung Công giáo**: chính xác giáo lý, ghi nguồn; bản dịch Kinh Thánh, sách lễ, thánh ca thường có bản quyền.
 - **Mua thử**: dùng tài khoản admin nạp point và mua thật để kiểm từ đầu đến cuối.
