@@ -9,13 +9,14 @@ import type { ProductType } from "@/lib/types";
 
 const ALL_TYPES: ProductType[] = ["tool", "game", "asset", "image", "feature"];
 
-/** Preset quyết định form hiện field nào. 'full' = đủ (dùng khi sửa). */
-export type ProductPreset = "download" | "link" | "feature" | "full";
+/** Preset quyết định form hiện field nào. 'full' = đủ (dùng khi sửa, trừ software). */
+export type ProductPreset = "download" | "link" | "feature" | "software" | "full";
 
 const PRESET_TYPES: Record<ProductPreset, ProductType[]> = {
   download: ["asset", "image"],
   link: ["tool", "feature"],
   feature: ["feature"],
+  software: ["software"],
   full: ALL_TYPES,
 };
 
@@ -41,6 +42,7 @@ export function ProductForm({
   const showLink = preset === "link" || preset === "full";
   const showFeature = preset === "feature" || preset === "full";
   const showGameUrl = preset === "full";
+  const isSoftware = preset === "software";
   const defaultType = p?.type ?? types[0];
 
   return (
@@ -102,19 +104,21 @@ export function ProductForm({
       </div>
 
       <div className="grid gap-5 sm:grid-cols-3">
-        <Field label="Giá (VND)">
+        <Field label={isSoftware ? "Giá key (VND, 100đ = 1 point)" : "Giá (VND)"}>
           <input type="number" name="price_vnd" min={0} defaultValue={p?.price_vnd ?? 0} className={input} />
         </Field>
         <Field label="Giá gốc (nếu giảm)">
           <input type="number" name="original_price_vnd" min={0} defaultValue={p?.original_price_vnd ?? ""} className={input} />
         </Field>
-        <Field label="Gói yêu cầu">
-          <select name="min_plan" defaultValue={p?.min_plan ?? ""} className={input}>
-            <option value="">Không (ai cũng mua)</option>
-            <option value="free">Free</option>
-            <option value="pro">Pro</option>
-          </select>
-        </Field>
+        {!isSoftware && (
+          <Field label="Gói yêu cầu">
+            <select name="min_plan" defaultValue={p?.min_plan ?? ""} className={input}>
+              <option value="">Không (ai cũng mua)</option>
+              <option value="free">Free</option>
+              <option value="pro">Pro</option>
+            </select>
+          </Field>
+        )}
       </div>
 
       <div className="grid gap-5 sm:grid-cols-2">
@@ -150,6 +154,30 @@ export function ProductForm({
         <input type="hidden" name="cover_url" value={p?.cover_url ?? ""} />
       </Field>
 
+      {isSoftware && (
+        <div className="rounded-lg border border-border bg-surface-hover/40 p-4">
+          <div className="mb-3 text-sm font-semibold text-text">Cấp phép & phát hành</div>
+          <div className="grid gap-5 sm:grid-cols-2">
+            <Field label="Số thiết bị / key">
+              <input type="number" name="license_device_limit" min={1} max={50} defaultValue={p?.license_device_limit ?? 2} className={input} />
+            </Field>
+            <Field label="Hạn dùng offline (ngày)">
+              <input type="number" name="license_offline_days" min={1} max={365} defaultValue={p?.license_offline_days ?? 30} className={input} />
+            </Field>
+          </div>
+          <div className="mt-4">
+            <Field label="Link Microsoft Store (để trống nếu chưa lên Store)">
+              <input name="ms_store_url" defaultValue={p?.ms_store_url ?? ""} className={input} placeholder="https://apps.microsoft.com/detail/…" />
+            </Field>
+          </div>
+          <p className="mt-3 text-xs text-text-faint">
+            Bộ cài Windows/macOS upload ở tab <b>Phiên bản</b> (mở sau khi lưu). Phần mềm luôn trả point —
+            không miễn phí cho Pro Giáo Lý Số / Full Topping.
+          </p>
+        </div>
+      )}
+
+      {!isSoftware && (
       <div className="rounded-lg border border-border bg-surface-hover/40 p-4">
         <div className="mb-3 text-sm font-semibold text-text">Giao hàng</div>
 
@@ -189,6 +217,7 @@ export function ProductForm({
           )}
         </div>
       </div>
+      )}
 
       <div className="flex flex-wrap gap-5">
         <Check name="published" label="Đang bán" defaultChecked={p ? p.published : true} />

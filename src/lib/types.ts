@@ -4,7 +4,7 @@
  */
 
 /** Loại sản phẩm số trên marketplace. */
-export type ProductType = "tool" | "game" | "asset" | "image" | "feature";
+export type ProductType = "tool" | "game" | "asset" | "image" | "feature" | "software";
 
 /** Gói tối thiểu để dùng/sở hữu sản phẩm (đồng bộ với plan của app.giaoly.com.vn). */
 export type MinPlan = "free" | "pro";

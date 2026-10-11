@@ -30,10 +30,19 @@ export default async function EditProductPage({
         / Sửa
       </div>
       <h2 className="text-lg font-semibold">Sửa: {product.title}</h2>
+      {product.type === "software" && (
+        <div className="flex gap-4 border-b border-border text-sm">
+          <span className="border-b-2 border-accent pb-2 font-semibold text-text">Thông tin</span>
+          <Link href={`/admin/products/${product.id}/releases`} className="pb-2 text-text-muted hover:text-text">
+            Phiên bản
+          </Link>
+        </div>
+      )}
       <ProductForm
         categories={categories}
         publishers={publishers}
         product={product}
+        preset={product.type === "software" ? "software" : "full"}
       />
     </div>
   );

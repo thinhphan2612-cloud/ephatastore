@@ -35,7 +35,9 @@ export function ProductCard({ product }: { product: Product }) {
           <span
             className={`text-xs font-black ${isPro ? "text-accent-hover" : "text-success"}`}
           >
-            {isPro ? `${formatPrice(product.priceMonth)}/tháng` : "Miễn phí"}
+            {isPro
+              ? `${formatPrice(product.priceMonth)}${product.type === "software" ? " · key vĩnh viễn" : "/tháng"}`
+              : "Miễn phí"}
           </span>
           <span className="text-[11px] text-white/70">Xem chi tiết →</span>
         </div>

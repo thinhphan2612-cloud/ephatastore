@@ -45,6 +45,9 @@ export interface AdminProductDetail {
   game_url: string | null;
   app_url: string | null;
   giaoly_feature_key: string | null;
+  license_device_limit: number;
+  license_offline_days: number;
+  ms_store_url: string | null;
 }
 
 export async function adminListProducts(): Promise<AdminProductRow[]> {
@@ -64,7 +67,7 @@ export async function adminGetProduct(id: string): Promise<AdminProductDetail | 
   const { data, error } = await supabase
     .from("products")
     .select(
-      "id,slug,title,tagline,description,type,category_id,publisher_id,price_vnd,original_price_vnd,cover_url,tags,min_plan,released_at,featured,is_new,is_popular,published,download_path,game_url,app_url,giaoly_feature_key"
+      "id,slug,title,tagline,description,type,category_id,publisher_id,price_vnd,original_price_vnd,cover_url,tags,min_plan,released_at,featured,is_new,is_popular,published,download_path,game_url,app_url,giaoly_feature_key,license_device_limit,license_offline_days,ms_store_url"
     )
     .eq("id", id)
     .maybeSingle();

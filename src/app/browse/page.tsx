@@ -6,7 +6,7 @@ import type { ProductType } from "@/lib/types";
 
 export const metadata = { title: "Khám phá" };
 
-const TYPES: ProductType[] = ["tool", "game", "asset", "image", "feature"];
+const TYPES: ProductType[] = ["tool", "game", "asset", "image", "feature", "software"];
 
 export default async function BrowsePage({
   searchParams,

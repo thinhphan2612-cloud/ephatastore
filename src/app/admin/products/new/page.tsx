@@ -15,6 +15,10 @@ const PRESETS: Record<string, { title: string; hint: string }> = {
     title: "Tính năng Giáo Lý Số",
     hint: "Bật một tính năng bên Giáo Lý Số cho người mua (feature key).",
   },
+  software: {
+    title: "Phần mềm cài đặt (bán key)",
+    hint: "Phần mềm desktop Windows/macOS. Khách tải miễn phí, mua key bằng point để kích hoạt. Lưu xong → tab Phiên bản để upload bộ cài.",
+  },
 };
 
 const CARDS = [
@@ -41,6 +45,12 @@ const CARDS = [
     icon: "🧩",
     title: "Tính năng Giáo Lý Số",
     desc: "Bật tính năng bên Giáo Lý Số cho người mua (feature key).",
+  },
+  {
+    href: "/admin/products/new?kind=software",
+    icon: "💻",
+    title: "Phần mềm cài đặt (bán key)",
+    desc: "App desktop Windows/macOS. Tải miễn phí, bán key kích hoạt.",
   },
 ];
 

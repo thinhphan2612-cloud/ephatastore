@@ -8,10 +8,11 @@ import { createStoreAdminClient } from "@/lib/supabase/store-admin";
 import { getSettings } from "@/data/settings";
 import { vndToPoints } from "@/lib/points";
 import { adjustPoints, InsufficientPointsError } from "@/lib/ai/wallet-ops";
+import { generateLicenseKey } from "@/lib/software/license";
 
 const YEAR_DAYS = 365;
 
-export type PurchaseKind = "annual" | "freedom" | "topping" | "perpetual";
+export type PurchaseKind = "annual" | "freedom" | "topping" | "perpetual" | "software";
 
 /** Số point cần trả cho một lượt mua (0 nếu free). */
 export async function purchasePricePoints(
@@ -23,13 +24,14 @@ export async function purchasePricePoints(
     return vndToPoints(fullToppingPrice * 12);
   }
   if (kind === "annual") return vndToPoints(priceMonth * 12);
-  // freedom | perpetual → giá 1 tháng
+  // freedom | perpetual | software → giá 1 tháng
   return vndToPoints(priceMonth);
 }
 
 /**
  * Mua bằng point + cấp quyền ngay. Pro Giáo Lý Số → kích hoạt miễn phí.
- * kind: annual (365 ngày) | freedom (N ngày) | perpetual (vĩnh viễn: game, file tải về) | topping (all-access 365 ngày).
+ * kind: annual (365 ngày) | freedom (N ngày) | perpetual (vĩnh viễn: game, file tải về) | topping (all-access 365 ngày)
+ *       | software (key vĩnh viễn — luôn trả point, kể cả Pro).
  */
 export async function confirmPurchase(formData: FormData) {
   const user = await getCurrentUser();
@@ -38,16 +40,19 @@ export async function confirmPurchase(formData: FormData) {
   if (!user) redirect(`/login?next=/buy/${productId}?kind=${kind}`);
 
   const supabase = createStoreAdminClient();
+  if (kind === "software") return purchaseSoftware(user.id, productId);
   const settings = await getSettings();
 
   let priceMonth = 0;
   if (kind !== "topping") {
     const { data: product } = await supabase
       .from("products")
-      .select("id,price_month,published")
+      .select("id,type,price_month,published")
       .eq("id", productId)
       .maybeSingle();
-    if (!product || !product.published) throw new Error("Sản phẩm không tồn tại.");
+    // Phần mềm chỉ mua qua kind=software (tạo key) — chặn lách nhánh Pro-free.
+    if (!product || !product.published || product.type === "software")
+      throw new Error("Sản phẩm không tồn tại.");
     priceMonth = product.price_month ?? 0;
   }
 
@@ -93,6 +98,37 @@ export async function confirmPurchase(formData: FormData) {
       { onConflict: "store_user_id,product_id", ignoreDuplicates: false }
     );
     if (error) throw new Error(error.message);
+  }
+
+  revalidatePath("/library");
+  redirect("/library");
+}
+
+/**
+ * Mua key phần mềm: RPC purchase_software trừ point + tạo key + cấp quyền trong 1 transaction
+ * (đã có key → không trừ). Trùng key (23505) → toàn bộ rollback, thử lại với key mới.
+ */
+async function purchaseSoftware(userId: string, productId: string): Promise<never> {
+  const supabase = createStoreAdminClient();
+  const { data: product } = await supabase
+    .from("products")
+    .select("id,slug,type,price_month,published")
+    .eq("id", productId)
+    .maybeSingle();
+  if (!product || !product.published || product.type !== "software")
+    throw new Error("Sản phẩm không tồn tại.");
+
+  for (let attempt = 1; ; attempt++) {
+    const { error } = await supabase.rpc("purchase_software", {
+      p_user: userId,
+      p_product: productId,
+      p_key: generateLicenseKey(product.slug),
+    });
+    if (!error) break;
+    if (/INSUFFICIENT_POINTS/.test(error.message))
+      redirect(`/wallet?need=${vndToPoints(product.price_month ?? 0)}`);
+    if (error.code === "23505" && attempt < 5) continue;
+    throw new Error(error.message);
   }
 
   revalidatePath("/library");

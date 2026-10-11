@@ -95,6 +95,14 @@ export default async function AdminProductsPage() {
                     >
                       Sửa
                     </Link>
+                    {p.type === "software" && (
+                      <Link
+                        href={`/admin/products/${p.id}/releases`}
+                        className="text-brand hover:text-brand-hover"
+                      >
+                        Phiên bản
+                      </Link>
+                    )}
                     <form action={deleteProduct}>
                       <input type="hidden" name="id" value={p.id} />
                       <ConfirmSubmit

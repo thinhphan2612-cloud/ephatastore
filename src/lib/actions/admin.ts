@@ -115,18 +115,56 @@ export async function saveProduct(
     }
   }
 
+  // Phần mềm bán key: giá mua 1 lần = price_month; luôn trả point (không gate theo gói).
+  const isSoftware = row.type === "software";
+  if (isSoftware) {
+    const msStoreUrl = String(formData.get("ms_store_url") ?? "").trim();
+    if (msStoreUrl && !/^https:\/\//.test(msStoreUrl))
+      return { error: "Link Microsoft Store phải bắt đầu bằng https://" };
+    Object.assign(payload, {
+      price_month: row.price_vnd,
+      tier: row.price_vnd > 0 ? "pro" : "free",
+      min_plan: null,
+      license_device_limit: Math.max(1, Number(formData.get("license_device_limit")) || 2),
+      license_offline_days: Math.max(1, Number(formData.get("license_offline_days")) || 30),
+      ms_store_url: msStoreUrl || null,
+    });
+  }
+
   const supabase = createStoreAdminClient();
-  const { error } = id
-    ? await supabase.from("products").update(payload).eq("id", id)
-    : await supabase.from("products").insert(payload);
+
+  // Danh mục cũ (khi sửa) để gỡ liên kết nếu đổi danh mục chính.
+  const { data: before } = id
+    ? await supabase.from("products").select("category_id").eq("id", id).maybeSingle()
+    : { data: null };
+
+  const { data: saved, error } = id
+    ? await supabase.from("products").update(payload).eq("id", id).select("id").single()
+    : await supabase.from("products").insert(payload).select("id").single();
 
   if (error) {
     if (error.code === "23505") return { error: `Slug "${row.slug}" đã tồn tại.` };
     return { error: error.message };
   }
 
+  // Catalog đọc danh mục qua product_categories (nhiều-nhiều) → phải gắn danh mục chính vào đó.
+  if (before?.category_id && before.category_id !== row.category_id) {
+    await supabase
+      .from("product_categories")
+      .delete()
+      .eq("product_id", saved.id)
+      .eq("category_id", before.category_id);
+  }
+  const { error: catErr } = await supabase
+    .from("product_categories")
+    .upsert(
+      { product_id: saved.id, category_id: row.category_id },
+      { onConflict: "product_id,category_id", ignoreDuplicates: true }
+    );
+  if (catErr) return { error: catErr.message };
+
   revalidatePath("/admin");
-  redirect("/admin");
+  redirect(isSoftware ? `/admin/products/${saved.id}/releases` : "/admin");
 }
 
 const GAMES_BUCKET = "games";
@@ -160,7 +198,7 @@ export async function deleteProduct(formData: FormData) {
   // Lấy thông tin để dọn Storage sau khi xóa row.
   const { data: prod } = await supabase
     .from("products")
-    .select("game_url,download_path")
+    .select("type,game_url,download_path")
     .eq("id", id)
     .maybeSingle();
 
@@ -169,7 +207,9 @@ export async function deleteProduct(formData: FormData) {
   if (error) {
     if (error.code === "23503")
       throw new Error(
-        "Sản phẩm đã nằm trong đơn hàng nên không xóa cứng được. Hãy bỏ tích 'Hiện' để ẩn khỏi store."
+        prod?.type === "software"
+          ? "Phần mềm đã bán key nên không xóa cứng được. Hãy bỏ tích 'Hiện' để ẩn khỏi store."
+          : "Sản phẩm đã nằm trong đơn hàng nên không xóa cứng được. Hãy bỏ tích 'Hiện' để ẩn khỏi store."
       );
     throw new Error(error.message);
   }
@@ -179,6 +219,9 @@ export async function deleteProduct(formData: FormData) {
   if (gameId) await removeStorageFolder(supabase, GAMES_BUCKET, gameId);
   if (prod?.download_path)
     await supabase.storage.from(FILES_BUCKET).remove([prod.download_path]);
+  // Bộ cài phần mềm (software_releases cascade theo row).
+  if (prod?.type === "software")
+    await removeStorageFolder(supabase, FILES_BUCKET, `software/${id}`);
 
   revalidatePath("/admin");
   redirect("/admin");

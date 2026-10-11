@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { getProductBySlug, getRelated } from "@/data/products";
 import { CATEGORY_BY_ID } from "@/data/categories";
@@ -13,6 +14,8 @@ import { TYPE_LABEL } from "@/lib/labels";
 import { OwnedActions } from "@/components/owned-actions";
 import { AddToGiaolyButton } from "@/components/add-to-giaoly-button";
 import { ProductRow } from "@/components/product-row";
+import { getMyLicenseKey, getSoftwareProduct, latestReleases } from "@/data/software";
+import { PLATFORMS, PLATFORM_LABEL, type Platform } from "@/lib/software/version";
 
 export async function generateMetadata({
   params,
@@ -38,10 +41,11 @@ export default async function ProductPage({
   const isGame = product.type === "game";
   const isHostedTool = product.type === "tool" && !!product.gameUrl;
   const isProTier = product.tier === "pro";
+  const isSoftware = product.type === "software";
 
   const user = await getCurrentUser();
   const plan = user ? await getCurrentUserPlan() : "free";
-  const ownedEnt = user ? await isOwned(user.id, product.id) : false;
+  const ownedEnt = user && !isSoftware ? await isOwned(user.id, product.id) : false;
   const topping = user && !isGame && isProTier ? await hasActiveTopping(user.id) : false;
 
   const annual = product.priceMonth * 12;
@@ -108,7 +112,7 @@ export default async function ProductPage({
                   isProTier ? "border-accent text-accent" : "border-success text-success"
                 }`}
               >
-                {isHostedTool ? "CÔNG CỤ" : isGame ? "GAME" : isProTier ? "PRO" : "FREE"}
+                {isSoftware ? "PHẦN MỀM" : isHostedTool ? "CÔNG CỤ" : isGame ? "GAME" : isProTier ? "PRO" : "FREE"}
               </span>
             </div>
             <div className="mb-1 text-xs uppercase tracking-[0.13em] text-text-faint">
@@ -117,7 +121,9 @@ export default async function ProductPage({
             <h1 className="font-display text-[26px] font-bold">{product.title}</h1>
             <p className="mt-1 text-text-muted">{product.tagline}</p>
 
-            {isHostedTool ? (
+            {isSoftware ? (
+              <SoftwarePanel productId={product.id} slug={product.slug} priceVnd={product.priceMonth} userId={user?.id} />
+            ) : isHostedTool ? (
               /* ===== CÔNG CỤ WEB host nội bộ: mở tự do, AI trừ point ===== */
               <>
                 <div className="mt-5 rounded-2xl border border-border bg-white/[0.03] p-4 text-sm">
@@ -298,5 +304,113 @@ export default async function ProductPage({
         </div>
       )}
     </div>
+  );
+}
+
+/** Đoán hệ điều hành từ user-agent — chỉ để làm nổi bật nút, không ẩn nút nào. */
+function guessPlatform(ua: string): Platform | null {
+  if (/iPhone|iPad|Android/i.test(ua)) return null;
+  if (/Windows/i.test(ua)) return "windows";
+  if (/Macintosh|Mac OS X/i.test(ua)) return "macos";
+  return null;
+}
+
+/* ===== PHẦN MỀM CÀI ĐẶT: tải miễn phí + mua key bằng point (không free theo Pro / topping) ===== */
+async function SoftwarePanel({
+  productId,
+  slug,
+  priceVnd,
+  userId,
+}: {
+  productId: string;
+  slug: string;
+  priceVnd: number;
+  userId?: string;
+}) {
+  const [sw, releases, key, ua] = await Promise.all([
+    getSoftwareProduct(slug),
+    latestReleases(productId),
+    userId ? getMyLicenseKey(userId, productId) : Promise.resolve(null),
+    headers().then((h) => h.get("user-agent") ?? ""),
+  ]);
+  const points = vndToPoints(priceVnd);
+  const os = guessPlatform(ua);
+  const btn = (p: Platform) =>
+    `block w-full rounded-xl px-4 py-3 text-center text-sm font-bold ${
+      os === p
+        ? "bg-accent text-accent-contrast hover:bg-accent-hover"
+        : "border border-border-strong bg-white/5 text-text hover:border-accent/50"
+    }`;
+  const soon =
+    "block w-full cursor-not-allowed rounded-xl border border-border px-4 py-3 text-center text-sm font-bold text-text-faint opacity-60";
+
+  return (
+    <>
+      <div className="mt-5 grid grid-cols-2 gap-3 rounded-2xl border border-border bg-white/[0.03] p-4">
+        <div>
+          <span className="mb-1.5 block text-[11px] text-text-faint">Key vĩnh viễn</span>
+          <b className="text-[27px]">
+            {points.toLocaleString("vi-VN")}
+            <small className="ml-1 text-xs font-semibold text-text-muted">point</small>
+          </b>
+        </div>
+        <div className="border-l border-border pl-4 text-xs leading-5 text-text-muted">
+          ≈ {formatPrice(priceVnd)} · mua 1 lần
+          <br />
+          Dùng trên {sw?.license_device_limit ?? 2} thiết bị
+        </div>
+      </div>
+
+      <div className="mt-5 space-y-2">
+        <div className="text-[11px] uppercase tracking-[0.13em] text-text-faint">Tải về miễn phí</div>
+        {PLATFORMS.map((p) => {
+          const rel = releases[p];
+          if (p === "windows" && sw?.ms_store_url) {
+            return (
+              <div key={p}>
+                <a href={sw.ms_store_url} target="_blank" rel="noopener noreferrer" className={btn(p)}>
+                  {PLATFORM_LABEL[p]} · Microsoft Store ↗
+                </a>
+                {rel && (
+                  <a href={`/dl/${slug}/windows`} className="mt-1 block text-center text-xs text-text-faint hover:text-text">
+                    Không dùng được Store? Tải .exe (v{rel.version})
+                  </a>
+                )}
+              </div>
+            );
+          }
+          return rel ? (
+            <a key={p} href={`/dl/${slug}/${p}`} className={btn(p)}>
+              {PLATFORM_LABEL[p]} · Tải {p === "windows" ? ".exe" : ".dmg"} (v{rel.version})
+            </a>
+          ) : (
+            <span key={p} className={soon}>
+              {PLATFORM_LABEL[p]} · Sắp có
+            </span>
+          );
+        })}
+      </div>
+
+      <div className="mt-5 space-y-2 border-t border-border pt-5">
+        {key ? (
+          <Link
+            href="/library"
+            className="block w-full rounded-xl bg-accent px-4 py-3 text-center font-extrabold text-accent-contrast hover:bg-accent-hover"
+          >
+            Xem key →
+          </Link>
+        ) : (
+          <Link
+            href={`/buy/${productId}?kind=software`}
+            className="block w-full rounded-xl bg-accent px-4 py-3 text-center font-extrabold text-accent-contrast hover:bg-accent-hover"
+          >
+            Mua key — {points.toLocaleString("vi-VN")} point →
+          </Link>
+        )}
+        <p className="text-center text-xs text-text-faint">
+          Cài app, mở mục Bản quyền và nhập key để kích hoạt.
+        </p>
+      </div>
+    </>
   );
 }

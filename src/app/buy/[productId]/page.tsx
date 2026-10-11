@@ -6,6 +6,7 @@ import { getBalance } from "@/data/wallet";
 import { createStoreAdminClient } from "@/lib/supabase/store-admin";
 import { getSettings } from "@/data/settings";
 import { purchasePricePoints, confirmPurchase, type PurchaseKind } from "@/lib/actions/purchase";
+import { getMyLicenseKey } from "@/data/software";
 
 export const metadata = { title: "Xác nhận mua" };
 
@@ -14,6 +15,7 @@ const KIND_LABEL: Record<PurchaseKind, string> = {
   freedom: "Mua lẻ",
   perpetual: "Mua vĩnh viễn",
   topping: "Full Topping",
+  software: "Key bản quyền vĩnh viễn",
 };
 
 export default async function BuyPage({
@@ -25,7 +27,7 @@ export default async function BuyPage({
 }) {
   const { productId } = await params;
   const { kind: kindRaw } = await searchParams;
-  const kind = (["annual", "freedom", "perpetual"].includes(kindRaw ?? "")
+  const kind = (["annual", "freedom", "perpetual", "software"].includes(kindRaw ?? "")
     ? kindRaw
     : "annual") as PurchaseKind;
 
@@ -35,13 +37,16 @@ export default async function BuyPage({
   const supabase = createStoreAdminClient();
   const { data: product } = await supabase
     .from("products")
-    .select("id,slug,title,tagline,icon,price_month,published")
+    .select("id,slug,title,tagline,icon,type,price_month,published")
     .eq("id", productId)
     .maybeSingle();
   if (!product || !product.published) notFound();
+  if ((kind === "software") !== (product.type === "software")) notFound();
+  // Mỗi tài khoản 1 key/sản phẩm — đã có thì về Thư viện xem key.
+  if (kind === "software" && (await getMyLicenseKey(user.id, product.id))) redirect("/library");
 
-  const plan = await getCurrentUserPlan();
-  const isPro = plan === "pro";
+  // Phần mềm: luôn trả point, không miễn phí theo Pro Giáo Lý Số.
+  const isPro = kind !== "software" && (await getCurrentUserPlan()) === "pro";
   const [balance, settings] = await Promise.all([getBalance(user.id), getSettings()]);
   const points = isPro ? 0 : await purchasePricePoints(kind, product.price_month ?? 0);
   const enough = balance >= points;
