@@ -6,6 +6,7 @@ import { unlinkGiaoly } from "@/lib/actions/giaoly-link";
 import { GiaolyLinkForm } from "@/components/giaoly-link-form";
 import Link from "next/link";
 import { getBalance } from "@/data/wallet";
+import { formatDate } from "@/lib/format";
 import { signOut } from "@/lib/actions/auth";
 
 export const metadata = { title: "Tài khoản" };
@@ -69,7 +70,7 @@ export default async function AccountPage() {
               {plan === "pro" && ctx.planExpiresAt && (
                 <div className="flex justify-between">
                   <dt className="text-text-faint">Hạn gói</dt>
-                  <dd>{new Date(ctx.planExpiresAt).toLocaleDateString("vi-VN")}</dd>
+                  <dd>{formatDate(ctx.planExpiresAt)}</dd>
                 </div>
               )}
               <div className="flex justify-between">

@@ -84,7 +84,8 @@ export async function confirmPurchase(formData: FormData) {
     p_key: key,
   });
   if (error) {
-    if (/INSUFFICIENT_POINTS/.test(error.message)) redirect(`/wallet?need=${points}`);
+    if (/INSUFFICIENT_POINTS/.test(error.message))
+      redirect(`/wallet?need=${points}&back=${encodeURIComponent(kind === "topping" ? "/buy/topping" : `/buy/${productId}?kind=${kind}`)}`);
     throw new Error(error.message);
   }
   if (kind !== "topping") await syncFeatureSafe(user.id, productId);

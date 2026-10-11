@@ -8,11 +8,11 @@ import { Expandable } from "@/components/expandable";
 import { getCurrentUser } from "@/lib/auth";
 import { getCurrentUserPlan } from "@/lib/plan";
 import { getGiaolyContext } from "@/lib/giaoly-context";
-import { isOwned, hasActiveTopping } from "@/data/store-user";
+import { getEntitlement, getToppingUntil } from "@/data/store-user";
 import { getSettings } from "@/data/settings";
 import { claimProduct, startTrial } from "@/lib/actions/store";
 import { vndToPoints } from "@/lib/points";
-import { formatPrice } from "@/lib/format";
+import { formatDate, formatPrice } from "@/lib/format";
 import { TYPE_LABEL } from "@/lib/labels";
 import { OwnedActions } from "@/components/owned-actions";
 import { AddToGiaolyButton } from "@/components/add-to-giaoly-button";
@@ -32,10 +32,13 @@ export async function generateMetadata({
 
 export default async function ProductPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ slug: string }>;
+  searchParams: Promise<{ notice?: string }>;
 }) {
   const { slug } = await params;
+  const { notice } = await searchParams;
   const product = await getProductBySlug(slug);
   if (!product) notFound();
 
@@ -48,8 +51,12 @@ export default async function ProductPage({
 
   const user = await getCurrentUser();
   const plan = user ? await getCurrentUserPlan() : "free";
-  const ownedEnt = user && !isSoftware ? await isOwned(user.id, product.id) : false;
-  const topping = user && !isGame && isProTier ? await hasActiveTopping(user.id) : false;
+  // Quyền hiện tại (kể cả đã hết hạn — để báo "đã hết hạn" và ẩn nút dùng thử lần 2).
+  const ent = user && !isSoftware ? await getEntitlement(user.id, product.id) : null;
+  const ownedEnt = !!ent?.active;
+  // Full Topping mở mọi sản phẩm PRO (file tải về, game, công cụ) — trừ phần mềm bán key; tính năng GLS cần quyền thật.
+  const toppingUntil = user && !isSoftware && isProTier ? await getToppingUntil(user.id) : null;
+  const topping = !!toppingUntil;
 
   const annual = product.priceMonth * 12;
   const annualPoints = vndToPoints(annual);
@@ -142,6 +149,31 @@ export default async function ProductPage({
                 )}
               </p>
             )}
+            {notice && (
+              <p role="alert" className="mt-3 rounded-xl border border-danger/40 bg-danger/10 px-3 py-2 text-xs text-danger">
+                {notice.slice(0, 200)}
+              </p>
+            )}
+            {/* Trạng thái quyền của người đang xem: hạn dùng / qua Full Topping / đã hết hạn. */}
+            {ownedEnt && ent?.expiresAt ? (
+              <p className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-success/40 bg-success/10 px-3 py-2 text-xs text-success">
+                <span>
+                  ✓ {ent.source === "trial" ? "Đang dùng thử" : "Bạn đang dùng"} đến <b>{formatDate(ent.expiresAt)}</b>
+                </span>
+                <Link href={`/buy/${product.id}?kind=annual`} className="font-semibold underline">
+                  {ent.source === "trial" ? "Mua gói năm" : "Gia hạn"}
+                </Link>
+              </p>
+            ) : !ownedEnt && topping && !featureKey ? (
+              <p className="mt-3 rounded-xl border border-accent/40 bg-accent/10 px-3 py-2 text-xs text-accent">
+                ✦ Bạn dùng được qua Full Topping (đến {formatDate(toppingUntil!)})
+              </p>
+            ) : ent && !ent.active && ent.expiresAt ? (
+              <p className="mt-3 rounded-xl border border-danger/40 bg-danger/10 px-3 py-2 text-xs text-danger">
+                {ent.source === "trial" ? "Thời gian dùng thử" : "Quyền dùng"} đã hết hạn ngày {formatDate(ent.expiresAt)} — mua để
+                dùng tiếp.
+              </p>
+            ) : null}
             {featureKey && (
               <p className="mt-3 rounded-xl border border-border bg-white/[0.03] px-3 py-2 text-xs text-text-muted">
                 🧩 Tính năng trong Giáo Lý Số — bật cho <b className="text-text">cả giáo xứ</b> của bạn sau khi mua.
@@ -194,7 +226,11 @@ export default async function ProductPage({
                   <p className="mt-1 text-text-muted">
                     {hasPro
                       ? "Bạn có gói Pro Giáo Lý Số — chơi miễn phí và thêm được vào Giáo Lý Số."
-                      : isFreeGame
+                      : ownedEnt
+                        ? "Bạn đã sở hữu game này — chơi ngay."
+                        : topping
+                          ? "Bạn có Full Topping — chơi ngay."
+                          : isFreeGame
                         ? "Game miễn phí — chơi ngay."
                         : product.giaolyProFree
                           ? "Có Pro Giáo Lý Số thì chơi miễn phí, hoặc mua bằng point."
@@ -202,7 +238,7 @@ export default async function ProductPage({
                   </p>
                 </div>
                 <div className="mt-5 space-y-2">
-                  {hasPro || ownedEnt || isFreeGame ? (
+                  {hasPro || ownedEnt || isFreeGame || topping ? (
                     <>
                       <OwnedActions product={product} className="w-full" />
                       {isGiaolyPro && <AddToGiaolyButton productId={product.id} />}
@@ -261,7 +297,7 @@ export default async function ProductPage({
                   </div>
                 </div>
                 <div className="mt-5 space-y-2">
-                  {hasPro || ownedEnt ? (
+                  {hasPro || ownedEnt || topping ? (
                     <OwnedActions product={product} className="w-full" />
                   ) : (
                     <Link
@@ -323,7 +359,8 @@ export default async function ProductPage({
                       >
                         Mua lẻ {freedomDays} ngày · {freedomPoints.toLocaleString("vi-VN")} point
                       </Link>
-                      {product.trial && (
+                      {/* Dùng thử chỉ 1 lần: đã từng có quyền (thử / mua) với sản phẩm này thì ẩn. */}
+                      {product.trial && !ent && (
                         <form action={startTrial}>
                           <input type="hidden" name="product_id" value={product.id} />
                           <input type="hidden" name="slug" value={product.slug} />

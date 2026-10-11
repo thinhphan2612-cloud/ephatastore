@@ -1,7 +1,9 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
-import { getBalance, getLedger } from "@/data/wallet";
-import { formatPrice } from "@/lib/format";
+import Link from "next/link";
+import { getBalance, getLedger, getMyTopups } from "@/data/wallet";
+import { safeNext } from "@/lib/safe-next";
+import { formatDate, formatDateTime, formatPrice } from "@/lib/format";
 import { TopupForm } from "@/components/topup-form";
 import { listMyConnections } from "@/data/apps";
 import { disconnectApp } from "@/lib/actions/apps";
@@ -15,15 +17,29 @@ const KIND_LABEL: Record<string, string> = {
   adjust: "Điều chỉnh",
 };
 
-export default async function WalletPage() {
+const TOPUP_STATUS: Record<string, { label: string; cls: string }> = {
+  pending: { label: "Chờ chuyển khoản / chờ duyệt", cls: "text-accent" },
+  paid: { label: "Đã cộng point", cls: "text-success" },
+  rejected: { label: "Bị từ chối", cls: "text-danger" },
+};
+
+export default async function WalletPage({ searchParams }: { searchParams: Promise<{ need?: string; back?: string }> }) {
   const user = await getCurrentUser();
   if (!user) redirect("/login?next=/wallet");
+  const sp = await searchParams;
 
-  const [balance, ledger, connections] = await Promise.all([
+  const [balance, ledger, connections, topups] = await Promise.all([
     getBalance(user.id),
     getLedger(user.id),
     listMyConnections(user.id),
+    getMyTopups(user.id),
   ]);
+  // Đến từ trang mua khi thiếu point: ?need=<giá> &back=<trang mua>.
+  const need = Math.max(0, Math.floor(Number(sp.need) || 0));
+  const missing = Math.max(0, need - balance);
+  const back = sp.back ? safeNext(sp.back, "") : "";
+  // Gợi ý số tiền nạp: đủ phần còn thiếu, làm tròn lên 10.000đ (tối thiểu 10.000đ).
+  const suggestVnd = missing > 0 ? Math.max(10000, Math.ceil((missing * 100) / 10000) * 10000) : undefined;
   const walletApps = connections.filter((c) => c.product?.uses_wallet);
 
   return (
@@ -41,10 +57,58 @@ export default async function WalletPage() {
         </div>
       </div>
 
+      {need > 0 && (
+        <div className={`mt-5 rounded-xl border p-4 text-sm ${missing > 0 ? "border-danger/40 bg-danger/10" : "border-success/40 bg-success/10"}`}>
+          {missing > 0 ? (
+            <p className="text-text">
+              Cần <b>{need.toLocaleString("vi-VN")} point</b> để mua — bạn còn thiếu{" "}
+              <b className="text-danger">{missing.toLocaleString("vi-VN")} point</b>. Nạp xong (sau khi admin duyệt) quay lại để mua tiếp.
+            </p>
+          ) : (
+            <p className="text-success">Số dư đã đủ để mua.</p>
+          )}
+          {back && (
+            <Link href={back} className="mt-2 inline-block font-semibold text-brand hover:text-brand-hover">
+              ← Quay lại trang mua
+            </Link>
+          )}
+        </div>
+      )}
+
       <div className="mt-6 rounded-2xl border border-border bg-surface p-6">
         <h2 className="mb-4 font-semibold">Nạp point</h2>
-        <TopupForm />
+        <TopupForm defaultAmount={suggestVnd} />
       </div>
+
+      {topups.length > 0 && (
+        <div className="mt-6">
+          <h2 className="mb-3 font-semibold">Đơn nạp gần đây</h2>
+          <ul className="divide-y divide-border rounded-xl border border-border">
+            {topups.map((t) => (
+              <li key={t.id} className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 text-sm">
+                <div>
+                  <div className="font-medium">
+                    <span className="font-mono">{t.code}</span> · {t.points.toLocaleString("vi-VN")} point
+                    <span className="text-text-faint"> ({formatPrice(t.amount_vnd)})</span>
+                  </div>
+                  <div className="text-xs text-text-faint">
+                    {formatDateTime(t.created_at)} ·{" "}
+                    <span className={TOPUP_STATUS[t.status]?.cls}>{TOPUP_STATUS[t.status]?.label ?? t.status}</span>
+                  </div>
+                </div>
+                {t.status === "pending" && (
+                  <Link
+                    href={`/wallet/topup/${t.id}`}
+                    className="shrink-0 rounded-md border border-accent px-3 py-1.5 text-xs font-semibold text-accent hover:bg-accent/10"
+                  >
+                    Xem mã QR / thông tin CK
+                  </Link>
+                )}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {walletApps.length > 0 && (
         <div className="mt-6">
@@ -60,8 +124,8 @@ export default async function WalletPage() {
                     {c.product?.icon ?? "✦"} {c.product?.title}
                   </div>
                   <div className="text-xs text-text-faint">
-                    Kết nối {new Date(c.created_at).toLocaleDateString("vi-VN")}
-                    {c.last_used_at && ` · dùng gần nhất ${new Date(c.last_used_at).toLocaleDateString("vi-VN")}`}
+                    Kết nối {formatDate(c.created_at)}
+                    {c.last_used_at && ` · dùng gần nhất ${formatDate(c.last_used_at)}`}
                   </div>
                 </div>
                 <form action={disconnectApp}>
@@ -91,7 +155,7 @@ export default async function WalletPage() {
                   </div>
                   {e.note && <div className="text-xs text-text-faint">{e.note}</div>}
                   <div className="text-xs text-text-faint">
-                    {new Date(e.created_at).toLocaleString("vi-VN")}
+                    {formatDateTime(e.created_at)}
                   </div>
                 </div>
                 <div className="text-right">

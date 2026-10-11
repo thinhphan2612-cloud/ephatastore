@@ -8,6 +8,7 @@ import { getSettings } from "@/data/settings";
 import { purchasePricePoints, confirmPurchase, type PurchaseKind } from "@/lib/actions/purchase";
 import { getMyLicenseKey } from "@/data/software";
 import { getToppingUntil, isOwned } from "@/data/store-user";
+import { formatDate } from "@/lib/format";
 
 export const metadata = { title: "Xác nhận mua" };
 
@@ -19,7 +20,6 @@ const KIND_LABEL: Record<PurchaseKind, string> = {
   software: "Key bản quyền vĩnh viễn",
 };
 
-const vnDate = (iso: string) => new Date(iso).toLocaleDateString("vi-VN", { timeZone: "Asia/Ho_Chi_Minh" });
 
 /** /buy/<productId>?kind=… — xác nhận mua sản phẩm; /buy/topping — xác nhận Full Topping (cùng một màn hình). */
 export default async function BuyPage({
@@ -65,7 +65,7 @@ export default async function BuyPage({
       title: "Full Topping",
       icon: "✦",
       note: until
-        ? `Đang bật đến ${vnDate(until)} — mua thêm sẽ cộng nối 365 ngày`
+        ? `Đang bật đến ${formatDate(until)} — mua thêm sẽ cộng nối 365 ngày`
         : "365 ngày · mở khoá tất cả sản phẩm PRO",
       points: await purchasePricePoints("topping", 0),
       isPro: false,
@@ -154,7 +154,7 @@ export default async function BuyPage({
         <div className="mt-5 rounded-xl border border-danger/40 bg-danger/10 p-4 text-center text-sm">
           <p className="text-danger">Không đủ point (thiếu {(item.points - balance).toLocaleString("vi-VN")}).</p>
           <Link
-            href="/wallet"
+            href={`/wallet?need=${item.points}&back=${encodeURIComponent(isTopping ? "/buy/topping" : `/buy/${productId}?kind=${kind}`)}`}
             className="mt-3 inline-block rounded-xl bg-accent px-5 py-2.5 font-semibold text-accent-contrast hover:bg-accent-hover"
           >
             Nạp point →

@@ -1,4 +1,5 @@
 import type { SoftwareRelease } from "@/data/software";
+import { formatDate } from "@/lib/format";
 import { deleteRelease } from "@/lib/actions/software";
 import { publicKeyBase64 } from "@/lib/software/license";
 import { PLATFORM_LABEL } from "@/lib/software/version";
@@ -75,7 +76,7 @@ export function SoftwareReleases({
                     )}
                   </td>
                   <td className="px-3 py-2 text-text-muted">
-                    {new Date(r.created_at).toLocaleDateString("vi-VN")}
+                    {formatDate(r.created_at)}
                   </td>
                   <td className="px-3 py-2">
                     <form action={deleteRelease}>

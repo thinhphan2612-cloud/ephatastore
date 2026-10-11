@@ -39,7 +39,7 @@ export default async function ToppingPage() {
         </p>
       </div>
 
-      <div className="mx-auto mt-9 max-w-[440px] rounded-3xl border border-accent/30 bg-gradient-to-br from-[#1b170f] to-[#0b1115] p-8">
+      <div className="mx-auto mt-9 max-w-[440px] rounded-3xl border border-accent/30 bg-gradient-to-br from-accent/10 to-bg-elevated p-8">
         <div className="flex items-end gap-2">
           <span className="font-display text-[44px] font-bold text-accent">
             {toppingPoints.toLocaleString("vi-VN")}
@@ -78,7 +78,7 @@ export default async function ToppingPage() {
                 Không đủ point (thiếu {(toppingPoints - balance).toLocaleString("vi-VN")}).
               </p>
               <Link
-                href="/wallet"
+                href={`/wallet?need=${toppingPoints}&back=${encodeURIComponent("/buy/topping")}`}
                 className="mt-3 inline-block rounded-xl bg-accent px-5 py-2.5 font-semibold text-accent-contrast hover:bg-accent-hover"
               >
                 Nạp point →

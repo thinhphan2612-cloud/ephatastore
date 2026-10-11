@@ -53,7 +53,15 @@ export async function proxy(request: NextRequest) {
   return response;
 }
 
-const GATE_OPEN = new Set(["/login", "/forgot-password", "/auth/confirm", "/account/password"]);
+const GATE_OPEN = new Set([
+  "/login",
+  "/forgot-password",
+  "/auth/confirm",
+  "/account/password",
+  "/lien-he",
+  "/dieu-khoan",
+  "/quyen-rieng-tu",
+]);
 
 /** Cùng quy tắc với lib/auth isAdminUser (proxy không import server-only module): admin theo ID tài khoản. */
 function isAdminId(id: string | undefined): boolean {
