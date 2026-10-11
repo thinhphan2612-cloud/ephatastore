@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Mẫu manifest MSIX cho bản Microsoft Store. pack.ps1 thay các {{...}} rồi gọi makeappx.
+  IDENTITY_NAME / PUBLISHER / PUBLISHER_DISPLAY_NAME: Partner Center → Product management → Product identity
+  (phải khớp TỪNG KÝ TỰ). Sửa tay các dòng đánh dấu "SỬA".
+-->
+<Package
+  xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
+  xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10"
+  xmlns:desktop="http://schemas.microsoft.com/appx/manifest/desktop/windows10"
+  xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"
+  IgnorableNamespaces="uap desktop rescap">
+
+  <Identity Name="{{IDENTITY_NAME}}" Publisher="{{PUBLISHER}}" Version="{{VERSION}}" ProcessorArchitecture="x64" />
+
+  <Properties>
+    <DisplayName>{{DISPLAY_NAME}}</DisplayName>
+    <PublisherDisplayName>{{PUBLISHER_DISPLAY_NAME}}</PublisherDisplayName>
+    <Logo>Assets\StoreLogo.png</Logo>
+  </Properties>
+
+  <Dependencies>
+    <TargetDeviceFamily Name="Windows.Desktop" MinVersion="10.0.17763.0" MaxVersionTested="10.0.26100.0" />
+  </Dependencies>
+
+  <Resources>
+    <Resource Language="vi-VN" />
+    <Resource Language="en-US" />
+  </Resources>
+
+  <Applications>
+    <Application Id="App" Executable="{{EXE}}" EntryPoint="Windows.FullTrustApplication">
+      <uap:VisualElements
+        DisplayName="{{DISPLAY_NAME}}"
+        Description="{{DESCRIPTION}}"
+        BackgroundColor="transparent"
+        Square150x150Logo="Assets\Square150x150Logo.png"
+        Square44x44Logo="Assets\Square44x44Logo.png" />
+      <!-- CHỈ GIỮ khối Extensions nếu app có "tự khởi động cùng Windows".
+           Trong MSIX, ghi registry Run bị ảo hóa → phải dùng StartupTask; code app bật/tắt qua WinRT
+           Windows.ApplicationModel.StartupTask với cùng TaskId. Không cần thì XÓA cả khối. -->
+      <Extensions>
+        <desktop:Extension Category="windows.startupTask" Executable="{{EXE}}" EntryPoint="Windows.FullTrustApplication">
+          <desktop:StartupTask TaskId="AppStartup" Enabled="false" DisplayName="{{DISPLAY_NAME}}" />
+        </desktop:Extension>
+      </Extensions>
+    </Application>
+  </Applications>
+
+  <Capabilities>
+    <Capability Name="internetClient" />
+    <rescap:Capability Name="runFullTrust" />
+  </Capabilities>
+</Package>

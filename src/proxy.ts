@@ -2,15 +2,14 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 /**
- * - COMING_SOON bật (Production) → toàn site hiện trang "Sắp ra mắt".
+ * - COMING_SOON bật (Production) → khách thấy trang "Sắp ra mắt"; /login vẫn mở để đăng nhập,
+ *   tài khoản admin (ADMIN_EMAILS) đã đăng nhập thấy toàn bộ store (upload app, mua key thử).
  * - Không bật (nhánh test / local) → chạy full store + refresh session.
  * Next 16: file convention "proxy".
  */
 export async function proxy(request: NextRequest) {
   const cs = process.env.COMING_SOON;
-  if (cs === "1" || cs === "true") {
-    return comingSoon();
-  }
+  const gated = cs === "1" || cs === "true";
 
   let response = NextResponse.next({ request });
 
@@ -35,9 +34,23 @@ export async function proxy(request: NextRequest) {
     }
   );
 
-  await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (gated && request.nextUrl.pathname !== "/login" && !isAdminEmail(user?.email)) {
+    return comingSoon();
+  }
 
   return response;
+}
+
+function isAdminEmail(email: string | undefined): boolean {
+  if (!email) return false;
+  return (process.env.ADMIN_EMAILS ?? "")
+    .split(",")
+    .map((e) => e.trim().toLowerCase())
+    .includes(email.toLowerCase());
 }
 
 function comingSoon() {

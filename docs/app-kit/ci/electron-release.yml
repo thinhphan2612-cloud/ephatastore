@@ -1,0 +1,63 @@
+# Workflow phát hành cho app ELECTRON (electron-builder) — chép vào .github/workflows/release.yml
+# CHƯA chạy thật trên app nào — lần đầu theo dõi log từng job.
+#
+# Dùng: tăng "version" trong package.json → `git tag -a v1.0.0 -m "1.0.0"` → `git push origin v1.0.0`
+# → vào tab Actions của lần chạy → mục Artifacts tải windows-installer / macos-installer
+# → upload lên admin Ephata.
+#
+# Lưu ý dung lượng: Ephata nhận ≤ 50MB/file. Electron thường 80–150MB → kiểm kích thước trước khi upload.
+name: Release
+on:
+  workflow_dispatch:
+  push:
+    tags: ['v*']
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci
+      - run: npx electron-builder --win nsis --x64 --publish never
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-installer
+          path: dist/*.exe
+
+  macos:
+    runs-on: macos-latest
+    env:
+      # Không có chứng thư Apple → tắt tự dò chứng thư.
+      CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci
+      - run: npx electron-builder --mac dmg --universal --publish never
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos-installer
+          path: dist/*.dmg
+
+  # Bản Microsoft Store (.appx/.msix): cần khối "appx" trong cấu hình electron-builder
+  # (identityName, publisher, publisherDisplayName, applicationId — lấy ở Partner Center → Product identity).
+  # Bật bằng Repository variable MSSTORE_ENABLED = true.
+  msstore:
+    if: vars.MSSTORE_ENABLED == 'true'
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci
+      - run: npx electron-builder --win appx --x64 --publish never
+      - uses: actions/upload-artifact@v4
+        with:
+          name: msstore-package
+          path: dist/*.appx
