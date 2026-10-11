@@ -1,3 +1,6 @@
+import Link from "next/link";
+import { COMPANY } from "@/lib/company";
+
 export function SiteFooter() {
   return (
     <footer className="border-t border-border py-11 text-[13px] text-text-muted">
@@ -14,8 +17,22 @@ export function SiteFooter() {
           <p className="mt-2">Công cụ số cho cộng đồng Công giáo Việt Nam.</p>
         </div>
         <div className="grid gap-1.5 sm:justify-items-end sm:text-right">
-          <span>© {new Date().getFullYear()} Ephata Store</span>
-          <span>Điều khoản · Quyền riêng tư · Hỗ trợ</span>
+          <span>
+            © {new Date().getFullYear()} {COMPANY.name}
+          </span>
+          <nav className="flex flex-wrap gap-x-2 sm:justify-end">
+            <Link href="/dieu-khoan" className="hover:text-text">
+              Điều khoản
+            </Link>
+            ·
+            <Link href="/quyen-rieng-tu" className="hover:text-text">
+              Quyền riêng tư
+            </Link>
+            ·
+            <Link href="/lien-he" className="hover:text-text">
+              Liên hệ
+            </Link>
+          </nav>
         </div>
       </div>
     </footer>

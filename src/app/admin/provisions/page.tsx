@@ -1,4 +1,5 @@
 import { createStoreAdminClient } from "@/lib/supabase/store-admin";
+import { formatDate, formatDateTime } from "@/lib/format";
 import { retryProvision } from "@/lib/actions/admin";
 
 export const metadata = { title: "Đồng bộ Giáo Lý Số" };
@@ -61,7 +62,7 @@ export default async function ProvisionsPage() {
                   {ACTION_LABEL[j.action] ?? j.action}
                   {j.action === "grant_feature" && (
                     <div className="text-xs text-text-faint">
-                      {j.payload.expires_at ? `đến ${new Date(j.payload.expires_at).toLocaleDateString("vi-VN")}` : "vĩnh viễn"}
+                      {j.payload.expires_at ? `đến ${formatDate(j.payload.expires_at)}` : "vĩnh viễn"}
                     </div>
                   )}
                 </td>
@@ -79,7 +80,7 @@ export default async function ProvisionsPage() {
                     {j.status === "done" ? "Đã gửi" : j.status === "failed" ? "Lỗi" : "Đang chờ"}
                   </span>
                   <div className="mt-1 text-xs text-text-faint">
-                    {j.attempts} lần · {new Date(j.updated_at).toLocaleString("vi-VN")}
+                    {j.attempts} lần · {formatDateTime(j.updated_at)}
                   </div>
                   {j.last_error && <div className="mt-1 max-w-xs break-words text-xs text-danger">{j.last_error}</div>}
                 </td>

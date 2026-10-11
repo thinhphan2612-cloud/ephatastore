@@ -43,6 +43,9 @@ export default async function AdminLayout({
             <Link href="/admin/audit" className="text-brand hover:text-brand-hover">
               Nhật ký
             </Link>
+            <Link href="/admin/contacts" className="text-brand hover:text-brand-hover">
+              Liên hệ
+            </Link>
           </nav>
         </div>
         <span className="text-sm text-text-faint">{user.email}</span>

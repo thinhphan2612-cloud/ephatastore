@@ -6,6 +6,7 @@ import { getTopupForUser } from "@/data/wallet";
 import { formatPrice } from "@/lib/format";
 import { BANK } from "@/lib/bank";
 import { buildVietQrPayload } from "@/lib/vietqr";
+import { CopyButton } from "@/components/copy-button";
 
 export const metadata = { title: "Nạp point" };
 
@@ -62,7 +63,10 @@ export default async function TopupPage({
         </div>
       ) : (
         <div className="mt-5 rounded-xl border border-border bg-surface p-5">
-          <h2 className="mb-4 text-center font-semibold">Quét mã VietQR để chuyển khoản</h2>
+          <h2 className="mb-1 text-center font-semibold">Quét mã VietQR để chuyển khoản</h2>
+          <p className="mb-4 text-center text-xs text-text-faint">
+            Đang dùng điện thoại? Copy số tài khoản, số tiền và nội dung bên dưới rồi dán vào app ngân hàng.
+          </p>
 
           <div className="mx-auto w-fit rounded-lg bg-white p-3">
             <div
@@ -74,10 +78,10 @@ export default async function TopupPage({
 
           <dl className="mx-auto mt-5 max-w-sm space-y-2 text-sm">
             <Row label="Ngân hàng" value={BANK.bankName} />
-            <Row label="Số tài khoản" value={BANK.accountNumber} mono />
+            <Row label="Số tài khoản" value={BANK.accountNumber} mono copy={BANK.accountNumber} />
             <Row label="Chủ tài khoản" value={BANK.accountName} />
-            <Row label="Số tiền" value={formatPrice(topup.amount_vnd)} strong />
-            <Row label="Nội dung CK" value={topup.code} mono strong />
+            <Row label="Số tiền" value={formatPrice(topup.amount_vnd)} strong copy={String(topup.amount_vnd)} />
+            <Row label="Nội dung CK" value={topup.code} mono strong copy={topup.code} />
           </dl>
 
           <p className="mt-4 rounded-md bg-bg-elevated p-3 text-xs text-text-muted">
@@ -102,17 +106,22 @@ function Row({
   value,
   mono,
   strong,
+  copy,
 }: {
   label: string;
   value: string;
   mono?: boolean;
   strong?: boolean;
+  /** Giá trị copy (vd số tiền chỉ gồm chữ số); không có thì không hiện nút. */
+  copy?: string;
 }) {
   return (
-    <div className="flex justify-between gap-4">
+    <div className="flex items-center justify-between gap-4">
       <dt className="text-text-faint">{label}</dt>
-      <dd className={`text-right ${mono ? "font-mono" : ""} ${strong ? "font-semibold text-text" : "text-text"}`}>
-        {value}
+      <dd className={`flex items-center gap-2 text-right ${mono ? "font-mono" : ""} ${strong ? "font-semibold text-text" : "text-text"}`}>
+        {/* select-all: không copy được bằng nút (trình duyệt chặn clipboard) thì chạm là chọn cả giá trị để giữ-copy. */}
+        <span className="select-all break-all">{value}</span>
+        {copy && <CopyButton value={copy} />}
       </dd>
     </div>
   );

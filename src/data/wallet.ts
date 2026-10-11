@@ -44,14 +44,21 @@ export async function getLedger(userId: string, limit = 20): Promise<LedgerEntry
     .order("created_at", { ascending: false })
     .limit(limit);
   const rows = (data ?? []) as LedgerEntry[];
-  const appIds = [...new Set(rows.map((r) => r.ref?.match(/^app:(.+)$/)?.[1]).filter((x): x is string => !!x))];
-  if (appIds.length) {
-    const { data: prods } = await supabase.from("products").select("id,title").in("id", appIds);
-    const titles = new Map((prods ?? []).map((p) => [p.id as string, p.title as string]));
-    for (const r of rows) {
-      const id = r.ref?.match(/^app:(.+)$/)?.[1];
-      if (id) r.appTitle = titles.get(id);
-    }
+  // ref = "app:<id>" (dịch vụ trong app) hoặc "<id>" (mua sản phẩm / key) hoặc "topping" → hiện tên để người dùng biết đã chi cho gì.
+  const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  const productIdOf = (ref: string | null) => {
+    const id = ref?.replace(/^app:/, "");
+    return id && UUID.test(id) ? id : null;
+  };
+  const ids = [...new Set(rows.map((r) => productIdOf(r.ref)).filter((x): x is string => !!x))];
+  const titles = new Map<string, string>();
+  if (ids.length) {
+    const { data: prods } = await supabase.from("products").select("id,title").in("id", ids);
+    for (const p of prods ?? []) titles.set(p.id as string, p.title as string);
+  }
+  for (const r of rows) {
+    const id = productIdOf(r.ref);
+    r.appTitle = r.ref === "topping" ? "Full Topping" : id ? (titles.get(id) ?? "(sản phẩm đã gỡ)") : undefined;
   }
   return rows;
 }
@@ -66,6 +73,17 @@ export async function getTopupForUser(id: string, userId: string): Promise<Topup
     .maybeSingle();
   if (!data || data.user_id !== userId) return null;
   return data as Topup;
+}
+
+/** Đơn nạp gần đây của user (đơn chờ chuyển khoản / chờ duyệt lên đầu để mở lại mã QR). */
+export async function getMyTopups(userId: string, limit = 5): Promise<Topup[]> {
+  const { data } = await createStoreAdminClient()
+    .from("point_topups")
+    .select("id,user_id,code,amount_vnd,points,status,created_at")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  return (data ?? []) as Topup[];
 }
 
 /** Danh sách đơn nạp chờ duyệt (admin). */

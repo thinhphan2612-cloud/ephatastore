@@ -4,12 +4,12 @@ import { useActionState, useState } from "react";
 import { createTopup, type TopupState } from "@/lib/actions/wallet";
 import { TOPUP_PRESETS, vndToPoints } from "@/lib/points";
 
-export function TopupForm() {
+export function TopupForm({ defaultAmount }: { defaultAmount?: number }) {
   const [state, formAction, pending] = useActionState<TopupState, FormData>(
     createTopup,
     {}
   );
-  const [amount, setAmount] = useState<number>(TOPUP_PRESETS[1]);
+  const [amount, setAmount] = useState<number>(defaultAmount ?? TOPUP_PRESETS[1]);
 
   return (
     <form action={formAction} className="space-y-4">

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getCategories } from "@/data/categories";
+import { COMPANY } from "@/lib/company";
 
 const STATS = [
   { b: "✦ Rõ đối tượng", s: "Linh mục · Giáo dân · Người tìm hiểu" },
@@ -161,7 +162,7 @@ export default async function HomePage() {
       {/* CTA */}
       <section id="about" className="py-[clamp(40px,6vw,80px)]">
         <div className="mx-auto w-[min(1180px,calc(100%-40px))]">
-          <div className="rounded-[30px] border border-accent/20 bg-gradient-to-br from-[#1b170f] to-[#0b1115] p-[clamp(30px,5vw,48px)]">
+          <div className="rounded-[30px] border border-accent/20 bg-gradient-to-br from-accent/10 to-bg-elevated p-[clamp(30px,5vw,48px)]">
             <div className="text-[11px] font-extrabold uppercase tracking-[0.18em] text-accent-hover">
               // EPHATA / HÃY MỞ RA
             </div>
@@ -192,9 +193,9 @@ export default async function HomePage() {
             </p>
           </div>
           <div className="grid gap-2.5">
-            <ContactCard label="Email" value="hello@ephata.vn" href="mailto:hello@ephata.vn" />
-            <ContactCard label="Điện thoại" value="0900 000 000" href="tel:+84900000000" />
-            <ContactCard label="Thời gian hỗ trợ" value="Thứ 2 – Thứ 7 · 08:00–20:00" />
+            <ContactCard label="Gửi yêu cầu hỗ trợ" value="Mở form liên hệ →" href="/lien-he" />
+            <ContactCard label="Trả lời qua" value="Email bạn nhập trong form" />
+            <ContactCard label="Đơn vị vận hành" value={COMPANY.name} />
           </div>
         </div>
       </section>
@@ -222,9 +223,9 @@ function ContactCard({
   const cls =
     "block rounded-2xl border border-border bg-white/[0.03] px-[18px] py-[17px]";
   return href ? (
-    <a href={href} className={cls}>
+    <Link href={href} className={`${cls} hover:border-accent/50`}>
       {inner}
-    </a>
+    </Link>
   ) : (
     <div className={cls}>{inner}</div>
   );

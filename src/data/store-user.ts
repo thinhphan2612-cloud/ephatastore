@@ -89,19 +89,58 @@ function mapRow(r: Row): Product {
 }
 
 /** Các sản phẩm user đã sở hữu. */
-export async function getMyLibrary(userId: string): Promise<Product[]> {
+/** Một mục trong Thư viện: sản phẩm + hạn dùng (null = vĩnh viễn) + nguồn quyền. */
+export interface LibraryItem {
+  product: Product;
+  expiresAt: string | null;
+  /** purchase | free | trial | giaoly_pro | admin … */
+  source: string;
+  active: boolean;
+  /** Số ngày còn lại (làm tròn lên) khi có hạn; null = vĩnh viễn. */
+  daysLeft: number | null;
+}
+
+/** Thư viện: quyền còn hạn + quyền đã hết hạn trong 180 ngày gần đây (để người dùng biết và gia hạn). */
+export async function getMyLibrary(userId: string): Promise<LibraryItem[]> {
   const supabase = createStoreAdminClient();
+  const since = new Date(Date.now() - 180 * 86400000).toISOString();
   const { data, error } = await supabase
     .from("entitlements")
-    .select(`product:products(${PRODUCT_SELECT})`)
+    .select(`expires_at,source,product:products(${PRODUCT_SELECT})`)
     .eq("store_user_id", userId)
-    .or(`expires_at.is.null,expires_at.gt.${new Date().toISOString()}`)
+    .or(`expires_at.is.null,expires_at.gt.${since}`)
     .order("granted_at", { ascending: false });
   if (error) throw new Error(error.message);
+  const now = Date.now();
   return (data ?? [])
-    .map((e) => (e as unknown as { product: Row | null }).product)
-    .filter((p): p is Row => !!p)
-    .map(mapRow);
+    .map((e) => e as unknown as { expires_at: string | null; source: string | null; product: Row | null })
+    .filter((e) => !!e.product)
+    .map((e) => ({
+      product: mapRow(e.product!),
+      expiresAt: e.expires_at,
+      source: e.source ?? "purchase",
+      active: !e.expires_at || new Date(e.expires_at).getTime() > now,
+      daysLeft: e.expires_at ? Math.ceil((new Date(e.expires_at).getTime() - now) / 86400000) : null,
+    }));
+}
+
+/** Quyền của user với một sản phẩm (kể cả đã hết hạn) — null nếu chưa từng có. */
+export async function getEntitlement(
+  userId: string,
+  productId: string
+): Promise<{ expiresAt: string | null; source: string; active: boolean } | null> {
+  const { data } = await createStoreAdminClient()
+    .from("entitlements")
+    .select("expires_at,source")
+    .eq("store_user_id", userId)
+    .eq("product_id", productId)
+    .maybeSingle();
+  if (!data) return null;
+  return {
+    expiresAt: data.expires_at,
+    source: data.source ?? "purchase",
+    active: !data.expires_at || new Date(data.expires_at).getTime() > Date.now(),
+  };
 }
 
 /** true nếu user đang có Full Topping (all-access) còn hạn. */

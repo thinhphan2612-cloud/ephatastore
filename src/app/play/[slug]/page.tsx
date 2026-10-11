@@ -8,7 +8,7 @@ import { hostedPlayUrl } from "@/lib/hosted-access";
 import { hasActiveConnection } from "@/data/apps";
 import { acceptAppConnection } from "@/lib/actions/apps";
 
-export const metadata = { title: "Chơi game" };
+export const metadata = { title: "Chạy sản phẩm" };
 
 export default async function PlayPage({
   params,
@@ -40,7 +40,7 @@ export default async function PlayPage({
     return (
       <div className="mx-auto max-w-md px-4 py-16 text-center">
         <h1 className="text-xl font-bold">Chưa sở hữu</h1>
-        <p className="mt-2 text-text-muted">Bạn cần mua/nhận game này để chơi.</p>
+        <p className="mt-2 text-text-muted">{product.type === "game" ? "Bạn cần mua / nhận game này để chơi." : "Bạn cần mua / nhận sản phẩm này để dùng."}</p>
         <Link
           href={`/product/${slug}`}
           className="mt-5 inline-block rounded-md bg-accent px-5 py-2 font-semibold text-accent-contrast hover:bg-accent-hover"
@@ -55,7 +55,7 @@ export default async function PlayPage({
     return (
       <div className="mx-auto max-w-md px-4 py-16 text-center">
         <h1 className="text-xl font-bold">{product.title}</h1>
-        <p className="mt-2 text-text-muted">Game chưa được cấu hình để chơi.</p>
+        <p className="mt-2 text-text-muted">{product.type === "game" ? "Game" : "Sản phẩm"} chưa được cấu hình để chạy.</p>
       </div>
     );
   }

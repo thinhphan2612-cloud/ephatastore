@@ -13,6 +13,10 @@ export default function ForgotPasswordPage() {
       <div className="mt-8 rounded-xl border border-border bg-bg-elevated p-6">
         <ForgotPasswordForm />
       </div>
+      <p className="mt-4 rounded-lg border border-border px-4 py-3 text-xs leading-relaxed text-text-muted">
+        Bạn đăng nhập bằng <b className="text-text">Giáo Lý Số</b>? Thao tác này chỉ đặt mật khẩu Ephata Store — mật khẩu
+        Giáo Lý Số giữ nguyên, bạn vẫn đăng nhập được bằng nút Giáo Lý Số như cũ.
+      </p>
       <p className="mt-6 text-center text-sm text-text-muted">
         Nhớ ra rồi?{" "}
         <Link href="/login" className="text-accent hover:text-accent-hover">
