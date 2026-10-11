@@ -3,12 +3,13 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+import { safeNext } from "@/lib/safe-next";
 import { createStoreAuthBrowserClient } from "@/lib/supabase/store-auth-browser";
 
 export function SignupForm() {
   const router = useRouter();
   const params = useSearchParams();
-  const next = params.get("next") || "/";
+  const next = safeNext(params.get("next"));
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -26,7 +27,12 @@ export function SignupForm() {
     setLoading(true);
 
     const supabase = createStoreAuthBrowserClient();
-    const { data, error } = await supabase.auth.signUp({ email, password });
+    // Khi bật xác nhận email (Supabase Auth + SMTP riêng): link trong email trỏ về /auth/confirm rồi quay lại `next`.
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { emailRedirectTo: `${location.origin}/auth/confirm?next=${encodeURIComponent(next)}` },
+    });
 
     if (error) {
       setError(
@@ -38,9 +44,9 @@ export function SignupForm() {
       return;
     }
 
-    // Confirm email đã tắt → có session ngay. Nếu vì lý do nào đó chưa có session:
+    // Bật xác nhận email → chưa có phiên: báo kiểm tra email.
     if (!data.session) {
-      setError("Tài khoản đã tạo. Vui lòng đăng nhập.");
+      setError(`Đã gửi email xác nhận tới ${email}. Mở email (kể cả mục Spam) và bấm liên kết để kích hoạt tài khoản.`);
       setLoading(false);
       return;
     }

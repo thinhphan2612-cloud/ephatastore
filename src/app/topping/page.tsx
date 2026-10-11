@@ -3,7 +3,6 @@ import { getSettings } from "@/data/settings";
 import { getCurrentUser } from "@/lib/auth";
 import { getBalance } from "@/data/wallet";
 import { hasActiveTopping } from "@/data/store-user";
-import { confirmPurchase } from "@/lib/actions/purchase";
 import { vndToPoints } from "@/lib/points";
 import { formatPrice } from "@/lib/format";
 
@@ -66,17 +65,13 @@ export default async function ToppingPage() {
               ✓ Full Topping đang bật
             </div>
           ) : !user || enough ? (
-            <form action={confirmPurchase}>
-              <input type="hidden" name="product_id" value="" />
-              <input type="hidden" name="kind" value="topping" />
-              <input type="hidden" name="purchase_key" value={crypto.randomUUID()} />
-              <button
-                type="submit"
-                className="w-full rounded-xl bg-accent px-4 py-3.5 font-extrabold text-accent-contrast hover:bg-accent-hover"
-              >
-                Kích hoạt · {toppingPoints.toLocaleString("vi-VN")} point →
-              </button>
-            </form>
+            // Qua màn hình xác nhận như mọi sản phẩm (trước đây bấm là trừ point ngay).
+            <Link
+              href="/buy/topping"
+              className="block w-full rounded-xl bg-accent px-4 py-3.5 text-center font-extrabold text-accent-contrast hover:bg-accent-hover"
+            >
+              Kích hoạt · {toppingPoints.toLocaleString("vi-VN")} point →
+            </Link>
           ) : (
             <div className="text-center">
               <p className="text-sm text-warn">

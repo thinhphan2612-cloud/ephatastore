@@ -45,12 +45,15 @@ export async function proxy(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (gated && request.nextUrl.pathname !== "/login" && !isAdminId(user?.id)) {
+  // Trang đăng nhập / quên mật khẩu / xác nhận email / đặt mật khẩu luôn mở (thành viên mới đặt mật khẩu lần đầu).
+  if (gated && !GATE_OPEN.has(request.nextUrl.pathname) && !isAdminId(user?.id)) {
     return comingSoon();
   }
 
   return response;
 }
+
+const GATE_OPEN = new Set(["/login", "/forgot-password", "/auth/confirm", "/account/password"]);
 
 /** Cùng quy tắc với lib/auth isAdminUser (proxy không import server-only module): admin theo ID tài khoản. */
 function isAdminId(id: string | undefined): boolean {

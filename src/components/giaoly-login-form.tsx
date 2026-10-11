@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { safeNext } from "@/lib/safe-next";
 import { createClient } from "@supabase/supabase-js";
 import { createStoreAuthBrowserClient } from "@/lib/supabase/store-auth-browser";
 import { loginWithGiaoly } from "@/lib/actions/giaoly-login";
@@ -9,7 +10,7 @@ import { loginWithGiaoly } from "@/lib/actions/giaoly-login";
 export function GiaolyLoginForm() {
   const router = useRouter();
   const params = useSearchParams();
-  const next = params.get("next") || "/";
+  const next = safeNext(params.get("next"));
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");

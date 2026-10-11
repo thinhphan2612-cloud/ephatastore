@@ -3,12 +3,14 @@ import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { LoginForm } from "@/components/login-form";
 import { GiaolyLoginForm } from "@/components/giaoly-login-form";
+import { safeNext } from "@/lib/safe-next";
 
 export const metadata = { title: "Đăng nhập" };
 
-export default async function LoginPage() {
+export default async function LoginPage({ searchParams }: { searchParams: Promise<{ error?: string; next?: string }> }) {
+  const { error, next } = await searchParams;
   const user = await getCurrentUser();
-  if (user) redirect("/");
+  if (user) redirect(safeNext(next));
 
   return (
     <div className="mx-auto max-w-md px-4 py-16">
@@ -17,6 +19,11 @@ export default async function LoginPage() {
         Tài khoản Ephata Store.
       </p>
 
+      {error && (
+        <p role="alert" className="mt-6 rounded-md border border-danger/40 bg-danger/10 px-3 py-2 text-center text-sm text-danger">
+          {error.slice(0, 200)}
+        </p>
+      )}
       <div className="mt-8 rounded-xl border border-border bg-bg-elevated p-6">
         <Suspense>
           <LoginForm />
