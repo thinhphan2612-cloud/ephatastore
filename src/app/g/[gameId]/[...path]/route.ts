@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createStoreAdminClient } from "@/lib/supabase/store-admin";
-import { verifyHostedToken } from "@/lib/hosted-access";
+import { hostedOrigin, isHostedHostAllowed, verifyHostedToken } from "@/lib/hosted-access";
 
 /**
  * Phục vụ file game / công cụ web host trên store (bucket PRIVATE 'games').
@@ -21,9 +21,14 @@ const BUCKET = "games";
 const SIGNED_TTL = 60 * 60; // 1 giờ
 
 export async function GET(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ gameId: string; path: string[] }> }
 ) {
+  // Có origin riêng → TUYỆT ĐỐI không phục vụ code app trên domain store (chống mượn mã truy cập để chạy trên www).
+  // Chuyển sang origin riêng thay vì 404 để link cũ (vd đã gửi sang Giáo Lý Số) vẫn chạy.
+  if (!isHostedHostAllowed(req.headers.get("host"))) {
+    return NextResponse.redirect(`${hostedOrigin()}${req.nextUrl.pathname}${req.nextUrl.search}`, 308);
+  }
   const { gameId, path } = await params;
   const [token, ...rest] = path ?? [];
   const rel = rest.join("/");

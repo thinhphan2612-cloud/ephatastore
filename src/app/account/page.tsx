@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { getGiaolyContext } from "@/lib/giaoly-context";
-import { normalizePlan } from "@/lib/plan";
+import { effectivePlan } from "@/lib/plan";
 import { unlinkGiaoly } from "@/lib/actions/giaoly-link";
 import { GiaolyLinkForm } from "@/components/giaoly-link-form";
 
@@ -12,7 +12,7 @@ export default async function AccountPage() {
   if (!user) redirect("/login?next=/account");
 
   const ctx = await getGiaolyContext();
-  const plan = normalizePlan(ctx?.planRaw);
+  const plan = effectivePlan(ctx);
 
   return (
     <div className="mx-auto max-w-xl px-4 py-10">
@@ -35,6 +35,12 @@ export default async function AccountPage() {
                   {plan === "pro" ? "Pro" : "Khởi động (free)"}
                 </dd>
               </div>
+              {plan === "pro" && ctx.planExpiresAt && (
+                <div className="flex justify-between">
+                  <dt className="text-text-faint">Hạn gói</dt>
+                  <dd>{new Date(ctx.planExpiresAt).toLocaleDateString("vi-VN")}</dd>
+                </div>
+              )}
               <div className="flex justify-between">
                 <dt className="text-text-faint">Vai trò</dt>
                 <dd>{ctx.role ?? "—"}</dd>
@@ -43,7 +49,7 @@ export default async function AccountPage() {
 
             <div className="mt-5 flex items-center justify-between gap-3">
               <p className="text-xs text-text-faint">
-                Gói được lưu lúc liên kết. Nếu giáo xứ đổi gói, liên kết lại để cập nhật.
+                Gói và vai trò tự cập nhật từ Giáo Lý Số (tối đa 6 giờ một lần).
               </p>
               <form action={unlinkGiaoly}>
                 <button

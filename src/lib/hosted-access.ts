@@ -49,8 +49,23 @@ export function parseGameUrl(gameUrl: string | null | undefined): { gameId: stri
   return m ? { gameId: m[1], entry: m[2] } : null;
 }
 
-/** URL chơi có mã truy cập (tương đối với site). */
+/**
+ * Origin riêng cho app host (vd https://play.ephatastore.com) — code app chạy ở đó KHÔNG đọc được cookie /
+ * localStorage của store. Chưa cấu hình (local / preview) → chạy cùng origin với store.
+ */
+export function hostedOrigin(): string {
+  return (process.env.HOSTED_ORIGIN ?? "").replace(/\/$/, "");
+}
+
+/** true nếu request được phép phục vụ app host: có origin riêng thì CHỈ host đó. */
+export function isHostedHostAllowed(host: string | null): boolean {
+  const origin = hostedOrigin();
+  if (!origin) return true;
+  return !!host && host.toLowerCase() === new URL(origin).host.toLowerCase();
+}
+
+/** URL chơi có mã truy cập (tuyệt đối khi có origin riêng). */
 export function hostedPlayUrl(gameUrl: string, userId: string, ttlMs = PLAY_TOKEN_TTL_MS): string | null {
   const g = parseGameUrl(gameUrl);
-  return g ? `/g/${g.gameId}/${createHostedToken(g.gameId, userId, ttlMs)}/${g.entry}` : null;
+  return g ? `${hostedOrigin()}/g/${g.gameId}/${createHostedToken(g.gameId, userId, ttlMs)}/${g.entry}` : null;
 }

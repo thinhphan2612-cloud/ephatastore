@@ -1,5 +1,5 @@
 import { cache } from "react";
-import { getGiaolyContext } from "@/lib/giaoly-context";
+import { getGiaolyContext, type GiaolyContext } from "@/lib/giaoly-context";
 
 export type Plan = "free" | "pro";
 
@@ -18,10 +18,14 @@ export function normalizePlan(raw: string | null | undefined): Plan {
 }
 
 /**
- * Gói hiệu lực của user hiện tại = gói của giáo xứ họ thuộc về.
- * Đọc từ ngữ cảnh giaoly (RPC get_my_context). Không chạm schema bảng.
+ * Gói ĐANG hiệu lực: Pro chỉ khi gói là pro VÀ chưa quá hạn (Giáo Lý Số giữ plan='pro' cả sau khi hết hạn,
+ * hạn thật nằm ở plan_expires_at — cùng cách app Giáo Lý Số tự tính).
  */
-export const getCurrentUserPlan = cache(async (): Promise<Plan> => {
-  const ctx = await getGiaolyContext();
-  return normalizePlan(ctx?.planRaw);
-});
+export function effectivePlan(ctx: GiaolyContext | null | undefined): Plan {
+  if (!ctx || normalizePlan(ctx.planRaw) !== "pro") return "free";
+  if (ctx.planExpiresAt && new Date(ctx.planExpiresAt).getTime() <= Date.now()) return "free";
+  return "pro";
+}
+
+/** Gói hiệu lực của user hiện tại = gói của giáo xứ họ thuộc về (ngữ cảnh tự làm mới mỗi 6 giờ). */
+export const getCurrentUserPlan = cache(async (): Promise<Plan> => effectivePlan(await getGiaolyContext()));

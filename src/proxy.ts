@@ -8,6 +8,13 @@ import { NextResponse, type NextRequest } from "next/server";
  * Next 16: file convention "proxy".
  */
 export async function proxy(request: NextRequest) {
+  // Domain riêng của app host (HOSTED_ORIGIN): chỉ /g/* và /api/apps/* (đã loại khỏi matcher) — mọi trang khác 404,
+  // để trang store / đăng nhập / admin không bao giờ chạy trên origin của code bên thứ ba.
+  const hosted = process.env.HOSTED_ORIGIN;
+  if (hosted && request.headers.get("host")?.toLowerCase() === new URL(hosted).host.toLowerCase()) {
+    return new NextResponse("Not found", { status: 404 });
+  }
+
   const cs = process.env.COMING_SOON;
   const gated = cs === "1" || cs === "true";
 

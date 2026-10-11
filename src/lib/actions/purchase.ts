@@ -7,7 +7,6 @@ import { getCurrentUserPlan } from "@/lib/plan";
 import { createStoreAdminClient } from "@/lib/supabase/store-admin";
 import { getSettings } from "@/data/settings";
 import { vndToPoints } from "@/lib/points";
-import { adjustPoints, InsufficientPointsError } from "@/lib/wallet-ops";
 import { generateLicenseKey } from "@/lib/software/license";
 import { isParishAdmin } from "@/lib/giaoly-context";
 import { syncFeatureProvision } from "@/lib/giaoly-provision";
@@ -64,48 +63,27 @@ export async function confirmPurchase(formData: FormData) {
 
   // Full Topping (không gắn sản phẩm) luôn trả point.
   const isPro = proFree && (await getCurrentUserPlan()) === "pro";
-
   const points = isPro ? 0 : await purchasePricePoints(kind, priceMonth);
+  const days =
+    kind === "perpetual" ? null : kind === "freedom" ? settings.freedomDays : YEAR_DAYS; // annual | topping
 
-  // Trừ point (bỏ qua nếu 0 = free / Pro).
-  if (points > 0) {
-    try {
-      await adjustPoints(user.id, -points, "spend", productId, "Mua sản phẩm");
-    } catch (e) {
-      if (e instanceof InsufficientPointsError)
-        redirect(`/wallet?need=${points}`);
-      throw e;
-    }
+  // Trừ point + cấp quyền (cộng nối hạn) + ghi lịch sử trong MỘT transaction, chống trùng theo purchase_key
+  // (trang /buy sinh khóa mới mỗi lần mở → bấm 2 lần / gửi lại không trừ 2 lần).
+  const key = String(formData.get("purchase_key") ?? "").trim() || crypto.randomUUID();
+  const { error } = await supabase.rpc("purchase_product", {
+    p_user: user.id,
+    p_product: kind === "topping" ? null : productId,
+    p_kind: kind,
+    p_points: points,
+    p_days: days,
+    p_source: isPro ? "giaoly_pro" : "purchase",
+    p_key: key,
+  });
+  if (error) {
+    if (/INSUFFICIENT_POINTS/.test(error.message)) redirect(`/wallet?need=${points}`);
+    throw new Error(error.message);
   }
-
-  // Cấp quyền.
-  if (kind === "topping") {
-    const { error } = await supabase.from("subscriptions").insert({
-      store_user_id: user.id,
-      kind: "topping",
-      expires_at: new Date(Date.now() + YEAR_DAYS * 86400000).toISOString(),
-    });
-    if (error) throw new Error(error.message);
-  } else {
-    const expires =
-      kind === "perpetual"
-        ? null
-        : new Date(
-            Date.now() +
-              (kind === "annual" ? YEAR_DAYS : settings.freedomDays) * 86400000
-          ).toISOString();
-    const { error } = await supabase.from("entitlements").upsert(
-      {
-        store_user_id: user.id,
-        product_id: productId,
-        source: isPro ? "giaoly_pro" : "purchase",
-        expires_at: expires,
-      },
-      { onConflict: "store_user_id,product_id", ignoreDuplicates: false }
-    );
-    if (error) throw new Error(error.message);
-    await syncFeatureSafe(user.id, productId);
-  }
+  if (kind !== "topping") await syncFeatureSafe(user.id, productId);
 
   revalidatePath("/library");
   redirect("/library");

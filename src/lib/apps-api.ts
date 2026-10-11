@@ -1,5 +1,6 @@
 import "server-only";
 import { NextResponse } from "next/server";
+import { hostedOrigin } from "@/lib/hosted-access";
 import { getCurrentUser } from "@/lib/auth";
 import {
   AppError,
@@ -27,8 +28,11 @@ export async function readJson(request: Request): Promise<Record<string, unknown
 export async function resolveCaller(request: Request, body: Record<string, unknown>): Promise<Caller> {
   const hosted = request.headers.get("x-ephata-hosted");
   if (hosted) {
+    // Có origin riêng: app chạy ở domain không có cookie store → mã truy cập (ký, gắn game + người, 12h) là đủ.
+    // Cùng origin (local / preview): bắt buộc thêm phiên đăng nhập trùng người.
+    if (hostedOrigin()) return callerFromHosted(hosted, null, false);
     const user = await getCurrentUser();
-    return callerFromHosted(hosted, user?.id ?? null);
+    return callerFromHosted(hosted, user?.id ?? null, true);
   }
   const product = await authenticateApp(request, body.product);
   return callerFromConnection(product, body.connection);

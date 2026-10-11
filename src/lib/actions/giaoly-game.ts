@@ -2,7 +2,7 @@
 
 import { getCurrentUser } from "@/lib/auth";
 import { getGiaolyContext } from "@/lib/giaoly-context";
-import { normalizePlan } from "@/lib/plan";
+import { effectivePlan } from "@/lib/plan";
 import { createStoreAdminClient } from "@/lib/supabase/store-admin";
 import { canAccessProduct } from "@/lib/access";
 import { EMBED_TOKEN_TTL_MS, hostedPlayUrl } from "@/lib/hosted-access";
@@ -27,7 +27,7 @@ export async function addGameToGiaoly(
 
   const ctx = await getGiaolyContext();
   if (!ctx?.giaolyUserId) return { error: "Cần liên kết tài khoản Giáo Lý Số." };
-  if (normalizePlan(ctx.planRaw) !== "pro")
+  if (effectivePlan(ctx) !== "pro")
     return { error: "Cần gói Pro Giáo Lý Số để thêm game." };
 
   const supabase = createStoreAdminClient();
@@ -61,7 +61,9 @@ export async function addGameToGiaoly(
   const hosted = hostedPlayUrl(product.game_url, user.id, EMBED_TOKEN_TTL_MS);
   const playUrl = product.game_url.startsWith("http")
     ? product.game_url
-    : `${site}${hosted ?? product.game_url}`;
+    : hosted?.startsWith("http")
+      ? hosted
+      : `${site}${hosted ?? product.game_url}`;
 
   try {
     const res = await fetch(endpoint, {
