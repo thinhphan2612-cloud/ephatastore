@@ -8,7 +8,7 @@ import { NextResponse, type NextRequest } from "next/server";
  * Next 16: file convention "proxy".
  */
 export async function proxy(request: NextRequest) {
-  // Domain riêng của app host (HOSTED_ORIGIN): chỉ /g/* và /api/apps/* (đã loại khỏi matcher) — mọi trang khác 404,
+  // Domain riêng của app host (HOSTED_ORIGIN): chỉ /g/*, /api/apps/*, /e/* (đã loại khỏi matcher) — mọi trang khác 404,
   // để trang store / đăng nhập / admin không bao giờ chạy trên origin của code bên thứ ba.
   const hosted = process.env.HOSTED_ORIGIN;
   if (hosted && request.headers.get("host")?.toLowerCase() === new URL(hosted).host.toLowerCase()) {
@@ -104,6 +104,6 @@ h1{font-family:var(--font-heading);font-size:clamp(1.9rem,5.5vw,3.2rem);line-hei
 // nhúng được ở domain khác) — phải chạy cả khi COMING_SOON, không cần session.
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|api/software/|api/apps/|dl/|g/|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|api/software/|api/apps/|dl/|g/|e/|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
   ],
 };

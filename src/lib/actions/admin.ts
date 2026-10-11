@@ -2,17 +2,15 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { getAdminUser } from "@/lib/auth";
+import { requireAdmin, logAdmin } from "@/lib/admin-audit";
+import { deleteBlockReason, getProductUsage, slugLockReason } from "@/data/product-usage";
 import { createStoreAdminClient } from "@/lib/supabase/store-admin";
 import { slugify } from "@/lib/slug";
 import { htmlToText, sanitizeDescription } from "@/lib/rich-text";
 import { removeStorageFolder } from "@/lib/storage-folder";
 import { retryProvisionJob, syncFeatureProvision } from "@/lib/giaoly-provision";
 
-async function assertAdmin() {
-  const admin = await getAdminUser();
-  if (!admin) throw new Error("Không có quyền admin.");
-}
+const assertAdmin = requireAdmin;
 
 const COVER_BUCKET = "product-covers";
 
@@ -149,7 +147,7 @@ export async function saveProductData(formData: FormData): Promise<SaveState & {
 }
 
 async function persistProduct(formData: FormData): Promise<SaveState & { id?: string }> {
-  await assertAdmin();
+  const admin = await assertAdmin();
 
   const id = String(formData.get("id") ?? "").trim();
   const row = parseProduct(formData);
@@ -194,14 +192,20 @@ async function persistProduct(formData: FormData): Promise<SaveState & { id?: st
     });
   }
 
-  // Bản cũ (khi sửa): danh mục để gỡ liên kết nếu đổi; file cũ để dọn sau khi thay.
+  // Bản cũ (khi sửa): danh mục để gỡ liên kết nếu đổi; file cũ để dọn sau khi thay; giá trị cũ cho nhật ký.
   const { data: before } = id
     ? await supabase
         .from("products")
-        .select("category_id,cover_url,download_path")
+        .select("category_id,cover_url,download_path,slug,title,tier,price_month,published,giaoly_pro_free")
         .eq("id", id)
         .maybeSingle()
     : { data: null };
+
+  // Slug khóa khi sản phẩm đã có người dùng / đã phát hành phần mềm (link, API phần mềm, Giáo Lý Số dựa vào slug).
+  if (before && before.slug !== row.slug) {
+    const locked = slugLockReason(await getProductUsage(id));
+    if (locked) return { error: `Không đổi được slug — sản phẩm đã có ${locked}. Slug giữ nguyên "${before.slug}".` };
+  }
 
   const { data: saved, error } = id
     ? await supabase.from("products").update(payload).eq("id", id).select("id").single()
@@ -234,13 +238,31 @@ async function persistProduct(formData: FormData): Promise<SaveState & { id?: st
     );
   if (catErr) return { error: catErr.message };
 
+  // Nhật ký: tạo mới, hoặc các trường quan trọng đã đổi.
+  const after: Record<string, unknown> = {
+    slug: row.slug,
+    title: row.title,
+    tier: payload.tier,
+    price_month: payload.price_month,
+    published: row.published,
+    giaoly_pro_free: payload.giaoly_pro_free,
+  };
+  const changed = before
+    ? Object.fromEntries(
+        Object.entries(after)
+          .filter(([k, v]) => (before as Record<string, unknown>)[k] !== v)
+          .map(([k, v]) => [k, { from: (before as Record<string, unknown>)[k], to: v }])
+      )
+    : after;
+  await logAdmin(admin, before ? "product.update" : "product.create", { type: "product", id: saved.id }, changed);
+
   return { id: saved.id };
 }
 
 const GAMES_BUCKET = "games";
 
 export async function deleteProduct(formData: FormData) {
-  await assertAdmin();
+  const admin = await assertAdmin();
   const id = String(formData.get("id") ?? "").trim();
   if (!id) return;
 
@@ -249,25 +271,32 @@ export async function deleteProduct(formData: FormData) {
   // Lấy thông tin để dọn Storage sau khi xóa row.
   const { data: prod } = await supabase
     .from("products")
-    .select("type,game_url,download_path")
+    .select("type,game_url,game_url_prev,download_path,slug,title")
     .eq("id", id)
     .maybeSingle();
 
-  // Xóa row (entitlements + product_categories cascade; order_items RESTRICT sẽ chặn).
+  // Đã có người dùng → không xóa cứng (DB cũng chặn bằng ON DELETE RESTRICT, migration 0020).
+  const blocked = deleteBlockReason(await getProductUsage(id));
+  if (blocked) {
+    const msg = `Không xóa được "${prod?.title ?? id}" — đã có ${blocked}. Bỏ tích "Hiện" để ẩn khỏi store.`;
+    redirect(`/admin?notice=${encodeURIComponent(msg)}`);
+  }
+
+  // Xóa row. Phòng khi có người dùng phát sinh ngay lúc này: DB RESTRICT chặn (23503) → báo như trên.
   const { error } = await supabase.from("products").delete().eq("id", id);
   if (error) {
     if (error.code === "23503")
-      throw new Error(
-        prod?.type === "software"
-          ? "Phần mềm đã bán key nên không xóa cứng được. Hãy bỏ tích 'Hiện' để ẩn khỏi store."
-          : "Sản phẩm đã nằm trong đơn hàng nên không xóa cứng được. Hãy bỏ tích 'Hiện' để ẩn khỏi store."
-      );
+      redirect(`/admin?notice=${encodeURIComponent(`Không xóa được "${prod?.title ?? id}" — sản phẩm đã có người dùng. Bỏ tích "Hiện" để ẩn khỏi store.`)}`);
     throw new Error(error.message);
   }
 
-  // Dọn Storage (best-effort): thư mục game/tool host + file tải về.
-  const gameId = prod?.game_url?.match(/^\/g\/([^/]+)\//)?.[1];
-  if (gameId) await removeStorageFolder(supabase, GAMES_BUCKET, gameId);
+  await logAdmin(admin, "product.delete", { type: "product", id }, { slug: prod?.slug, title: prod?.title });
+
+  // Dọn Storage (best-effort): thư mục game/tool host (bản hiện tại + bản trước) + file tải về.
+  for (const url of [prod?.game_url, prod?.game_url_prev]) {
+    const gameId = url?.match(/^\/g\/([^/]+)\//)?.[1];
+    if (gameId) await removeStorageFolder(supabase, GAMES_BUCKET, gameId);
+  }
   if (prod?.download_path)
     await supabase.storage.from(FILES_BUCKET).remove([prod.download_path]);
   // Bộ cài phần mềm (software_releases cascade theo row).
@@ -282,7 +311,7 @@ export async function deleteProduct(formData: FormData) {
 
 /** Cấp một sản phẩm cho user (thủ công). */
 export async function grantEntitlement(formData: FormData) {
-  await assertAdmin();
+  const admin = await assertAdmin();
   const userId = String(formData.get("user_id") ?? "").trim();
   const productId = String(formData.get("product_id") ?? "").trim();
   if (!userId || !productId) return;
@@ -296,13 +325,14 @@ export async function grantEntitlement(formData: FormData) {
     );
   if (error) throw new Error(error.message);
   await syncFeatureProvision(userId, productId).catch((e) => console.error("provision", e));
+  await logAdmin(admin, "entitlement.grant", { type: "user", id: userId }, { product_id: productId });
 
   revalidatePath(`/admin/users/${userId}`);
 }
 
 /** Thu hồi một sản phẩm khỏi user. */
 export async function revokeEntitlement(formData: FormData) {
-  await assertAdmin();
+  const admin = await assertAdmin();
   const userId = String(formData.get("user_id") ?? "").trim();
   const productId = String(formData.get("product_id") ?? "").trim();
   if (!userId || !productId) return;
@@ -315,13 +345,14 @@ export async function revokeEntitlement(formData: FormData) {
     .eq("product_id", productId);
   if (error) throw new Error(error.message);
   await syncFeatureProvision(userId, productId).catch((e) => console.error("provision", e));
+  await logAdmin(admin, "entitlement.revoke", { type: "user", id: userId }, { product_id: productId });
 
   revalidatePath(`/admin/users/${userId}`);
 }
 
 // ---- Cấu hình nhanh sản phẩm (tier / giá / trial / active) ----
 export async function updateProductConfig(formData: FormData) {
-  await assertAdmin();
+  const admin = await assertAdmin();
   const id = String(formData.get("id") ?? "").trim();
   if (!id) return;
 
@@ -341,13 +372,14 @@ export async function updateProductConfig(formData: FormData) {
   const supabase = createStoreAdminClient();
   const { error } = await supabase.from("products").update(patch).eq("id", id);
   if (error) throw new Error(error.message);
+  await logAdmin(admin, "product.config", { type: "product", id }, patch);
 
   revalidatePath("/admin");
 }
 
 // ---- Coupon ----
 export async function createCoupon(formData: FormData) {
-  await assertAdmin();
+  const admin = await assertAdmin();
   const code = String(formData.get("code") ?? "").trim().toUpperCase();
   const kind = formData.get("kind") === "amount" ? "amount" : "percent";
   const value = Number(formData.get("value") ?? 0) || 0;
@@ -358,30 +390,33 @@ export async function createCoupon(formData: FormData) {
     .from("discount_codes")
     .insert({ code, kind, value, active: true });
   if (error && error.code !== "23505") throw new Error(error.message);
+  if (!error) await logAdmin(admin, "coupon.create", { type: "coupon", id: code }, { kind, value });
 
   revalidatePath("/admin/coupons");
 }
 
 export async function toggleCoupon(formData: FormData) {
-  await assertAdmin();
+  const admin = await assertAdmin();
   const id = String(formData.get("id") ?? "").trim();
   const next = formData.get("next") === "true";
   const supabase = createStoreAdminClient();
   await supabase.from("discount_codes").update({ active: next }).eq("id", id);
+  await logAdmin(admin, "coupon.toggle", { type: "coupon", id }, { active: next });
   revalidatePath("/admin/coupons");
 }
 
 export async function deleteCoupon(formData: FormData) {
-  await assertAdmin();
+  const admin = await assertAdmin();
   const id = String(formData.get("id") ?? "").trim();
   const supabase = createStoreAdminClient();
   await supabase.from("discount_codes").delete().eq("id", id);
+  await logAdmin(admin, "coupon.delete", { type: "coupon", id });
   revalidatePath("/admin/coupons");
 }
 
 // ---- Cài đặt / chính sách ----
 export async function saveSettings(formData: FormData) {
-  await assertAdmin();
+  const admin = await assertAdmin();
   const fullToppingPrice = Number(formData.get("full_topping_price") ?? 0) || 0;
   const freedomDays = Number(formData.get("freedom_days") ?? 30) || 30;
   const accessMode = formData.get("access_mode") === "store" ? "store" : "giaoly_pro";
@@ -396,12 +431,13 @@ export async function saveSettings(formData: FormData) {
     { onConflict: "key" }
   );
   if (error) throw new Error(error.message);
+  await logAdmin(admin, "settings.save", { type: "settings" }, { fullToppingPrice, freedomDays, accessMode });
 
   revalidatePath("/admin/settings");
 }
 
 export async function togglePublish(formData: FormData) {
-  await assertAdmin();
+  const admin = await assertAdmin();
   const id = String(formData.get("id") ?? "").trim();
   const next = formData.get("next") === "true";
   if (!id) return;
@@ -412,13 +448,16 @@ export async function togglePublish(formData: FormData) {
     .update({ published: next })
     .eq("id", id);
   if (error) throw new Error(error.message);
+  await logAdmin(admin, "product.publish", { type: "product", id }, { published: next });
 
   revalidatePath("/admin");
 }
 
 // ---- Đồng bộ Giáo Lý Số ----
 export async function retryProvision(formData: FormData) {
-  await assertAdmin();
-  await retryProvisionJob(String(formData.get("id") ?? ""));
+  const admin = await assertAdmin();
+  const jobId = String(formData.get("id") ?? "");
+  await retryProvisionJob(jobId);
+  await logAdmin(admin, "provision.retry", { type: "provision", id: jobId });
   revalidatePath("/admin/provisions");
 }

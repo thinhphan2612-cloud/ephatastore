@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { getAdminUser } from "@/lib/auth";
+import { logAdmin } from "@/lib/admin-audit";
 import { createStoreAdminClient } from "@/lib/supabase/store-admin";
 import { slugify } from "@/lib/slug";
 
@@ -24,7 +25,9 @@ export type CatalogResult = { ok: true; item: { id: string; name: string } } | {
 export type ActionResult = { ok: true } | { ok: false; error: string };
 
 async function assertAdmin() {
-  if (!(await getAdminUser())) throw new Error("Không có quyền admin.");
+  const admin = await getAdminUser();
+  if (!admin) throw new Error("Không có quyền admin.");
+  return admin;
 }
 
 const clean = (v: unknown, max: number) => String(v ?? "").trim().slice(0, max);
@@ -56,7 +59,7 @@ function refresh() {
 // ---------- Danh mục ----------
 
 export async function createCategory(input: CategoryInput): Promise<CatalogResult> {
-  await assertAdmin();
+  const admin = await assertAdmin();
   const row = categoryRow(input);
   if (!row.name) return { ok: false, error: "Nhập tên danh mục." };
   const slug = await uniqueSlug("categories", row.name);
@@ -74,23 +77,25 @@ export async function createCategory(input: CategoryInput): Promise<CatalogResul
     .select("id,name")
     .single();
   if (error) return { ok: false, error: error.message };
+  await logAdmin(admin, "category.create", { type: "category", id: data.id }, { name: row.name, slug });
   refresh();
   return { ok: true, item: data };
 }
 
 export async function updateCategory(id: string, input: CategoryInput): Promise<ActionResult> {
-  await assertAdmin();
+  const admin = await assertAdmin();
   const row = categoryRow(input);
   if (!row.name) return { ok: false, error: "Nhập tên danh mục." };
   const { error } = await createStoreAdminClient().from("categories").update(row).eq("id", id);
   if (error) return { ok: false, error: error.message };
+  await logAdmin(admin, "category.update", { type: "category", id }, row);
   refresh();
   return { ok: true };
 }
 
 /** Đổi chỗ với danh mục liền trước (-1) / liền sau (+1); đánh lại sort_order 1..n. */
 export async function moveCategory(id: string, dir: -1 | 1): Promise<ActionResult> {
-  await assertAdmin();
+  const admin = await assertAdmin();
   const supabase = createStoreAdminClient();
   const { data } = await supabase.from("categories").select("id").order("sort_order").order("created_at");
   const ids = (data ?? []).map((r) => r.id);
@@ -102,12 +107,13 @@ export async function moveCategory(id: string, dir: -1 | 1): Promise<ActionResul
     const { error } = await supabase.from("categories").update({ sort_order: k + 1 }).eq("id", cid);
     if (error) return { ok: false, error: error.message };
   }
+  await logAdmin(admin, "category.move", { type: "category", id }, { dir });
   refresh();
   return { ok: true };
 }
 
 export async function deleteCategory(id: string): Promise<ActionResult> {
-  await assertAdmin();
+  const admin = await assertAdmin();
   const supabase = createStoreAdminClient();
   const [{ count: main }, { count: extra }] = await Promise.all([
     supabase.from("products").select("id", { count: "exact", head: true }).eq("category_id", id),
@@ -117,6 +123,7 @@ export async function deleteCategory(id: string): Promise<ActionResult> {
   if (n > 0) return { ok: false, error: `Còn ${n} sản phẩm trong danh mục này — chuyển chúng sang danh mục khác trước.` };
   const { error } = await supabase.from("categories").delete().eq("id", id);
   if (error) return { ok: false, error: error.message };
+  await logAdmin(admin, "category.delete", { type: "category", id });
   refresh();
   return { ok: true };
 }
@@ -124,7 +131,7 @@ export async function deleteCategory(id: string): Promise<ActionResult> {
 // ---------- Nhà phát hành ----------
 
 export async function createPublisher(input: PublisherInput): Promise<CatalogResult> {
-  await assertAdmin();
+  const admin = await assertAdmin();
   const name = clean(input.name, 80);
   if (!name) return { ok: false, error: "Nhập tên nhà phát hành." };
   const slug = await uniqueSlug("publishers", name);
@@ -135,12 +142,13 @@ export async function createPublisher(input: PublisherInput): Promise<CatalogRes
     .select("id,name")
     .single();
   if (error) return { ok: false, error: error.message };
+  await logAdmin(admin, "publisher.create", { type: "publisher", id: data.id }, { name, slug, verified: !!input.verified });
   refresh();
   return { ok: true, item: data };
 }
 
 export async function updatePublisher(id: string, input: PublisherInput): Promise<ActionResult> {
-  await assertAdmin();
+  const admin = await assertAdmin();
   const name = clean(input.name, 80);
   if (!name) return { ok: false, error: "Nhập tên nhà phát hành." };
   const { error } = await createStoreAdminClient()
@@ -148,17 +156,19 @@ export async function updatePublisher(id: string, input: PublisherInput): Promis
     .update({ name, verified: !!input.verified })
     .eq("id", id);
   if (error) return { ok: false, error: error.message };
+  await logAdmin(admin, "publisher.update", { type: "publisher", id }, { name, verified: !!input.verified });
   refresh();
   return { ok: true };
 }
 
 export async function deletePublisher(id: string): Promise<ActionResult> {
-  await assertAdmin();
+  const admin = await assertAdmin();
   const supabase = createStoreAdminClient();
   const { count } = await supabase.from("products").select("id", { count: "exact", head: true }).eq("publisher_id", id);
   if (count) return { ok: false, error: `Còn ${count} sản phẩm của nhà phát hành này — chuyển chúng sang nhà phát hành khác trước.` };
   const { error } = await supabase.from("publishers").delete().eq("id", id);
   if (error) return { ok: false, error: error.message };
+  await logAdmin(admin, "publisher.delete", { type: "publisher", id });
   refresh();
   return { ok: true };
 }

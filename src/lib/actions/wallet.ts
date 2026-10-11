@@ -3,11 +3,14 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getCurrentUser, getAdminUser } from "@/lib/auth";
+import { logAdmin } from "@/lib/admin-audit";
 import { createStoreAdminClient } from "@/lib/supabase/store-admin";
 import { vndToPoints } from "@/lib/points";
 
 async function assertAdmin() {
-  if (!(await getAdminUser())) throw new Error("Không có quyền admin.");
+  const admin = await getAdminUser();
+  if (!admin) throw new Error("Không có quyền admin.");
+  return admin;
 }
 
 export interface TopupState {
@@ -45,20 +48,26 @@ export async function createTopup(
   redirect(`/wallet/topup/${data.id}`);
 }
 
-/** Admin duyệt đơn nạp → cộng point (atomic) + đánh dấu đã thu tiền. */
+/**
+ * Admin duyệt đơn nạp → cộng point + đánh dấu đã thu tiền.
+ * Chốt trạng thái TRƯỚC (chỉ một request đổi được pending → paid) rồi mới cộng point: hai admin bấm duyệt
+ * cùng lúc không cộng 2 lần. Cộng point lỗi → trả đơn về pending.
+ */
 export async function approveTopup(formData: FormData) {
-  await assertAdmin();
+  const admin = await assertAdmin();
   const id = String(formData.get("id") ?? "").trim();
   if (!id) return;
 
   const supabase = createStoreAdminClient();
-  const { data: topup } = await supabase
+  const { data: topup, error: claimErr } = await supabase
     .from("point_topups")
-    .select("id,user_id,code,points,status")
+    .update({ status: "paid", approved_at: new Date().toISOString() })
     .eq("id", id)
+    .eq("status", "pending")
+    .select("id,user_id,code,points,amount_vnd")
     .maybeSingle();
-  if (!topup) throw new Error("Không tìm thấy đơn nạp.");
-  if (topup.status !== "pending") return; // đã xử lý
+  if (claimErr) throw new Error(claimErr.message);
+  if (!topup) return; // không tồn tại hoặc đã có người xử lý
 
   const { error: rpcErr } = await supabase.rpc("adjust_points", {
     p_user: topup.user_id,
@@ -67,30 +76,35 @@ export async function approveTopup(formData: FormData) {
     p_ref: topup.code,
     p_note: `Nạp point ${topup.code}`,
   });
-  if (rpcErr) throw new Error(rpcErr.message);
-
-  const { error } = await supabase
-    .from("point_topups")
-    .update({ status: "paid", approved_at: new Date().toISOString() })
-    .eq("id", id)
-    .eq("status", "pending"); // chống duyệt 2 lần
-  if (error) throw new Error(error.message);
+  if (rpcErr) {
+    await supabase.from("point_topups").update({ status: "pending", approved_at: null }).eq("id", id);
+    throw new Error(rpcErr.message);
+  }
+  await logAdmin(admin, "topup.approve", { type: "topup", id }, {
+    code: topup.code,
+    user_id: topup.user_id,
+    points: topup.points,
+    amount_vnd: topup.amount_vnd,
+  });
 
   revalidatePath("/admin/topups");
 }
 
 /** Admin từ chối đơn nạp. */
 export async function rejectTopup(formData: FormData) {
-  await assertAdmin();
+  const admin = await assertAdmin();
   const id = String(formData.get("id") ?? "").trim();
   if (!id) return;
 
   const supabase = createStoreAdminClient();
-  await supabase
+  const { data: rejected } = await supabase
     .from("point_topups")
     .update({ status: "rejected" })
     .eq("id", id)
-    .eq("status", "pending");
+    .eq("status", "pending")
+    .select("code,points")
+    .maybeSingle();
+  if (rejected) await logAdmin(admin, "topup.reject", { type: "topup", id }, rejected);
 
   revalidatePath("/admin/topups");
 }
