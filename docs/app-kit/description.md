@@ -36,8 +36,10 @@ Dòng **tagline** (≤ 140 ký tự) là ô riêng, không lặp lại trong mô
 - `style` ngoài danh sách trên: `width`, `height`, `margin`, `padding`, `position`, `font-size`, `display`, `float`…
 
 ## Giữ trang không vỡ (responsive)
-Trang sản phẩm rộng ~700px trên máy tính và ~340px trên điện thoại. Ephata đã ép ảnh/video/bảng vừa khung, nhưng vẫn:
-- **Ảnh**: rộng tối thiểu 1200px để nét, tỉ lệ ngang (16:9 hoặc 4:3); nén WebP/JPG ≤ 300KB mỗi ảnh. Luôn có `alt`.
+Mục Giới thiệu rộng hết trang (~1180px trên máy tính, ~340px trên điện thoại); ảnh/video hiển thị tối đa 800px. Ephata
+đã ép ảnh/video/bảng vừa khung, nhưng vẫn:
+- **Ảnh**: dùng ảnh chụp màn hình / minh họa bên trong sản phẩm — **đừng lặp lại ảnh bìa** (đã hiện ở đầu trang).
+  Rộng tối thiểu 1200px để nét, tỉ lệ ngang (16:9 hoặc 4:3); nén WebP/JPG ≤ 300KB mỗi ảnh. Luôn có `alt`.
   Ảnh tự co theo khung — đừng đặt `width` cố định để "ép" kích thước.
 - **Video YouTube**: dán đúng link embed (`Chia sẻ → Nhúng`, lấy phần `src`). Khung tự theo tỉ lệ 16:9, rộng 100%.
 - **Bảng**: tối đa 4 cột, nội dung ô ngắn. Trên điện thoại vừa khoảng **3 cột**; nhiều hơn thì bảng cuộn ngang trong
@@ -73,6 +75,8 @@ người dẫn và màn hình trình chiếu cho cả lớp.</p>
 <h2>Cần gì để dùng</h2>
 <p>Máy tính có Chrome / Edge / Safari bản mới. Không cần cài đặt.</p>
 ```
+
+Mẫu thật đã qua bộ lọc: [`examples/mo-ta-ai-la-trieu-phu.html`](examples/mo-ta-ai-la-trieu-phu.html) (game Ai là triệu phú Giáo lý).
 
 ## Kiểm trước khi lưu
 1. Bấm tab **Xem trước** trong form — đó là đúng HTML sau khi lọc. Thứ gì không thấy ở đây là đã bị loại.
