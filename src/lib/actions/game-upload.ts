@@ -56,7 +56,8 @@ async function assertBuildUploaded(gameId: string) {
 export interface SaveGameInput {
   gameId: string;
   title: string;
-  categorySlug: string;
+  categoryId: string;
+  publisherId: string;
   tier: "free" | "pro";
   priceMonth: number;
   giaolyProFree?: boolean;
@@ -72,18 +73,12 @@ export async function saveGameProduct(input: SaveGameInput): Promise<{ slug: str
   await assertBuildUploaded(input.gameId);
   const supabase = createStoreAdminClient();
 
-  const { data: cat } = await supabase
-    .from("categories")
-    .select("id")
-    .eq("slug", input.categorySlug)
-    .maybeSingle();
-  if (!cat) throw new Error("Danh mục không hợp lệ.");
-
-  const { data: pub } = await supabase
-    .from("publishers")
-    .select("id")
-    .eq("slug", "ephata")
-    .maybeSingle();
+  const [{ data: cat }, { data: pub }] = await Promise.all([
+    supabase.from("categories").select("id").eq("id", input.categoryId).maybeSingle(),
+    supabase.from("publishers").select("id").eq("id", input.publisherId).maybeSingle(),
+  ]);
+  if (!cat) throw new Error("Chưa chọn danh mục.");
+  if (!pub) throw new Error("Chưa chọn nhà phát hành.");
 
   // Phục vụ qua route /g kèm mã truy cập (bucket private). Xem app/g/[gameId]/[...path].
   const gameUrl = `/g/${input.gameId}/index.html`;
@@ -108,7 +103,7 @@ export async function saveGameProduct(input: SaveGameInput): Promise<{ slug: str
     description: desc,
     type: isTool ? "tool" : "game",
     category_id: cat.id,
-    publisher_id: pub?.id ?? null,
+    publisher_id: pub.id,
     tier,
     min_plan: tier,
     price_month: price,
