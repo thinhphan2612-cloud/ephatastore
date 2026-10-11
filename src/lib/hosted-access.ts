@@ -43,6 +43,32 @@ export function verifyHostedToken(token: string, gameId: string): string | null 
   }
 }
 
+/**
+ * Mã nhúng ỔN ĐỊNH cho Giáo Lý Số: gắn với SẢN PHẨM + người (không gắn bản build) → link /e/<productId>/<mã>
+ * vẫn chạy sau khi thay / quay lại bản build (route /e chuyển tới bản đang chạy kèm mã chơi mới).
+ * Payload có `p` (không có `g`) nên không dùng thay mã chơi /g được và ngược lại.
+ */
+export function createEmbedToken(productId: string, userId: string, ttlMs = EMBED_TOKEN_TTL_MS): string {
+  const payload = Buffer.from(JSON.stringify({ p: productId, u: userId, e: Date.now() + ttlMs })).toString("base64url");
+  return `${payload}.${sign(payload)}`;
+}
+
+/** Hợp lệ khi đúng chữ ký, đúng sản phẩm và chưa hết hạn. Trả userId hoặc null. */
+export function verifyEmbedToken(token: string, productId: string): string | null {
+  const [payload, sig] = token.split(".");
+  if (!payload || !sig) return null;
+  const expected = Buffer.from(sign(payload));
+  const got = Buffer.from(sig);
+  if (expected.length !== got.length || !crypto.timingSafeEqual(expected, got)) return null;
+  try {
+    const p = JSON.parse(Buffer.from(payload, "base64url").toString("utf8"));
+    if (p.g !== undefined || p.p !== productId || typeof p.e !== "number" || p.e < Date.now()) return null;
+    return typeof p.u === "string" ? p.u : null;
+  } catch {
+    return null;
+  }
+}
+
 /** "/g/<id>/index.html" → { gameId, entry } (entry = file mở đầu). */
 export function parseGameUrl(gameUrl: string | null | undefined): { gameId: string; entry: string } | null {
   const m = gameUrl?.match(/^\/g\/([0-9a-f-]{36})\/(.+)$/);

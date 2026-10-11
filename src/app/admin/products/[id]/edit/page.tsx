@@ -12,6 +12,7 @@ import { SoftwareReleases } from "@/components/admin/software-releases";
 import { HostedBuildUploader } from "@/components/admin/hosted-build-uploader";
 import { AppSecretPanel } from "@/components/admin/app-secret-panel";
 import { publicKeyBase64 } from "@/lib/software/license";
+import { getProductUsage, slugLockReason } from "@/data/product-usage";
 
 export default async function EditProductPage({
   params,
@@ -19,10 +20,11 @@ export default async function EditProductPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const [product, categories, publishers] = await Promise.all([
+  const [product, categories, publishers, usage] = await Promise.all([
     adminGetProduct(id),
     adminListCategories(),
     adminListPublishers(),
+    getProductUsage(id),
   ]);
 
   if (!product) notFound();
@@ -51,13 +53,20 @@ export default async function EditProductPage({
         / Sửa
       </div>
       <h2 className="text-lg font-semibold">Sửa: {product.title}</h2>
-      {hosted && <HostedBuildUploader productId={product.id} gameId={hosted.gameId} />}
+      {hosted && (
+        <HostedBuildUploader
+          productId={product.id}
+          gameId={hosted.gameId}
+          prevGameId={parseGameUrl(product.game_url_prev)?.gameId ?? null}
+        />
+      )}
       <ProductForm
         categories={categories}
         publishers={publishers}
         product={product}
         preset={isSoftware ? "software" : hosted ? "hosted" : "full"}
         currentReleases={currentReleases}
+        slugLockedReason={slugLockReason(usage)}
       />
       {isSoftware && <SoftwareReleases slug={product.slug} releases={releases} />}
       {isExternalApp && (

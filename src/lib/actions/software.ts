@@ -2,13 +2,16 @@
 
 import { revalidatePath } from "next/cache";
 import { getAdminUser } from "@/lib/auth";
+import { logAdmin } from "@/lib/admin-audit";
 import { createStoreAdminClient } from "@/lib/supabase/store-admin";
 import { isPlatform, SEMVER_RE, type Platform } from "@/lib/software/version";
 
 const FILES_BUCKET = "product-files";
 
 async function assertAdmin() {
-  if (!(await getAdminUser())) throw new Error("Không có quyền admin.");
+  const admin = await getAdminUser();
+  if (!admin) throw new Error("Không có quyền admin.");
+  return admin;
 }
 
 /**
@@ -62,7 +65,7 @@ export async function saveRelease(input: {
   sizeBytes: number;
   notes: string;
 }): Promise<void> {
-  await assertAdmin();
+  const admin = await assertAdmin();
   const version = input.version.trim();
   const prefix = `software/${input.productId}/${input.platform}/${version}/`;
   if (!isPlatform(input.platform) || !SEMVER_RE.test(version) || !input.path.startsWith(prefix))
@@ -82,22 +85,28 @@ export async function saveRelease(input: {
     if (error.code === "23505") throw new Error(`Đã có bản ${version} cho ${input.platform}.`);
     throw new Error(error.message);
   }
+  await logAdmin(admin, "release.create", { type: "product", id: input.productId }, {
+    platform: input.platform,
+    version,
+    file: input.fileName,
+  });
   revalidatePath(`/admin/products/${input.productId}/edit`);
 }
 
 /** Xóa một phiên bản (row + file). */
 export async function deleteRelease(formData: FormData) {
-  await assertAdmin();
+  const admin = await assertAdmin();
   const id = String(formData.get("id") ?? "").trim();
   const supabase = createStoreAdminClient();
   const { data: rel } = await supabase
     .from("software_releases")
-    .select("product_id,storage_path")
+    .select("product_id,storage_path,platform,version")
     .eq("id", id)
     .maybeSingle();
   if (!rel) return;
   const { error } = await supabase.from("software_releases").delete().eq("id", id);
   if (error) throw new Error(error.message);
   await supabase.storage.from(FILES_BUCKET).remove([rel.storage_path]);
+  await logAdmin(admin, "release.delete", { type: "product", id: rel.product_id }, { platform: rel.platform, version: rel.version });
   revalidatePath(`/admin/products/${rel.product_id}/edit`);
 }

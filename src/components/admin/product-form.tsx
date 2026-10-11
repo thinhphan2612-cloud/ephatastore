@@ -45,6 +45,7 @@ export function ProductForm({
   product,
   preset = "full",
   currentReleases = {},
+  slugLockedReason = null,
 }: {
   categories: { id: string; name: string }[];
   publishers: { id: string; name: string }[];
@@ -52,6 +53,8 @@ export function ProductForm({
   preset?: ProductPreset;
   /** Bản mới nhất đang có của mỗi nền tảng (software, khi sửa). */
   currentReleases?: Partial<Record<Platform, { version: string; file_name: string }>>;
+  /** Slug không đổi được (sản phẩm đã có người dùng / đã phát hành) — lý do hiển thị dưới ô. */
+  slugLockedReason?: string | null;
 }) {
   const router = useRouter();
   const p = product;
@@ -168,8 +171,17 @@ export function ProductForm({
       </Field>
 
       <div className="grid gap-5 sm:grid-cols-2">
-        <Field label="Slug (để trống = tự tạo từ tiêu đề)">
-          <input name="slug" defaultValue={p?.slug} className={input} placeholder="tu-dong" />
+        <Field label={slugLockedReason ? "Slug (đã khóa)" : "Slug (để trống = tự tạo từ tiêu đề)"}>
+          <input
+            name="slug"
+            defaultValue={p?.slug}
+            readOnly={!!slugLockedReason}
+            className={`${input} ${slugLockedReason ? "cursor-not-allowed opacity-60" : ""}`}
+            placeholder="tu-dong"
+          />
+          {slugLockedReason && (
+            <Hint>Không đổi được vì sản phẩm đã có {slugLockedReason} — link, API phần mềm và Giáo Lý Số dựa vào slug.</Hint>
+          )}
         </Field>
         <Field label="Loại *">
           <select name="type" value={type} onChange={(e) => setType(e.target.value as ProductType)} className={input}>

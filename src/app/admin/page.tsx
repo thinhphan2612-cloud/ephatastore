@@ -6,7 +6,12 @@ import { ConfirmSubmit } from "@/components/admin/confirm-submit";
 const input =
   "rounded-md border border-border bg-bg-elevated px-2 py-1 text-sm text-text focus:border-accent focus:outline-none";
 
-export default async function AdminProductsPage() {
+export default async function AdminProductsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ notice?: string }>;
+}) {
+  const { notice } = await searchParams;
   const products = await adminListProducts();
   const pro = products.filter((p) => p.tier === "pro").length;
 
@@ -26,6 +31,12 @@ export default async function AdminProductsPage() {
           </Link>
         </div>
       </div>
+
+      {notice && (
+        <p role="alert" className="rounded-md border border-accent/40 bg-accent/10 px-3 py-2 text-sm text-text">
+          {notice}
+        </p>
+      )}
 
       <div className="overflow-x-auto rounded-lg border border-border">
         <table className="w-full text-sm">

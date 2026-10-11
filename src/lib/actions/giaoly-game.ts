@@ -5,7 +5,7 @@ import { getGiaolyContext } from "@/lib/giaoly-context";
 import { effectivePlan } from "@/lib/plan";
 import { createStoreAdminClient } from "@/lib/supabase/store-admin";
 import { canAccessProduct } from "@/lib/access";
-import { EMBED_TOKEN_TTL_MS, hostedPlayUrl } from "@/lib/hosted-access";
+import { createEmbedToken } from "@/lib/hosted-access";
 
 export interface AddGameState {
   ok?: boolean;
@@ -56,14 +56,12 @@ export async function addGameToGiaoly(
     };
   }
 
-  const site = process.env.NEXT_PUBLIC_SITE_URL ?? "";
-  // Game host trên store: link kèm mã truy cập dài hạn (nhúng ở domain Giáo Lý Số, không có cookie Ephata).
-  const hosted = hostedPlayUrl(product.game_url, user.id, EMBED_TOKEN_TTL_MS);
+  const site = (process.env.NEXT_PUBLIC_SITE_URL ?? "").replace(/\/$/, "");
+  // Game host trên store: link ổn định /e/<sản phẩm>/<mã nhúng dài hạn> — route /e chuyển tới bản build đang chạy,
+  // nên thay / quay lại bản build không làm gãy game đã thêm vào Giáo Lý Số.
   const playUrl = product.game_url.startsWith("http")
     ? product.game_url
-    : hosted?.startsWith("http")
-      ? hosted
-      : `${site}${hosted ?? product.game_url}`;
+    : `${site}/e/${product.id}/${createEmbedToken(product.id, user.id)}`;
 
   try {
     const res = await fetch(endpoint, {
@@ -84,6 +82,11 @@ export async function addGameToGiaoly(
   } catch (e) {
     return { error: e instanceof Error ? e.message : "Không gọi được Giáo Lý Số." };
   }
+
+  // Ghi nhận đã thêm vào Giáo Lý Số (khóa slug: Giáo Lý Số dùng slug làm khóa game).
+  await supabase
+    .from("giaoly_game_links")
+    .upsert({ product_id: product.id, store_user_id: user.id }, { onConflict: "product_id,store_user_id", ignoreDuplicates: true });
 
   return { ok: true };
 }
