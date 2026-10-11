@@ -37,7 +37,7 @@ export default async function BuyPage({
   const supabase = createStoreAdminClient();
   const { data: product } = await supabase
     .from("products")
-    .select("id,slug,title,tagline,icon,type,price_month,published")
+    .select("id,slug,title,tagline,icon,type,price_month,giaoly_pro_free,published")
     .eq("id", productId)
     .maybeSingle();
   if (!product || !product.published) notFound();
@@ -45,8 +45,9 @@ export default async function BuyPage({
   // Mỗi tài khoản 1 key/sản phẩm — đã có thì về Thư viện xem key.
   if (kind === "software" && (await getMyLicenseKey(user.id, product.id))) redirect("/library");
 
-  // Phần mềm: luôn trả point, không miễn phí theo Pro Giáo Lý Số.
-  const isPro = kind !== "software" && (await getCurrentUserPlan()) === "pro";
+  // Chỉ sản phẩm gắn nhãn "Miễn phí cho Pro Giáo Lý Số" mới free cho Pro (phần mềm không bao giờ có nhãn này).
+  const isPro =
+    kind !== "software" && product.giaoly_pro_free && (await getCurrentUserPlan()) === "pro";
   const [balance, settings] = await Promise.all([getBalance(user.id), getSettings()]);
   const points = isPro ? 0 : await purchasePricePoints(kind, product.price_month ?? 0);
   const enough = balance >= points;

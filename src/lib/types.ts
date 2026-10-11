@@ -71,6 +71,8 @@ export interface Product {
   appUrl?: string;
   /** đường dẫn app host trên store (/g/<id>/index.html) — game hoặc công cụ web */
   gameUrl?: string;
+  /** true = tài khoản có gói Pro Giáo Lý Số dùng/nhận miễn phí (không áp cho phần mềm bán key) */
+  giaolyProFree: boolean;
 
   /** 0..5 */
   rating: number;

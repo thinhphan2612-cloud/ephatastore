@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { getSettings } from "@/data/settings";
 import { getCurrentUser } from "@/lib/auth";
-import { getCurrentUserPlan } from "@/lib/plan";
 import { getBalance } from "@/data/wallet";
 import { hasActiveTopping } from "@/data/store-user";
 import { confirmPurchase } from "@/lib/actions/purchase";
@@ -23,7 +22,6 @@ export default async function ToppingPage() {
   const toppingPoints = vndToPoints(annual);
   const user = await getCurrentUser();
   const active = user ? await hasActiveTopping(user.id) : false;
-  const hasPro = user ? (await getCurrentUserPlan()) === "pro" : false;
   const balance = user ? await getBalance(user.id) : 0;
   const enough = balance >= toppingPoints;
 
@@ -66,10 +64,6 @@ export default async function ToppingPage() {
           {active ? (
             <div className="rounded-xl border border-success/40 bg-success/10 px-4 py-3 text-center font-semibold text-success">
               ✓ Full Topping đang bật
-            </div>
-          ) : hasPro ? (
-            <div className="rounded-xl border border-accent/40 bg-accent/10 px-4 py-3 text-center font-semibold text-accent">
-              Bạn đã có Pro Giáo Lý Số — dùng free mọi thứ, không cần Full Topping.
             </div>
           ) : !user || enough ? (
             <form action={confirmPurchase}>

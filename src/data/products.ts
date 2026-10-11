@@ -26,6 +26,7 @@ interface ProductRow {
   trial: boolean;
   trial_days: number;
   active: boolean;
+  giaoly_pro_free: boolean;
   icon: string | null;
   app_url: string | null;
   game_url: string | null;
@@ -46,7 +47,7 @@ interface ProductRow {
 }
 
 const SELECT =
-  "id,slug,title,tagline,description,type,price_vnd,original_price_vnd,cover_url,gallery,tags,min_plan,tier,price_month,trial,trial_days,active,icon,app_url,game_url,rating,rating_count,released_at,featured,is_new,is_popular,publisher:publishers(id,slug,name,avatar_url,verified),categories:product_categories(category:categories(slug))";
+  "id,slug,title,tagline,description,type,price_vnd,original_price_vnd,cover_url,gallery,tags,min_plan,tier,price_month,trial,trial_days,active,giaoly_pro_free,icon,app_url,game_url,rating,rating_count,released_at,featured,is_new,is_popular,publisher:publishers(id,slug,name,avatar_url,verified),categories:product_categories(category:categories(slug))";
 
 function mapRow(r: ProductRow): Product {
   const categorySlugs = (r.categories ?? [])
@@ -79,6 +80,7 @@ function mapRow(r: ProductRow): Product {
     trial: r.trial ?? false,
     trialDays: r.trial_days ?? 7,
     active: r.active ?? true,
+    giaolyProFree: r.type !== "software" && (r.giaoly_pro_free ?? false),
     icon: r.icon ?? undefined,
     appUrl: r.app_url ?? undefined,
     gameUrl: r.game_url ?? undefined,

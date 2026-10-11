@@ -32,7 +32,7 @@ export default async function AdminProductsPage() {
           <thead className="bg-surface text-left text-text-muted">
             <tr>
               <th className="px-3 py-2 font-medium">Sản phẩm</th>
-              <th className="px-3 py-2 font-medium">Cấu hình: Tier · Giá/tháng · Trial · Số ngày · Hiện</th>
+              <th className="px-3 py-2 font-medium">Cấu hình: Tier · Giá (VND) · Trial · Số ngày · Free Pro GLS · Hiện</th>
               <th className="px-3 py-2 font-medium"></th>
             </tr>
           </thead>
@@ -75,6 +75,12 @@ export default async function AdminProductsPage() {
                       defaultValue={p.trial_days}
                       className={`${input} w-16`}
                     />
+                    {p.type !== "software" && (
+                      <label className="flex items-center gap-1.5 text-xs text-text-muted" title="Tài khoản Pro Giáo Lý Số dùng miễn phí">
+                        <input type="checkbox" name="giaoly_pro_free" defaultChecked={p.giaoly_pro_free} className="h-4 w-4" />
+                        Free Pro GLS
+                      </label>
+                    )}
                     <label className="flex items-center gap-1.5 text-xs text-text-muted">
                       <input type="checkbox" name="active" defaultChecked={p.active} className="h-4 w-4" />
                       Hiện

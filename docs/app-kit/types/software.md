@@ -24,7 +24,8 @@ Bạn đăng nhập admin Ephata bằng tài khoản admin được cấp và t�
    **hai nơi phải giống hệt nhau** và **không đổi sau khi đã bán key** (đổi là mọi key đã bán hỏng).
    Key sinh ra có tiền tố = 4 ký tự đầu slug viết hoa (`LICH-XXXX-XXXX-XXXX`) — chọn slug có 4 chữ đầu dễ nhận.
 2. **Giá key** (VND, 100đ = 1 point; mua 1 lần dùng vĩnh viễn), **số thiết bị / key** (thường 2),
-   **hạn dùng offline** (thường 30 ngày — app không có mạng quá số ngày này thì phải bật mạng để xác minh lại).
+   **hạn dùng offline** (thường 30 ngày — app không có mạng quá số ngày này thì phải bật mạng để xác minh lại;
+   hoặc tick **Vĩnh viễn**: kích hoạt 1 lần dùng mãi, nhưng thu hồi key / gỡ thiết bị chỉ có hiệu lực khi app có mạng lại).
 3. **Tài khoản Microsoft Partner Center** dùng để nộp Store (nếu app lên Store): hỏi Felix dùng tài khoản chung nào.
 
 ---
@@ -64,6 +65,8 @@ Mỗi file có hướng dẫn cài phụ thuộc + cách dùng ở đầu file. 
    | `KEY_EMPTY` | Nhập key trước khi kích hoạt. |
 
 5. **Trạng thái `needs_verify`** (quá hạn offline): coi là CHƯA Pro, nhắc người dùng bật mạng; app tự refresh lần mở sau.
+   **Hạn offline vĩnh viễn**: server ký `offlineExpiresAt` lùi ~100 năm — nếu `offlineUntil` cách hiện tại hơn 50 năm,
+   hiển thị "Vĩnh viễn" thay vì ngày cụ thể.
 6. **Kiểm bản mới**: `check_update()` lúc mở app → có bản mới thì hỏi người dùng → mở `store_page_url`.
    **Bản Microsoft Store KHÔNG gọi** (Store tự cập nhật) — tắt bằng cờ build (mục 5.2).
 
