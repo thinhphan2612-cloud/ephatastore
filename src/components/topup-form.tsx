@@ -4,7 +4,7 @@ import { useActionState, useState } from "react";
 import { createTopup, type TopupState } from "@/lib/actions/wallet";
 import { TOPUP_PRESETS, vndToPoints } from "@/lib/points";
 
-export function TopupForm({ defaultAmount }: { defaultAmount?: number }) {
+export function TopupForm({ defaultAmount, back }: { defaultAmount?: number; back?: string }) {
   const [state, formAction, pending] = useActionState<TopupState, FormData>(
     createTopup,
     {}
@@ -14,6 +14,7 @@ export function TopupForm({ defaultAmount }: { defaultAmount?: number }) {
   return (
     <form action={formAction} className="space-y-4">
       <input type="hidden" name="amount_vnd" value={amount} />
+      {back && <input type="hidden" name="back" value={back} />}
 
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
         {TOPUP_PRESETS.map((v) => (

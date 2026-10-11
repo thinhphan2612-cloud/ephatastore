@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { createStoreAuthBrowserClient } from "@/lib/supabase/store-auth-browser";
+import { authErrorVi } from "@/lib/auth-errors";
 
 /** Đặt mật khẩu mới cho tài khoản đang đăng nhập (đổi mật khẩu, hoặc sau khi bấm link "Quên mật khẩu"). */
 export function ChangePasswordForm() {
@@ -21,13 +22,7 @@ export function ChangePasswordForm() {
     const { error } = await createStoreAuthBrowserClient().auth.updateUser({ password });
     setLoading(false);
     if (error) {
-      setError(
-        /different from the old|same as/i.test(error.message)
-          ? "Mật khẩu mới phải khác mật khẩu cũ."
-          : /session|not authenticated|jwt/i.test(error.message)
-            ? "Phiên đăng nhập đã hết. Đăng nhập lại (hoặc yêu cầu lại link Quên mật khẩu) rồi thử lại."
-            : error.message
-      );
+      setError(authErrorVi(error));
       return;
     }
     setDone(true);

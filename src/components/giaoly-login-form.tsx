@@ -6,6 +6,7 @@ import { safeNext } from "@/lib/safe-next";
 import { createClient } from "@supabase/supabase-js";
 import { createStoreAuthBrowserClient } from "@/lib/supabase/store-auth-browser";
 import { loginWithGiaoly } from "@/lib/actions/giaoly-login";
+import { authErrorVi } from "@/lib/auth-errors";
 
 export function GiaolyLoginForm() {
   const router = useRouter();
@@ -33,11 +34,7 @@ export function GiaolyLoginForm() {
         password,
       });
       if (authErr || !data.session) {
-        setError(
-          authErr?.message === "Invalid login credentials"
-            ? "Email hoặc mật khẩu Giáo Lý Số không đúng."
-            : authErr?.message ?? "Không đăng nhập được Giáo Lý Số."
-        );
+        setError(authErrorVi(authErr, "Giáo Lý Số"));
         setLoading(false);
         return;
       }
@@ -59,7 +56,7 @@ export function GiaolyLoginForm() {
         type: "email",
       });
       if (otpErr) {
-        setError(otpErr.message);
+        setError(authErrorVi(otpErr));
         setLoading(false);
         return;
       }
@@ -67,7 +64,7 @@ export function GiaolyLoginForm() {
       router.push(next);
       router.refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Có lỗi khi đăng nhập.");
+      setError(authErrorVi(err instanceof Error ? err : null));
       setLoading(false);
     }
   }
@@ -75,8 +72,8 @@ export function GiaolyLoginForm() {
   return (
     <form onSubmit={onSubmit} className="space-y-3 text-left">
       <div>
-        <label className="mb-1 block text-sm text-text-muted">Email Giáo Lý Số</label>
-        <input
+        <label htmlFor="gls-login-email" className="mb-1 block text-sm text-text-muted">Email Giáo Lý Số</label>
+        <input id="gls-login-email" autoComplete="email"
           type="email"
           required
           value={email}
@@ -85,8 +82,8 @@ export function GiaolyLoginForm() {
         />
       </div>
       <div>
-        <label className="mb-1 block text-sm text-text-muted">Mật khẩu Giáo Lý Số</label>
-        <input
+        <label htmlFor="gls-login-password" className="mb-1 block text-sm text-text-muted">Mật khẩu Giáo Lý Số</label>
+        <input id="gls-login-password" autoComplete="current-password"
           type="password"
           required
           value={password}

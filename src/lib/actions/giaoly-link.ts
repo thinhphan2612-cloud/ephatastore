@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@supabase/supabase-js";
 import { getCurrentUser } from "@/lib/auth";
 import { createStoreAdminClient } from "@/lib/supabase/store-admin";
+import { refreshGiaolyContexts } from "@/lib/giaoly-context";
 
 export interface LinkState {
   ok?: boolean;
@@ -20,7 +21,7 @@ export async function linkGiaoly(
   formData: FormData
 ): Promise<LinkState> {
   const accessToken = String(formData.get("access_token") ?? "").trim();
-  if (!accessToken) return { error: "Thiếu token giaoly." };
+  if (!accessToken) return { error: "Chưa đăng nhập được Giáo Lý Số. Thử lại." };
 
   const storeUser = await getCurrentUser();
   if (!storeUser) return { error: "Bạn chưa đăng nhập store." };
@@ -36,7 +37,7 @@ export async function linkGiaoly(
 
   // Verify token → user giaoly thật.
   const { data: gUser, error: gErr } = await giaoly.auth.getUser(accessToken);
-  if (gErr || !gUser.user) return { error: "Token giaoly không hợp lệ." };
+  if (gErr || !gUser.user) return { error: "Phiên Giáo Lý Số đã hết hạn. Đăng nhập Giáo Lý Số lại rồi thử." };
   const giaolyUserId = gUser.user.id;
 
   // Đọc context qua RPC (chạy dưới danh tính user giaoly này).
@@ -44,7 +45,7 @@ export async function linkGiaoly(
   if (ctxErr) {
     return {
       error:
-        "Chưa đọc được gói từ Giáo Lý Số. Cần cài hàm get_my_context bên Giáo Lý Số (chạy file giaoly-rpc.sql).",
+        "Chưa đọc được thông tin giáo xứ từ Giáo Lý Số. Thử lại sau ít phút — lặp lại thì báo chúng tôi ở trang Liên hệ.",
     };
   }
   const c = (ctx ?? {}) as { parish_id?: string; role?: string; plan?: string };
@@ -58,7 +59,7 @@ export async function linkGiaoly(
     .eq("giaoly_user_id", giaolyUserId)
     .neq("id", storeUser.id)
     .maybeSingle();
-  if (taken) return { error: "Tài khoản giaoly này đã liên kết với một tài khoản store khác." };
+  if (taken) return { error: "Tài khoản Giáo Lý Số này đã liên kết với một tài khoản Ephata Store khác." };
 
   const { error: upErr } = await admin.from("profiles").upsert({
     id: storeUser.id,
@@ -72,7 +73,7 @@ export async function linkGiaoly(
     context_checked_at: null,
     giaoly_linked_at: new Date().toISOString(),
   });
-  if (upErr) return { error: upErr.message };
+  if (upErr) return { error: "Không lưu được liên kết. Thử lại sau ít phút." };
 
   revalidatePath("/account");
   revalidatePath("/", "layout");
@@ -80,6 +81,14 @@ export async function linkGiaoly(
 }
 
 /** Gỡ liên kết giaoly khỏi tài khoản store hiện tại. */
+/** Làm mới gói / vai trò từ Giáo Lý Số ngay (không chờ chu kỳ 6 giờ) — vd vừa được cấp Pro / quyền quản trị. */
+export async function refreshGiaolyNow() {
+  const storeUser = await getCurrentUser();
+  if (!storeUser) return;
+  await refreshGiaolyContexts([storeUser.id]);
+  revalidatePath("/account");
+}
+
 export async function unlinkGiaoly() {
   const storeUser = await getCurrentUser();
   if (!storeUser) return;

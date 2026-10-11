@@ -1,10 +1,17 @@
 import Link from "next/link";
 import type { Product } from "@/lib/types";
-import { formatPrice } from "@/lib/format";
+import { vndToPoints } from "@/lib/points";
+import { kindsFor } from "@/lib/purchase-kinds";
 import { TYPE_LABEL } from "@/lib/labels";
 
 export function ProductCard({ product }: { product: Product }) {
   const isPro = product.tier === "pro";
+  // Giá theo đúng cách bán (khớp trang sản phẩm): vĩnh viễn = giá 1 lần; công cụ / tính năng = gói năm.
+  const kind = kindsFor(product.type)[0];
+  const price =
+    kind === "annual"
+      ? `${vndToPoints(product.priceMonth * 12).toLocaleString("vi-VN")} point/năm`
+      : `${vndToPoints(product.priceMonth).toLocaleString("vi-VN")} point · ${kind === "software" ? "key vĩnh viễn" : "vĩnh viễn"}`;
 
   return (
     <Link
@@ -24,7 +31,7 @@ export function ProductCard({ product }: { product: Product }) {
       </span>
 
       <div className="relative z-10">
-        <h3 className="text-[20px] font-bold [text-shadow:0_2px_14px_rgba(0,0,0,0.65)]">
+        <h3 className="text-[20px] font-bold text-white [text-shadow:0_2px_14px_rgba(0,0,0,0.65)]">
           {product.title}
         </h3>
         <p className="mt-1.5 line-clamp-2 text-[13px] leading-[1.6] text-white/80 [text-shadow:0_2px_12px_rgba(0,0,0,0.6)]">
@@ -35,9 +42,7 @@ export function ProductCard({ product }: { product: Product }) {
           <span
             className={`text-xs font-black ${isPro ? "text-accent-hover" : "text-success"}`}
           >
-            {isPro
-              ? `${formatPrice(product.priceMonth)}${product.type === "software" ? " · key vĩnh viễn" : "/tháng"}`
-              : "Miễn phí"}
+            {isPro ? price : "Miễn phí"}
           </span>
           <span className="text-[11px] text-white/70">Xem chi tiết →</span>
         </div>

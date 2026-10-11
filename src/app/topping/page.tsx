@@ -9,10 +9,10 @@ import { formatPrice } from "@/lib/format";
 export const metadata = { title: "Full Topping" };
 
 const BENEFITS = [
-  "Mở khoá tất cả sản phẩm PRO",
+  "Mở khoá sản phẩm PRO: công cụ, game, tài liệu tải về",
   "Không cần mua lẻ từng tiện ích",
-  "Cập nhật & tính năng mới tự động",
-  "Một thuê bao cho toàn bộ Store",
+  "Sản phẩm PRO mới thêm vào cũng dùng được ngay",
+  "365 ngày · không tự gia hạn",
 ];
 
 export default async function ToppingPage() {
@@ -34,8 +34,8 @@ export default async function ToppingPage() {
           Full Topping
         </h1>
         <p className="mx-auto mt-3 max-w-[560px] text-text-muted">
-          Một thuê bao mở khoá <strong className="text-text">toàn bộ sản phẩm PRO</strong> trên
-          Ephata Store — thay vì mua lẻ từng cái.
+          Một thuê bao mở khoá <strong className="text-text">các sản phẩm PRO</strong> trên Ephata Store — công cụ,
+          game, tài liệu tải về — thay vì mua lẻ từng cái.
         </p>
       </div>
 
@@ -58,6 +58,12 @@ export default async function ToppingPage() {
             </li>
           ))}
         </ul>
+
+        {/* Nói rõ trước khi trả tiền (trước đây chỉ ghi trong Thư viện sau khi mua). */}
+        <p className="mt-5 rounded-lg border border-border px-3 py-2.5 text-xs leading-relaxed text-text-muted">
+          <b className="text-text">Không gồm:</b> phần mềm bán key (mua riêng, key vĩnh viễn) và tính năng Giáo Lý Số cho
+          giáo xứ (quản trị giáo xứ mua riêng).
+        </p>
 
         <div className="mt-7">
           {active ? (

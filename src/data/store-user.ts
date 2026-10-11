@@ -9,7 +9,7 @@ import type { Product } from "@/lib/types";
  */
 
 const PRODUCT_SELECT =
-  "id,slug,title,tagline,description,type,price_vnd,original_price_vnd,cover_url,tags,min_plan,tier,price_month,trial,trial_days,active,giaoly_pro_free,uses_wallet,icon,app_url,rating,rating_count,released_at,featured,is_new,is_popular,publisher:publishers(id,slug,name,avatar_url,verified)";
+  "id,slug,title,tagline,description,type,price_vnd,original_price_vnd,cover_url,tags,min_plan,tier,price_month,trial,trial_days,active,giaoly_pro_free,uses_wallet,icon,app_url,giaoly_feature_key,rating,rating_count,released_at,featured,is_new,is_popular,publisher:publishers(id,slug,name,avatar_url,verified)";
 
 interface Row {
   id: string;
@@ -32,6 +32,7 @@ interface Row {
   uses_wallet: boolean;
   icon: string | null;
   app_url: string | null;
+  giaoly_feature_key: string | null;
   rating: number | string;
   rating_count: number;
   released_at: string;
@@ -79,6 +80,7 @@ function mapRow(r: Row): Product {
     usesWallet: r.uses_wallet ?? false,
     icon: r.icon ?? undefined,
     appUrl: r.app_url ?? undefined,
+    giaolyFeatureKey: r.giaoly_feature_key ?? undefined,
     rating: Number(r.rating),
     ratingCount: r.rating_count,
     releasedAt: r.released_at,
@@ -125,6 +127,23 @@ export async function getMyLibrary(userId: string): Promise<LibraryItem[]> {
 }
 
 /** Quyền của user với một sản phẩm (kể cả đã hết hạn) — null nếu chưa từng có. */
+/** Trạng thái lần đồng bộ gần nhất sang Giáo Lý Số cho từng tính năng của user (productId → status). */
+export async function getFeatureSyncStatus(
+  userId: string,
+  productIds: string[]
+): Promise<Map<string, "done" | "failed" | "pending">> {
+  const out = new Map<string, "done" | "failed" | "pending">();
+  if (!productIds.length) return out;
+  const { data } = await createStoreAdminClient()
+    .from("provision_jobs")
+    .select("product_id,status,created_at")
+    .eq("store_user_id", userId)
+    .in("product_id", productIds)
+    .order("created_at", { ascending: false });
+  for (const j of data ?? []) if (j.product_id && !out.has(j.product_id)) out.set(j.product_id, j.status);
+  return out;
+}
+
 export async function getEntitlement(
   userId: string,
   productId: string

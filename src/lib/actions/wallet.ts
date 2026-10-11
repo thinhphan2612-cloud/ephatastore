@@ -6,6 +6,9 @@ import { getCurrentUser, getAdminUser } from "@/lib/auth";
 import { logAdmin } from "@/lib/admin-audit";
 import { createStoreAdminClient } from "@/lib/supabase/store-admin";
 import { vndToPoints } from "@/lib/points";
+import { safeNext } from "@/lib/safe-next";
+import { sendEmail } from "@/lib/email";
+import { topupApprovedEmail, topupRejectedEmail } from "@/lib/email-templates";
 
 async function assertAdmin() {
   const admin = await getAdminUser();
@@ -56,9 +59,11 @@ export async function createTopup(
     .insert({ user_id: user.id, code, amount_vnd: amount, points, status: "pending" })
     .select("id")
     .single();
-  if (error || !data) return { error: error?.message ?? "Không tạo được đơn nạp." };
+  if (error || !data) return { error: "Không tạo được đơn nạp. Thử lại sau ít phút." };
 
-  redirect(`/wallet/topup/${data.id}`);
+  // Đến từ trang mua (thiếu point) → mang theo đường quay lại, để cộng point xong mua tiếp được ngay.
+  const back = safeNext(String(formData.get("back") ?? ""), "");
+  redirect(`/wallet/topup/${data.id}${back ? `?back=${encodeURIComponent(back)}` : ""}`);
 }
 
 /**
@@ -82,7 +87,7 @@ export async function approveTopup(formData: FormData) {
   if (claimErr) throw new Error(claimErr.message);
   if (!topup) return; // không tồn tại hoặc đã có người xử lý
 
-  const { error: rpcErr } = await supabase.rpc("adjust_points", {
+  const { data: rpcBalance, error: rpcErr } = await supabase.rpc("adjust_points", {
     p_user: topup.user_id,
     p_amount: topup.points,
     p_kind: "topup",
@@ -99,25 +104,50 @@ export async function approveTopup(formData: FormData) {
     points: topup.points,
     amount_vnd: topup.amount_vnd,
   });
+  // Báo khách qua email — lỗi gửi không ảnh hưởng việc duyệt.
+  await notifyTopupUser(topup.user_id, topupApprovedEmail({
+    code: topup.code,
+    points: topup.points,
+    amountVnd: topup.amount_vnd,
+    balance: typeof rpcBalance === "number" ? rpcBalance : null,
+  }));
 
   revalidatePath("/admin/topups");
 }
 
-/** Admin từ chối đơn nạp. */
+/** Admin từ chối đơn nạp — kèm lý do (hiện cho khách + gửi email). */
 export async function rejectTopup(formData: FormData) {
   const admin = await assertAdmin();
   const id = String(formData.get("id") ?? "").trim();
   if (!id) return;
+  const reason =
+    String(formData.get("reason") ?? "").trim().slice(0, 300) || "Chưa nhận được chuyển khoản khớp số tiền và nội dung của đơn.";
 
   const supabase = createStoreAdminClient();
   const { data: rejected } = await supabase
     .from("point_topups")
-    .update({ status: "rejected" })
+    .update({ status: "rejected", reject_reason: reason })
     .eq("id", id)
     .eq("status", "pending")
-    .select("code,points")
+    .select("user_id,code,points,amount_vnd")
     .maybeSingle();
-  if (rejected) await logAdmin(admin, "topup.reject", { type: "topup", id }, rejected);
+  if (rejected) {
+    await logAdmin(admin, "topup.reject", { type: "topup", id }, { code: rejected.code, points: rejected.points, reason });
+    await notifyTopupUser(rejected.user_id, topupRejectedEmail({ code: rejected.code, amountVnd: rejected.amount_vnd, reason }));
+  }
 
   revalidatePath("/admin/topups");
+}
+
+/** Gửi email trạng thái đơn nạp cho chủ đơn (email tài khoản). Lỗi chỉ ghi log. */
+async function notifyTopupUser(userId: string, mail: { subject: string; text: string; html: string }) {
+  try {
+    const { data } = await createStoreAdminClient().auth.admin.getUserById(userId);
+    const to = data.user?.email;
+    if (!to) return;
+    const sent = await sendEmail({ to, ...mail });
+    if (!sent.ok) console.error("topup email", sent.error);
+  } catch (e) {
+    console.error("topup email", e);
+  }
 }

@@ -7,15 +7,20 @@ import { formatPrice } from "@/lib/format";
 import { BANK } from "@/lib/bank";
 import { buildVietQrPayload } from "@/lib/vietqr";
 import { CopyButton } from "@/components/copy-button";
+import { safeNext } from "@/lib/safe-next";
 
 export const metadata = { title: "Nạp point" };
 
 export default async function TopupPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ back?: string }>;
 }) {
   const { id } = await params;
+  // Đến từ trang mua (thiếu point): cộng point xong quay lại mua tiếp.
+  const back = safeNext((await searchParams).back, "");
   const user = await getCurrentUser();
   if (!user) redirect(`/login?next=/wallet/topup/${id}`);
 
@@ -24,6 +29,7 @@ export default async function TopupPage({
 
   const paid = topup.status === "paid";
   const rejected = topup.status === "rejected";
+  const contactHref = `/lien-he?chu-de=nap-point&ma=${encodeURIComponent(topup.code)}`;
 
   const qrPayload = buildVietQrPayload({
     bin: BANK.bin,
@@ -50,15 +56,32 @@ export default async function TopupPage({
           <p className="font-medium text-success">
             Đã nhận thanh toán. {topup.points.toLocaleString("vi-VN")} point đã vào ví.
           </p>
-          <Link href="/wallet" className="mt-2 inline-block text-sm text-accent hover:text-accent-hover">
-            Về Ví →
-          </Link>
+          {back ? (
+            <Link
+              href={back}
+              className="mt-3 inline-block rounded-xl bg-accent px-5 py-2.5 font-semibold text-accent-contrast hover:bg-accent-hover"
+            >
+              Quay lại mua tiếp →
+            </Link>
+          ) : (
+            <Link href="/wallet" className="mt-2 inline-block text-sm text-accent hover:text-accent-hover">
+              Về Ví →
+            </Link>
+          )}
         </div>
       ) : rejected ? (
         <div className="mt-5 rounded-xl border border-danger/40 bg-danger/10 p-5 text-center">
-          <p className="font-medium text-danger">Đơn nạp đã bị từ chối.</p>
-          <Link href="/wallet" className="mt-2 inline-block text-sm text-accent hover:text-accent-hover">
-            Tạo lại →
+          <p className="font-medium text-danger">Đơn nạp chưa được duyệt.</p>
+          {topup.reject_reason && <p className="mt-1 text-sm text-text">Lý do: {topup.reject_reason}</p>}
+          <p className="mt-3 text-sm text-text-muted">
+            Bạn <b className="text-text">đã chuyển khoản</b>?{" "}
+            <Link href={contactHref} className="font-semibold text-accent hover:text-accent-hover">
+              Gửi yêu cầu hỗ trợ kèm mã {topup.code}
+            </Link>{" "}
+            — chúng tôi kiểm tra và cộng point hoặc hoàn tiền.
+          </p>
+          <Link href="/wallet" className="mt-3 inline-block text-sm text-brand hover:text-brand-hover">
+            Tạo đơn nạp mới →
           </Link>
         </div>
       ) : (
@@ -86,8 +109,22 @@ export default async function TopupPage({
 
           <p className="mt-4 rounded-md bg-bg-elevated p-3 text-xs text-text-muted">
             Chuyển khoản <strong>đúng số tiền</strong> và <strong>đúng nội dung</strong>{" "}
-            <span className="font-mono">{topup.code}</span>. Point sẽ vào ví sau khi admin
-            xác nhận nhận được chuyển khoản.
+            <span className="font-mono">{topup.code}</span>. Point vào ví sau khi admin xác nhận đã nhận tiền —
+            thường trong giờ làm việc, chậm nhất 24 giờ làm việc. Bạn sẽ nhận email khi point được cộng.
+          </p>
+          {back && (
+            <p className="mt-3 text-center text-sm text-text-muted">
+              Point vào ví rồi?{" "}
+              <Link href={back} className="font-semibold text-brand hover:text-brand-hover">
+                Quay lại trang mua →
+              </Link>
+            </p>
+          )}
+          <p className="mt-3 text-center text-xs text-text-faint">
+            Đã chuyển quá 24 giờ làm việc mà chưa được cộng?{" "}
+            <Link href={contactHref} className="text-accent hover:text-accent-hover">
+              Liên hệ kèm mã {topup.code}
+            </Link>
           </p>
         </div>
       )}

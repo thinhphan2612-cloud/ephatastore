@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { safeNext } from "@/lib/safe-next";
 import { createStoreAuthBrowserClient } from "@/lib/supabase/store-auth-browser";
+import { authErrorVi } from "@/lib/auth-errors";
 
 export function LoginForm() {
   const router = useRouter();
@@ -25,11 +26,7 @@ export function LoginForm() {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
 
     if (error) {
-      setError(
-        error.message === "Invalid login credentials"
-          ? "Email hoặc mật khẩu không đúng."
-          : error.message
-      );
+      setError(authErrorVi(error));
       setLoading(false);
       return;
     }
@@ -41,9 +38,11 @@ export function LoginForm() {
   return (
     <form onSubmit={onSubmit} className="space-y-4 text-left">
       <div>
-        <label className="mb-1 block text-sm text-text-muted">Email</label>
+        <label htmlFor="login-email" className="mb-1 block text-sm text-text-muted">Email</label>
         <input
+          id="login-email"
           type="email"
+          autoComplete="email"
           required
           value={email}
           onChange={(e) => setEmail(e.target.value)}
@@ -53,13 +52,15 @@ export function LoginForm() {
       </div>
       <div>
         <div className="mb-1 flex items-center justify-between gap-2">
-          <label className="block text-sm text-text-muted">Mật khẩu</label>
+          <label htmlFor="login-password" className="block text-sm text-text-muted">Mật khẩu</label>
           <Link href="/forgot-password" className="text-xs text-brand hover:text-brand-hover">
             Quên mật khẩu?
           </Link>
         </div>
         <input
+          id="login-password"
           type="password"
+          autoComplete="current-password"
           required
           value={password}
           onChange={(e) => setPassword(e.target.value)}
