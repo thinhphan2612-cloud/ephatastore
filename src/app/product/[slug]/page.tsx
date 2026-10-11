@@ -5,6 +5,7 @@ import { getProductBySlug, getRelated } from "@/data/products";
 import { CATEGORY_BY_ID } from "@/data/categories";
 import { getCurrentUser } from "@/lib/auth";
 import { getCurrentUserPlan } from "@/lib/plan";
+import { getGiaolyContext } from "@/lib/giaoly-context";
 import { isOwned, hasActiveTopping } from "@/data/store-user";
 import { getSettings } from "@/data/settings";
 import { claimProduct, startTrial } from "@/lib/actions/store";
@@ -57,6 +58,25 @@ export default async function ProductPage({
   // Pro Giáo Lý Số chỉ được free ở sản phẩm gắn nhãn "Miễn phí cho Pro Giáo Lý Số".
   const hasPro = plan === "pro" && product.giaolyProFree;
   const isGiaolyPro = plan === "pro";
+  // Tính năng Giáo Lý Số: bật cho cả giáo xứ → chỉ quản trị giáo xứ đã liên kết mới mua; phải có quyền thật
+  // (mua / kích hoạt) để Ephata gửi lệnh bật sang Giáo Lý Số — Pro hay Full Topping không tự mở.
+  const featureKey = product.giaolyFeatureKey;
+  const giaolyCtx = featureKey && user ? await getGiaolyContext() : null;
+  const canBuyFeature = !featureKey || (giaolyCtx?.role === "admin" && !!giaolyCtx.parishId);
+  const featureBlocked = featureKey && !canBuyFeature && (
+    <div className="rounded-xl border border-warn/40 bg-warn/10 p-3 text-sm text-warn">
+      {!user ? (
+        <>Đăng nhập bằng tài khoản quản trị giáo xứ để mua tính năng này.</>
+      ) : !giaolyCtx ? (
+        <>
+          Tính năng bật cho cả giáo xứ trên Giáo Lý Số. <Link href="/account" className="underline">Liên kết tài khoản Giáo Lý Số</Link>{" "}
+          (quản trị giáo xứ) để mua.
+        </>
+      ) : (
+        <>Chỉ quản trị giáo xứ mới mua được tính năng này cho giáo xứ.</>
+      )}
+    </div>
+  );
   const isFreeGame = isGame && !isProTier && product.priceMonth <= 0;
   const isDownloadable = product.type === "asset" || product.type === "image";
 
@@ -122,6 +142,11 @@ export default async function ProductPage({
             </div>
             <h1 className="font-display text-[26px] font-bold">{product.title}</h1>
             <p className="mt-1 text-text-muted">{product.tagline}</p>
+            {featureKey && (
+              <p className="mt-3 rounded-xl border border-border bg-white/[0.03] px-3 py-2 text-xs text-text-muted">
+                🧩 Tính năng trong Giáo Lý Số — bật cho <b className="text-text">cả giáo xứ</b> của bạn sau khi mua.
+              </p>
+            )}
             {product.usesWallet && (
               <p className="mt-3 rounded-xl border border-border bg-white/[0.03] px-3 py-2 text-xs text-text-muted">
                 ◈ Một số dịch vụ trong ứng dụng tính phí theo lượt dùng — trừ point trong Ví Ephata (bạn được hỏi trước khi
@@ -203,6 +228,8 @@ export default async function ProductPage({
                 <div className="mt-5 space-y-2">
                   {ownedEnt ? (
                     <OwnedActions product={product} className="w-full" />
+                  ) : featureBlocked ? (
+                    featureBlocked
                   ) : (
                     <form action={claimProduct}>
                       <input type="hidden" name="product_id" value={product.id} />
@@ -266,13 +293,22 @@ export default async function ProductPage({
                   </div>
                 </div>
                 <div className="mt-5 space-y-2">
-                  {hasPro || ownedEnt || topping ? (
+                  {(featureKey ? ownedEnt : hasPro || ownedEnt || topping) ? (
                     <>
                       <OwnedActions product={product} className="w-full" />
                       <Link href="/library" className="block text-center text-xs text-text-faint hover:text-text">
                         Mở Thư viện
                       </Link>
                     </>
+                  ) : featureBlocked ? (
+                    featureBlocked
+                  ) : featureKey && hasPro ? (
+                    <Link
+                      href={`/buy/${product.id}?kind=annual`}
+                      className="block w-full rounded-xl bg-accent px-4 py-3 text-center font-extrabold text-accent-contrast hover:bg-accent-hover"
+                    >
+                      Kích hoạt miễn phí cho giáo xứ (Pro Giáo Lý Số) →
+                    </Link>
                   ) : (
                     <>
                       <Link
@@ -296,9 +332,11 @@ export default async function ProductPage({
                           </button>
                         </form>
                       )}
-                      <Link href="/topping" className="block pt-1 text-center text-xs text-accent-hover hover:underline">
-                        hoặc mở khoá tất cả PRO với Full Topping →
-                      </Link>
+                      {!featureKey && (
+                        <Link href="/topping" className="block pt-1 text-center text-xs text-accent-hover hover:underline">
+                          hoặc mở khoá tất cả PRO với Full Topping →
+                        </Link>
+                      )}
                     </>
                   )}
                 </div>

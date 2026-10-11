@@ -6,6 +6,7 @@ import { getAdminUser } from "@/lib/auth";
 import { createStoreAdminClient } from "@/lib/supabase/store-admin";
 import { slugify } from "@/lib/slug";
 import { removeStorageFolder } from "@/lib/storage-folder";
+import { retryProvisionJob, syncFeatureProvision } from "@/lib/giaoly-provision";
 
 async function assertAdmin() {
   const admin = await getAdminUser();
@@ -283,6 +284,7 @@ export async function grantEntitlement(formData: FormData) {
       { onConflict: "store_user_id,product_id", ignoreDuplicates: true }
     );
   if (error) throw new Error(error.message);
+  await syncFeatureProvision(userId, productId).catch((e) => console.error("provision", e));
 
   revalidatePath(`/admin/users/${userId}`);
 }
@@ -301,6 +303,7 @@ export async function revokeEntitlement(formData: FormData) {
     .eq("store_user_id", userId)
     .eq("product_id", productId);
   if (error) throw new Error(error.message);
+  await syncFeatureProvision(userId, productId).catch((e) => console.error("provision", e));
 
   revalidatePath(`/admin/users/${userId}`);
 }
@@ -400,4 +403,11 @@ export async function togglePublish(formData: FormData) {
   if (error) throw new Error(error.message);
 
   revalidatePath("/admin");
+}
+
+// ---- Đồng bộ Giáo Lý Số ----
+export async function retryProvision(formData: FormData) {
+  await assertAdmin();
+  await retryProvisionJob(String(formData.get("id") ?? ""));
+  revalidatePath("/admin/provisions");
 }

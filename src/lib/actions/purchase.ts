@@ -9,6 +9,8 @@ import { getSettings } from "@/data/settings";
 import { vndToPoints } from "@/lib/points";
 import { adjustPoints, InsufficientPointsError } from "@/lib/wallet-ops";
 import { generateLicenseKey } from "@/lib/software/license";
+import { isParishAdmin } from "@/lib/giaoly-context";
+import { syncFeatureProvision } from "@/lib/giaoly-provision";
 
 const YEAR_DAYS = 365;
 
@@ -48,12 +50,14 @@ export async function confirmPurchase(formData: FormData) {
   if (kind !== "topping") {
     const { data: product } = await supabase
       .from("products")
-      .select("id,type,price_month,giaoly_pro_free,published")
+      .select("id,slug,type,price_month,giaoly_pro_free,giaoly_feature_key,published")
       .eq("id", productId)
       .maybeSingle();
     // Phần mềm chỉ mua qua kind=software (tạo key) — chặn lách nhánh Pro-free.
     if (!product || !product.published || product.type === "software")
       throw new Error("Sản phẩm không tồn tại.");
+    // Tính năng Giáo Lý Số áp cho cả giáo xứ → chỉ quản trị giáo xứ đã liên kết mới mua được.
+    if (product.giaoly_feature_key && !(await isParishAdmin())) redirect(`/product/${product.slug}`);
     priceMonth = product.price_month ?? 0;
     proFree = product.giaoly_pro_free;
   }
@@ -100,6 +104,7 @@ export async function confirmPurchase(formData: FormData) {
       { onConflict: "store_user_id,product_id", ignoreDuplicates: false }
     );
     if (error) throw new Error(error.message);
+    await syncFeatureSafe(user.id, productId);
   }
 
   revalidatePath("/library");
@@ -135,4 +140,13 @@ async function purchaseSoftware(userId: string, productId: string): Promise<neve
 
   revalidatePath("/library");
   redirect("/library");
+}
+
+/** Đồng bộ tính năng sang Giáo Lý Số — lỗi không làm hỏng giao dịch (job lưu lại để admin thử lại). */
+async function syncFeatureSafe(userId: string, productId: string) {
+  try {
+    await syncFeatureProvision(userId, productId);
+  } catch (e) {
+    console.error("provision", e);
+  }
 }

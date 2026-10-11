@@ -75,6 +75,8 @@ export interface Product {
   giaolyProFree: boolean;
   /** App tính phí theo lượt dùng — trừ point qua Ví Ephata */
   usesWallet: boolean;
+  /** Tính năng Giáo Lý Số (bật cho cả giáo xứ khi quản trị giáo xứ mua) */
+  giaolyFeatureKey?: string;
 
   /** 0..5 */
   rating: number;

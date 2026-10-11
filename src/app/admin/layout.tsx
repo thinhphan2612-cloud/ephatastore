@@ -31,6 +31,9 @@ export default async function AdminLayout({
             <Link href="/admin/users" className="text-brand hover:text-brand-hover">
               Người dùng
             </Link>
+            <Link href="/admin/provisions" className="text-brand hover:text-brand-hover">
+              Đồng bộ GLS
+            </Link>
             <Link href="/admin/settings" className="text-brand hover:text-brand-hover">
               Cài đặt
             </Link>
