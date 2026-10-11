@@ -346,28 +346,33 @@ export default async function ProductPage({
         </aside>
       </div>
 
-      {/* min-w-0: nội dung rộng trong mô tả HTML (bảng, code) cuộn trong khung, không đẩy tràn ngang trang. */}
-      <section className="mt-10 min-w-0 space-y-6">
-        <div>
-          <h2 className="font-display mb-2 text-2xl font-bold">Giới thiệu</h2>
-          <Expandable>
-            {product.descriptionHtml ? (
-              // Lọc lại khi hiển thị: chính sách lọc đổi thì nội dung cũ cũng theo.
-              <div className="rich-text" dangerouslySetInnerHTML={{ __html: sanitizeDescription(product.descriptionHtml) }} />
-            ) : (
-              <p className="whitespace-pre-line leading-relaxed text-text-muted">{product.description}</p>
-            )}
-          </Expandable>
-        </div>
-        {product.tags.length > 0 && (
-          <div className="flex flex-wrap gap-2">
-            {product.tags.map((t) => (
-              <span key={t} className="rounded-full border border-border bg-white/[0.03] px-3 py-1 text-sm text-text-muted">
-                {t}
-              </span>
-            ))}
+      {/* Khung nền liền rộng hết trang; nội dung là cột giữa ≤880px. min-w-0: bảng/code rộng cuộn trong khung. */}
+      <section
+        className="mt-10 min-w-0 rounded-3xl border border-border bg-surface px-5 py-8 sm:px-10 sm:py-10"
+        style={{ "--fade-bg": "var(--surface)" } as React.CSSProperties}
+      >
+        <div className="mx-auto max-w-[880px] min-w-0 space-y-6">
+          <div>
+            <h2 className="font-display mb-2 text-2xl font-bold">Giới thiệu</h2>
+            <Expandable>
+              {product.descriptionHtml ? (
+                // Lọc lại khi hiển thị: chính sách lọc đổi thì nội dung cũ cũng theo.
+                <div className="rich-text" dangerouslySetInnerHTML={{ __html: sanitizeDescription(product.descriptionHtml) }} />
+              ) : (
+                <p className="whitespace-pre-line leading-relaxed text-text-muted">{product.description}</p>
+              )}
+            </Expandable>
           </div>
-        )}
+          {product.tags.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {product.tags.map((t) => (
+                <span key={t} className="rounded-full border border-border bg-white/[0.03] px-3 py-1 text-sm text-text-muted">
+                  {t}
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
       </section>
 
       {related.length > 0 && (

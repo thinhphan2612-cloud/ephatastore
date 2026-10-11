@@ -87,6 +87,8 @@ body {
     radial-gradient(circle at 70% 0, rgba(70, 106, 125, 0.18), transparent 30rem),
     radial-gradient(circle at 10% 25%, rgba(196, 151, 54, 0.1), transparent 25rem),
     var(--bg);
+  /* Không lặp: ô nền cao bằng màn hình, lặp lại sẽ lộ đường cắt ngang trên trang dài. */
+  background-repeat: no-repeat;
   color: var(--text);
   font-family: var(--font-ui), system-ui, -apple-system, "Segoe UI", sans-serif;
 }
@@ -95,6 +97,7 @@ body {
     radial-gradient(circle at 72% 0, rgba(107, 151, 169, 0.1), transparent 31rem),
     radial-gradient(circle at 9% 24%, rgba(196, 151, 54, 0.09), transparent 26rem),
     var(--bg);
+  background-repeat: no-repeat;
 }
 :root[data-theme="light"] body::before {
   background-image:
@@ -227,11 +230,13 @@ body::before {
   border-top: 1px solid var(--border);
   margin: 1.8em 0;
 }
-/* Ảnh/video tối đa 800px: mô tả rộng hết trang nhưng ảnh không chiếm cả màn hình (vẫn co theo khung trên mobile). */
+/* Ảnh/video tối đa 800px, căn giữa cột nội dung (vẫn co theo khung trên mobile). */
 .rich-text img,
 .rich-text figure {
+  display: block;
   max-width: min(100%, 800px);
   height: auto;
+  margin-inline: auto;
   border-radius: 14px;
 }
 .rich-text figcaption {
@@ -245,6 +250,7 @@ body::before {
   width: 100%;
   max-width: min(100%, 800px);
   height: auto;
+  margin-inline: auto;
   aspect-ratio: 16 / 9;
   border: 0;
   border-radius: 14px;
@@ -252,7 +258,9 @@ body::before {
 /* Bảng rộng: cuộn ngang trong chính nó, không đẩy trang rộng ra. */
 .rich-text table {
   display: block;
+  width: fit-content;
   max-width: 100%;
+  margin-inline: auto;
   overflow-x: auto;
   border-collapse: collapse;
   font-size: 0.92em;
