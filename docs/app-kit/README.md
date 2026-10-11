@@ -28,12 +28,17 @@ app-kit/
 
 ---
 
-## 0. Trước khi bắt đầu — xin Felix 3 thứ
+## 0. Trước khi bắt đầu — tự chốt 3 thứ
 
-1. **Slug sản phẩm** (vd `gelo`): chữ thường, số, gạch ngang. Dùng làm `PRODUCT` trong app, trên Ephata **không đổi được sau khi đã bán key**.
-   Key sinh ra có tiền tố = 4 ký tự đầu slug viết hoa (`GELO-XXXX-XXXX-XXXX`).
-2. **Giá key** và **số thiết bị / key** (mặc định 2), **hạn dùng offline** (mặc định 30 ngày).
-3. **Quyền upload** trên admin Ephata (tài khoản đăng ký ở ephatastore.com → Felix cấp quyền).
+Bạn đăng nhập admin Ephata bằng tài khoản admin được cấp và tự đưa app lên. Chốt trước khi code:
+
+1. **Slug sản phẩm** (vd `lich-phung-vu`): chữ thường không dấu, số, gạch ngang; không trùng sản phẩm đã có
+   (admin báo "Slug đã tồn tại" nếu trùng). Slug này vừa là `PRODUCT` trong app vừa là slug khi tạo sản phẩm trên admin —
+   **hai nơi phải giống hệt nhau** và **không đổi sau khi đã bán key** (đổi là mọi key đã bán hỏng).
+   Key sinh ra có tiền tố = 4 ký tự đầu slug viết hoa (`LICH-XXXX-XXXX-XXXX`) — chọn slug có 4 chữ đầu dễ nhận.
+2. **Giá key** (VND, 100đ = 1 point; mua 1 lần dùng vĩnh viễn), **số thiết bị / key** (thường 2),
+   **hạn dùng offline** (thường 30 ngày — app không có mạng quá số ngày này thì phải bật mạng để xác minh lại).
+3. **Tài khoản Microsoft Partner Center** dùng để nộp Store (nếu app lên Store): hỏi Felix dùng tài khoản chung nào.
 
 ---
 
@@ -151,8 +156,8 @@ Cài trên máy sạch (hoặc máy ảo) → mở app → màn hình Bản quy�
 
 ## 4. Upload lên Ephata
 
-1. Đăng nhập ephatastore.com → **Admin** → **Thêm sản phẩm** → **Phần mềm cài đặt (bán key)**.
-2. Điền: tiêu đề, **slug = `PRODUCT` trong app** (sai → mọi key báo `PRODUCT_MISMATCH`), mô tả (ghi cả hướng dẫn
+1. Đăng nhập bằng tài khoản admin được cấp → **Admin** → **Thêm sản phẩm** → **Phần mềm cài đặt (bán key)**.
+2. Điền: tiêu đề, **slug = `PRODUCT` trong app** (gõ tay, đừng để trống cho tự tạo; sai → mọi key báo `PRODUCT_MISMATCH`), mô tả (ghi cả hướng dẫn
    "Open Anyway / Run anyway"), danh mục, nhà phát hành, ảnh bìa, giá key, số thiết bị/key, hạn offline.
 3. Khung **Bộ cài & phân phối**: phiên bản `X.Y.Z`, ghi chú phát hành, file `.exe` (cột Windows), file `.dmg` (cột macOS),
    link Microsoft Store (để trống nếu chưa lên Store). Bấm **Lưu** — chờ thanh tiến trình tải xong.
@@ -214,14 +219,14 @@ Gỡ: `Get-AppxPackage *<Tên>* | Remove-AppxPackage`.
 
 ### 5.5 Nộp & nối về Ephata
 Partner Center → app → **Submission → Packages**: upload `.msix` → listing, giá Free, quyền riêng tư → Submit.
-Duyệt xong có link `https://apps.microsoft.com/detail/<StoreID>` → gửi Felix (hoặc tự dán vào ô
-**Link Microsoft Store** ở trang Sửa sản phẩm). Nút Windows trên Ephata tự chuyển sang mở Store, `.exe` thành link dự phòng.
+Duyệt xong có link `https://apps.microsoft.com/detail/<StoreID>` → dán vào ô **Link Microsoft Store** ở trang Sửa
+sản phẩm trên admin → Lưu. Nút Windows trên Ephata tự chuyển sang mở Store, `.exe` thành link dự phòng.
 
 ---
 
 ## 6. Checklist mỗi lần phát hành
 
-- [ ] `PRODUCT` = slug trên Ephata. `PUBLIC_KEY`, `API_BASE` giữ nguyên như trong kit.
+- [ ] `PRODUCT` trong app giống hệt slug sản phẩm trên admin. `PUBLIC_KEY`, `API_BASE` giữ nguyên như trong kit.
 - [ ] Chức năng Pro chặn ở lớp lõi; mở app có refresh ngầm; màn hình Bản quyền đủ nút (mục 1.2).
 - [ ] Version tăng ở mọi file + tag `vX.Y.Z` trùng.
 - [ ] Bản thường bật kiểm bản mới; bản Store tắt.
