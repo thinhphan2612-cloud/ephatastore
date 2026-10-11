@@ -7,6 +7,9 @@ import crypto from "node:crypto";
  * Khóa ký: env SOFTWARE_LICENSE_SIGNING_JWK (JWK private Ed25519, server-only). Sinh bằng scripts/gen-license-keys.mjs.
  */
 
+/** license_offline_days = 0 nghĩa là dùng offline vĩnh viễn — token hết hạn sau ~100 năm. */
+const PERMANENT_OFFLINE_DAYS = 36500;
+
 /** Bỏ ký tự dễ nhầm (0/O, 1/I). */
 const ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 
@@ -62,7 +65,8 @@ export function issueToken(opts: {
     plan: "pro", // client Gelo chỉ chấp nhận plan == "pro"
     features: [] as string[],
     issuedAt: now,
-    offlineExpiresAt: now + opts.offlineDays * 86400000,
+    // offlineDays = 0 → vĩnh viễn: lùi hạn 100 năm (app không cần đổi gì, vẫn so now <= offlineExpiresAt).
+    offlineExpiresAt: now + (opts.offlineDays > 0 ? opts.offlineDays : PERMANENT_OFFLINE_DAYS) * 86400000,
   };
   const payloadB64 = Buffer.from(JSON.stringify(payload), "utf8").toString("base64url");
   const sig = crypto.sign(null, Buffer.from(payloadB64), signingKey());

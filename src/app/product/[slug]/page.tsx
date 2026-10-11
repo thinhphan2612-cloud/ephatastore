@@ -54,7 +54,9 @@ export default async function ProductPage({
   const gamePoints = vndToPoints(product.priceMonth);
   const perpetualPoints = vndToPoints(product.priceMonth);
   const { freedomDays } = await getSettings();
-  const hasPro = plan === "pro";
+  // Pro Giáo Lý Số chỉ được free ở sản phẩm gắn nhãn "Miễn phí cho Pro Giáo Lý Số".
+  const hasPro = plan === "pro" && product.giaolyProFree;
+  const isGiaolyPro = plan === "pro";
   const isFreeGame = isGame && !isProTier && product.priceMonth <= 0;
   const isDownloadable = product.type === "asset" || product.type === "image";
 
@@ -129,7 +131,7 @@ export default async function ProductPage({
                 <div className="mt-5 rounded-2xl border border-border bg-white/[0.03] p-4 text-sm">
                   <div className="font-semibold text-text">Công cụ web trên Ephata Store</div>
                   <p className="mt-1 text-text-muted">
-                    Mở và dùng trực tiếp trong store. Tác vụ AI sẽ trừ point trong Ví của bạn.
+                    Mở và dùng trực tiếp trong store. Một số dịch vụ trong công cụ có thể trừ point trong Ví của bạn.
                   </p>
                 </div>
                 <div className="mt-5 space-y-2">
@@ -149,12 +151,12 @@ export default async function ProductPage({
                     </Link>
                   )}
                   <Link href="/wallet" className="block text-center text-xs text-text-faint hover:text-text">
-                    Nạp point cho tác vụ AI →
+                    Nạp point vào Ví →
                   </Link>
                 </div>
               </>
             ) : isGame ? (
-              /* ===== GAME: Pro Giáo Lý Số free, còn lại mua bằng point ===== */
+              /* ===== GAME: free / mua vĩnh viễn bằng point (Pro Giáo Lý Số free nếu sản phẩm gắn nhãn) ===== */
               <>
                 <div className="mt-5 rounded-2xl border border-border bg-white/[0.03] p-4 text-sm">
                   <div className="font-semibold text-text">Game trên Ephata Store</div>
@@ -163,14 +165,16 @@ export default async function ProductPage({
                       ? "Bạn có gói Pro Giáo Lý Số — chơi miễn phí và thêm được vào Giáo Lý Số."
                       : isFreeGame
                         ? "Game miễn phí — chơi ngay."
-                        : "Có Pro Giáo Lý Số thì chơi miễn phí, hoặc mua bằng point."}
+                        : product.giaolyProFree
+                          ? "Có Pro Giáo Lý Số thì chơi miễn phí, hoặc mua bằng point."
+                          : "Mua bằng point để chơi."}
                   </p>
                 </div>
                 <div className="mt-5 space-y-2">
                   {hasPro || ownedEnt || isFreeGame ? (
                     <>
                       <OwnedActions product={product} className="w-full" />
-                      {hasPro && <AddToGiaolyButton productId={product.id} />}
+                      {isGiaolyPro && <AddToGiaolyButton productId={product.id} />}
                     </>
                   ) : (
                     <Link

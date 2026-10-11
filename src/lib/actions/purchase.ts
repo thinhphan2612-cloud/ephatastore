@@ -7,7 +7,7 @@ import { getCurrentUserPlan } from "@/lib/plan";
 import { createStoreAdminClient } from "@/lib/supabase/store-admin";
 import { getSettings } from "@/data/settings";
 import { vndToPoints } from "@/lib/points";
-import { adjustPoints, InsufficientPointsError } from "@/lib/ai/wallet-ops";
+import { adjustPoints, InsufficientPointsError } from "@/lib/wallet-ops";
 import { generateLicenseKey } from "@/lib/software/license";
 
 const YEAR_DAYS = 365;
@@ -29,7 +29,7 @@ export async function purchasePricePoints(
 }
 
 /**
- * Mua bằng point + cấp quyền ngay. Pro Giáo Lý Số → kích hoạt miễn phí.
+ * Mua bằng point + cấp quyền ngay. Sản phẩm gắn nhãn "Miễn phí cho Pro Giáo Lý Số" + user có Pro → miễn phí.
  * kind: annual (365 ngày) | freedom (N ngày) | perpetual (vĩnh viễn: game, file tải về) | topping (all-access 365 ngày)
  *       | software (key vĩnh viễn — luôn trả point, kể cả Pro).
  */
@@ -44,20 +44,22 @@ export async function confirmPurchase(formData: FormData) {
   const settings = await getSettings();
 
   let priceMonth = 0;
+  let proFree = false;
   if (kind !== "topping") {
     const { data: product } = await supabase
       .from("products")
-      .select("id,type,price_month,published")
+      .select("id,type,price_month,giaoly_pro_free,published")
       .eq("id", productId)
       .maybeSingle();
     // Phần mềm chỉ mua qua kind=software (tạo key) — chặn lách nhánh Pro-free.
     if (!product || !product.published || product.type === "software")
       throw new Error("Sản phẩm không tồn tại.");
     priceMonth = product.price_month ?? 0;
+    proFree = product.giaoly_pro_free;
   }
 
-  const plan = await getCurrentUserPlan();
-  const isPro = plan === "pro";
+  // Full Topping (không gắn sản phẩm) luôn trả point.
+  const isPro = proFree && (await getCurrentUserPlan()) === "pro";
 
   const points = isPro ? 0 : await purchasePricePoints(kind, priceMonth);
 

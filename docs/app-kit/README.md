@@ -1,249 +1,88 @@
-# Ephata App Kit — đưa app desktop lên Ephata (bán key) + Microsoft Store
+# Ephata App Kit — tạo sản phẩm cho Ephata Store
 
-Bộ chuẩn cho thành viên build app trên máy của mình rồi upload lên admin Ephata.
-Làm đúng bộ này thì app lên Ephata là bán được key và kích hoạt được ngay.
+Bộ chuẩn để làm **bất kỳ sản phẩm nào** bán trên Ephata Store (chợ sản phẩm số Công giáo, ephatastore.com).
+Mở một phiên code mới với AI → đưa kit này vào → AI hỏi ý tưởng, xác định sản phẩm thuộc loại nào trong 5 loại,
+rồi làm theo đúng hướng dẫn của loại đó.
 
 ```
 app-kit/
-├── README.md                         ← tài liệu này
-├── PROMPT.md                         ← dán cho Claude Code / AI đang code app của bạn
-├── license/
-│   ├── rust/ephata_license.rs        ← Tauri / Rust
-│   ├── node/ephata-license.js        ← Electron (main process) / Node 18+
-│   └── python/ephata_license.py      ← Python 3.9+
-├── ci/
-│   ├── tauri-release.yml             ← GitHub Actions: .exe + .dmg (+ .msix)
-│   └── electron-release.yml          ← GitHub Actions cho Electron
-└── msstore/
-    ├── AppxManifest.template.xml     ← manifest MSIX
-    └── pack.ps1                      ← đóng gói .msix (Windows SDK)
+├── README.md            ← BẮT ĐẦU Ở ĐÂY (phỏng vấn ý tưởng + chọn loại)
+├── PROMPT.md            ← đoạn dán cho AI để bắt đầu
+├── types/
+│   ├── download.md      ← Loại 1: Tải về
+│   ├── hosted.md        ← Loại 2: Chạy trên store (game / công cụ web)
+│   ├── link.md          ← Loại 3: Link ngoài
+│   ├── feature.md       ← Loại 4: Tính năng Giáo Lý Số
+│   └── software.md      ← Loại 5: Phần mềm cài đặt (bán key)
+├── license/             ← module kích hoạt key (chỉ loại 5)
+├── ci/                  ← workflow build .exe/.dmg (chỉ loại 5)
+└── msstore/             ← đóng gói Microsoft Store (chỉ loại 5)
 ```
 
-**Mức kiểm chứng (2026-10-11):**
-- 3 module license (Rust / Node / Python): đã chạy thật với API production Ephata. Đã thử kích hoạt, mở lại app, refresh,
-  kiểm bản mới và hủy kích hoạt; module Node thử thêm thu hồi key và vượt số thiết bị.
-- `ci/tauri-release.yml` (job release): đã build thật ra `.exe` + `.dmg` cho Gelo 1.2.8.
-- `msstore/pack.ps1`: đã đóng gói thật ra `.msix`. Chưa nộp Store lần nào.
-- `ci/electron-release.yml`, job `msstore` trong workflow, phần Python build: **chưa chạy thật** — lần đầu theo dõi kỹ.
-
 ---
 
-## 0. Trước khi bắt đầu — tự chốt 3 thứ
+## Hướng dẫn cho AI (đọc trước khi làm gì khác)
 
-Bạn đăng nhập admin Ephata bằng tài khoản admin được cấp và tự đưa app lên. Chốt trước khi code:
+Bạn đang giúp một thành viên team Ephata tạo sản phẩm. Làm theo đúng thứ tự:
 
-1. **Slug sản phẩm** (vd `lich-phung-vu`): chữ thường không dấu, số, gạch ngang; không trùng sản phẩm đã có
-   (admin báo "Slug đã tồn tại" nếu trùng). Slug này vừa là `PRODUCT` trong app vừa là slug khi tạo sản phẩm trên admin —
-   **hai nơi phải giống hệt nhau** và **không đổi sau khi đã bán key** (đổi là mọi key đã bán hỏng).
-   Key sinh ra có tiền tố = 4 ký tự đầu slug viết hoa (`LICH-XXXX-XXXX-XXXX`) — chọn slug có 4 chữ đầu dễ nhận.
-2. **Giá key** (VND, 100đ = 1 point; mua 1 lần dùng vĩnh viễn), **số thiết bị / key** (thường 2),
-   **hạn dùng offline** (thường 30 ngày — app không có mạng quá số ngày này thì phải bật mạng để xác minh lại).
-3. **Tài khoản Microsoft Partner Center** dùng để nộp Store (nếu app lên Store): hỏi Felix dùng tài khoản chung nào.
+### Bước 1 — Phỏng vấn ý tưởng
+Hỏi người tạo (gom thành **một lượt hỏi**, đừng hỏi từng câu):
+1. Sản phẩm là gì, giải quyết việc gì, cho ai dùng (giáo xứ, giáo lý viên, giáo dân, thiếu nhi…)?
+2. Người dùng **nhận một file** để mở bằng phần mềm có sẵn, hay **dùng một ứng dụng/trò chơi**?
+3. Nếu là ứng dụng: chạy **trong trình duyệt** được không, hay cần **cài vào máy** (chạy nền, offline, truy cập file/hệ thống)?
+4. Có cần **server / database / tài khoản riêng** (lưu dữ liệu dùng chung nhiều người) không?
+5. Có phải là **chức năng bên trong app Giáo Lý Số** (dùng dữ liệu giáo xứ có sẵn ở đó) không?
+6. Có dùng **AI** không? Bán **miễn phí**, **mua 1 lần** hay **thuê bao**? Đã có code/bản build sẵn chưa, stack gì?
 
----
+### Bước 2 — Chọn loại (theo cây quyết định, dừng ở câu "có" đầu tiên)
 
-## 1. Gắn license vào app (làm 1 lần / app)
-
-### 1.1 Chọn module theo stack
-
-| Stack | File | Mức chống bẻ |
-|---|---|---|
-| Tauri / Rust | `license/rust/ephata_license.rs` | Cao — logic nằm trong binary biên dịch. **Khuyên dùng cho app mới.** |
-| Electron | `license/node/ephata-license.js` (chỉ ở **main process**) | Thấp — giải nén asar sửa JS được. Thêm bytenode/obfuscator; chấp nhận rủi ro. |
-| Python | `license/python/ephata_license.py` | Thấp nếu PyInstaller; khá hơn nếu build **Nuitka**. |
-
-Mỗi file có hướng dẫn cài phụ thuộc + cách dùng ở đầu file. Chỉ cần đặt:
-- `PRODUCT` = slug của bạn.
-- (Rust) `APP_DIR_NAME`, `KEYRING_SERVICE` — tên riêng cho app; (Python) `app_name`.
-- `PUBLIC_KEY` và `API_BASE` đã điền sẵn — **không sửa**.
-
-### 1.2 Quy tắc bắt buộc
-
-1. **Chặn chức năng Pro ở lớp lõi**: Rust `require_pro()`, Node `isPro()` ở main process, Python `is_pro()` trong logic.
-   UI chỉ hiển thị. Ẩn nút ở UI không phải là chặn.
-2. **Mở app**: đọc `current()` (chạy offline), rồi gọi `refresh()` **ngầm 1 lần / phiên** (không chặn UI, lỗi mạng thì bỏ qua).
-3. **Màn hình Bản quyền** trong app có: trạng thái Free/Pro, ô nhập key + nút Kích hoạt, key đã che (`••••-ABCD`),
-   hạn offline, nút **Hủy kích hoạt** (để khách chuyển máy), nút **Mua key** → mở `store_page_url` trong trình duyệt.
-4. **Dịch mã lỗi** ra câu dễ hiểu:
-
-   | Mã | Gợi ý câu hiển thị |
-   |---|---|
-   | `LICENSE_NOT_FOUND` | Key không đúng. Kiểm tra lại (key ở Thư viện trên Ephata). |
-   | `LICENSE_REVOKED` | Key đã bị thu hồi. Liên hệ hỗ trợ. |
-   | `DEVICE_LIMIT` | Key đã dùng đủ số máy. Hủy kích hoạt ở máy cũ rồi thử lại. |
-   | `PRODUCT_MISMATCH` | Key này của sản phẩm khác. |
-   | `NETWORK_ERROR` | Không kết nối được. Kiểm tra mạng. |
-   | `SERVER_ERROR` / `TOKEN_INVALID` | Máy chủ phản hồi không hợp lệ. Thử lại sau. |
-   | `KEY_EMPTY` | Nhập key trước khi kích hoạt. |
-
-5. **Trạng thái `needs_verify`** (quá hạn offline): coi là CHƯA Pro, nhắc người dùng bật mạng; app tự refresh lần mở sau.
-6. **Kiểm bản mới**: `check_update()` lúc mở app → có bản mới thì hỏi người dùng → mở `store_page_url`.
-   **Bản Microsoft Store KHÔNG gọi** (Store tự cập nhật) — tắt bằng cờ build (mục 5.2).
-
-### 1.3 Hợp đồng API (tham khảo — module đã làm sẵn)
-
-Base `https://www.ephatastore.com/api/software/v1`, JSON vào/ra. Lỗi nghiệp vụ: HTTP 200 `{ok:false, error}`.
-
-| Gọi | Body | Trả |
-|---|---|---|
-| `POST /licenses/activate` | `{product, key, deviceId, platform, appVersion}` | `{ok, licenseToken}` |
-| `POST /licenses/refresh` | `{product, licenseToken, deviceId, appVersion}` | `{ok, licenseToken}` |
-| `POST /licenses/deactivate` | `{product, licenseToken, deviceId}` | `{ok}` |
-| `GET /products/<slug>/latest?platform=windows\|macos` | — | `{ok, version, notes, publishedAt, pageUrl}` |
-
-Token = `base64url(payload).base64url(chữ ký Ed25519 trên chuỗi payload base64)`. Payload
-`{product, key, deviceId, plan:"pro", features, issuedAt, offlineExpiresAt}`. App chỉ coi là Pro khi:
-chữ ký đúng + `product` = slug + `deviceId` = máy này + `plan` = `"pro"` + chưa quá `offlineExpiresAt`.
-
----
-
-## 2. Version — 1 số cho mọi nơi
-
-- Semver `X.Y.Z`, tăng ở **mọi** file khai báo version:
-  Tauri: `package.json`, `package-lock.json`, `src-tauri/tauri.conf.json`, `src-tauri/Cargo.toml` ·
-  Electron: `package.json` · Python: chỗ app đọc version.
-- Tag git `vX.Y.Z` trùng. Khi upload lên Ephata nhập đúng `X.Y.Z`.
-- Bản Microsoft Store: `X.Y.Z.0` (Store bắt buộc số cuối = 0) — `pack.ps1` tự thêm.
-
----
-
-## 3. Build bộ cài `.exe` + `.dmg`
-
-- Không ký số. Khách Windows gặp "Windows protected your PC" → **More info → Run anyway**.
-  Khách macOS: **System Settings → Privacy & Security → Open Anyway** (ghi vào mô tả sản phẩm).
-- **`.dmg` chỉ build được trên máy Mac** → dùng GitHub Actions (runner macOS miễn phí phút theo gói GitHub).
-- Ephata nhận tối đa **50MB / file**.
-
-### 3.1 Tauri — dùng `ci/tauri-release.yml`
-
-1. Chép `ci/tauri-release.yml` → `.github/workflows/release.yml`.
-2. `package.json` thêm script: `"tauri": "tauri"`.
-3. `src-tauri/tauri.conf.json`: `"bundle": { "macOS": { "signingIdentity": "-" } }`. Không bật updater của Tauri.
-4. Phát hành:
-   ```bash
-   git tag -a v1.0.0 -m "1.0.0"
-   ```
-   ```bash
-   git push origin v1.0.0
-   ```
-5. ~10 phút sau: GitHub → Releases → bản **nháp** có `<Tên>_1.0.0_x64-setup.exe` và `<Tên>_1.0.0_universal.dmg`. Tải về.
-
-Build `.exe` tại máy Windows (không cần CI): `npx tauri build --bundles nsis`
-→ `src-tauri/target/release/bundle/nsis/`.
-
-Build sai, cần chạy lại cùng version: xóa tag rồi đặt lại vào commit mới
-(`git tag -d v1.0.0`, `git push origin :refs/tags/v1.0.0`, rồi tag + push lại).
-
-### 3.2 Electron — dùng `ci/electron-release.yml`
-Tag như trên → tab **Actions** → lần chạy → mục **Artifacts** tải `windows-installer`, `macos-installer`.
-Electron thường 80–150MB → **vượt 50MB**: báo Felix trước (phương án: Windows chỉ phát hành qua Microsoft Store).
-Nếu app mở trên Mac báo "bị hỏng": ký ad-hoc `.app` trước khi tạo dmg: `codesign --force --deep -s - "<App>.app"`.
-
-### 3.3 Python — tự dựng theo mẫu Electron (chưa có template)
-- Đóng app: Nuitka `python -m nuitka --standalone --windows-console-mode=disable app.py` (khuyên dùng)
-  hoặc PyInstaller `pyinstaller --onedir --windowed app.py`.
-- Windows: bọc thư mục output bằng **Inno Setup** (`iscc setup.iss`) → `Setup_<ver>.exe`.
-- macOS (trên Mac/runner macOS): `.app` rồi
-  `hdiutil create -volname "<App>" -srcfolder "dist/<App>.app" -ov -format UDZO "<App>_<ver>.dmg"`.
-  Universal cần Python universal2; mặc định runner Apple Silicon chỉ ra arm64.
-- CI: chép cấu trúc `ci/electron-release.yml` (1 job Windows + 1 job macOS + upload-artifact), thay lệnh build.
-
-### 3.4 Kiểm bộ cài trước khi upload (bắt buộc)
-Cài trên máy sạch (hoặc máy ảo) → mở app → màn hình Bản quyền hiện Free → nút Mua mở đúng trang
-`https://www.ephatastore.com/product/<slug>` → (sau khi lên Ephata) kích hoạt key thật.
-
----
-
-## 4. Upload lên Ephata
-
-1. Đăng nhập bằng tài khoản admin được cấp → **Admin** → **Thêm sản phẩm** → **Phần mềm cài đặt (bán key)**.
-2. Điền: tiêu đề, **slug = `PRODUCT` trong app** (gõ tay, đừng để trống cho tự tạo; sai → mọi key báo `PRODUCT_MISMATCH`), mô tả (ghi cả hướng dẫn
-   "Open Anyway / Run anyway"), danh mục, nhà phát hành, ảnh bìa, giá key, số thiết bị/key, hạn offline.
-3. Khung **Bộ cài & phân phối**: phiên bản `X.Y.Z`, ghi chú phát hành, file `.exe` (cột Windows), file `.dmg` (cột macOS),
-   link Microsoft Store (để trống nếu chưa lên Store). Bấm **Lưu** — chờ thanh tiến trình tải xong.
-4. Bản sau: mở trang **Sửa** sản phẩm → nhập phiên bản mới + chọn file mới → Lưu. Bản cũ còn trong Lịch sử phiên bản.
-5. Kiểm (thay `<slug>`):
-   ```bash
-   curl -s "https://www.ephatastore.com/api/software/v1/products/<slug>/latest?platform=windows"
-   ```
-   Phải trả `"ok":true` và đúng version vừa upload. Làm tương tự với `platform=macos`.
-6. Mua 1 key bằng tài khoản thật → **Thư viện** hiện key → nhập vào app đã cài → lên Pro.
-
----
-
-## 5. Microsoft Store (MSIX)
-
-### 5.1 Chuẩn bị 1 lần / app
-1. Tài khoản **Partner Center** (developer) — phí/thủ tục Microsoft đổi vài lần, kiểm trên Partner Center.
-2. **Reserve tên app** → **Product management → Product identity** lấy 3 giá trị (khớp từng ký tự):
-   `Package/Identity/Name`, `Package/Identity/Publisher` (`CN=…`), `Package/Properties/PublisherDisplayName`.
-3. Store **tự ký lại gói** khi duyệt → không cần mua chứng thư.
-4. Chuẩn bị: URL chính sách quyền riêng tư (app gọi mạng để kích hoạt), ảnh chụp màn hình, mô tả, phân loại tuổi.
-5. Thanh toán: app không phải game được dùng thanh toán bên thứ ba (key mua trên Ephata) theo Store policy 10.8.x —
-   **kiểm lại bản hiện hành trước khi nộp**. Đặt giá trên Store là Free.
-
-### 5.2 Bản Store = 1 bản build riêng (cờ build)
-- **Tắt** kiểm bản mới / nút tải bản mới.
-- **Tự khởi động** (nếu app có): registry `Run` bị MSIX ảo hóa → dùng `StartupTask` (khối Extensions trong
-  `AppxManifest.template.xml`, `TaskId="AppStartup"`), code bật/tắt qua WinRT `Windows.ApplicationModel.StartupTask`.
-  App không tự khởi động → xóa khối Extensions.
-- Thư mục cài **chỉ đọc** — không ghi file cạnh exe; dữ liệu ghi vào AppData.
-- Dữ liệu AppData của bản Store tách riêng theo gói → người chuyển từ bản `.exe` sang bản Store không thấy dữ liệu cũ
-  (key vẫn dùng được; mỗi bản tính 1 thiết bị).
-- License không đổi — mua key vẫn trên Ephata.
-
-Cách làm cờ: Tauri → Cargo feature `msstore` (`[features] msstore = []`, code dùng `cfg!(feature = "msstore")`),
-build `npx tauri build --features msstore --no-bundle`. Electron → biến môi trường lúc build hoặc
-`process.windowsStore` (Electron tự đặt `true` khi chạy trong gói Store). Python → hằng số build riêng.
-
-### 5.3 Đóng gói
-**Tauri / Python (exe hoặc thư mục):** cần Windows SDK (có `makeappx.exe`).
-```powershell
-./msstore/pack.ps1 -Source src-tauri/target/release/myapp.exe -Exe myapp.exe -Logos src-tauri/icons -Version 1.0.0 -DisplayName 'My App' -Description 'Mô tả ngắn' -IdentityName '<Package/Identity/Name>' -Publisher '<CN=...>' -PublisherDisplayName '<Tên NPH>' -Out MyApp.msix
-```
-`-Source` nhận file exe (Tauri) hoặc thư mục (Nuitka/PyInstaller `--onedir`). `-Logos` là thư mục có
-`StoreLogo.png`, `Square44x44Logo.png`, `Square150x150Logo.png` (Tauri có sẵn trong `src-tauri/icons`).
-Hoặc để CI làm: job `msstore` trong `ci/tauri-release.yml` (đặt 3 Repository variables `MSSTORE_*`).
-
-**Electron:** khối `appx` trong cấu hình electron-builder:
-`"appx": { "identityName": "...", "publisher": "CN=...", "publisherDisplayName": "...", "applicationId": "..." }`,
-chạy `npx electron-builder --win appx` (hoặc job `msstore` trong `ci/electron-release.yml`).
-
-### 5.4 Thử trước khi nộp
-Bật **Developer Mode** (Settings → System → For developers), cài từ thư mục layout mà `pack.ps1` in ra:
-```powershell
-Add-AppxPackage -Register <layout>\AppxManifest.xml
-```
-Kiểm: mở app, kích hoạt key, (nếu có) bật tự khởi động rồi khởi động lại máy, không hiện thông báo bản mới.
-Gỡ: `Get-AppxPackage *<Tên>* | Remove-AppxPackage`.
-
-### 5.5 Nộp & nối về Ephata
-Partner Center → app → **Submission → Packages**: upload `.msix` → listing, giá Free, quyền riêng tư → Submit.
-Duyệt xong có link `https://apps.microsoft.com/detail/<StoreID>` → dán vào ô **Link Microsoft Store** ở trang Sửa
-sản phẩm trên admin → Lưu. Nút Windows trên Ephata tự chuyển sang mở Store, `.exe` thành link dự phòng.
-
----
-
-## 6. Checklist mỗi lần phát hành
-
-- [ ] `PRODUCT` trong app giống hệt slug sản phẩm trên admin. `PUBLIC_KEY`, `API_BASE` giữ nguyên như trong kit.
-- [ ] Chức năng Pro chặn ở lớp lõi; mở app có refresh ngầm; màn hình Bản quyền đủ nút (mục 1.2).
-- [ ] Version tăng ở mọi file + tag `vX.Y.Z` trùng.
-- [ ] Bản thường bật kiểm bản mới; bản Store tắt.
-- [ ] `.exe` và `.dmg` ≤ 50MB, đã cài thử trên máy sạch.
-- [ ] Upload lên Ephata đúng version; `curl …/latest` ra version mới cho cả windows và macos.
-- [ ] Mua key thật → kích hoạt → tắt mạng mở lại app vẫn Pro → Hủy kích hoạt → máy khác kích hoạt được.
-- [ ] Bản Store: thử `Add-AppxPackage -Register` trước khi nộp.
-
-## 7. Sự cố thường gặp
-
-| Hiện tượng | Nguyên nhân / cách xử lý |
+| Câu hỏi | Có → Loại |
 |---|---|
-| App báo "Máy chủ phản hồi không hợp lệ" (`SERVER_ERROR`) | Server trả HTML thay vì JSON — thường do sai `API_BASE` hoặc API chưa triển khai ở production. Thử `curl …/public-key` phải ra JSON. |
-| Mọi key báo `PRODUCT_MISMATCH` | `PRODUCT` trong app ≠ slug trên Ephata. |
-| Kích hoạt xong báo `TOKEN_INVALID` | `PUBLIC_KEY` trong app sai (còn khóa cũ/khóa test). Lấy đúng giá trị trong kit hoặc `curl …/public-key`. |
-| `latest` trả `NO_RELEASE` | Chưa upload bộ cài cho nền tảng đó trên Ephata. |
-| CI Tauri: `Missing script: "tauri"` | Thiếu script `"tauri": "tauri"` trong package.json. |
-| CI Tauri: `failed to import keychain certificate` | Có khai báo `APPLE_*` trong env workflow mà không có chứng thư → xóa. |
-| CI Tauri: `Resource not accessible by integration` | Thiếu `permissions: contents: write` trong workflow. |
-| Upload lên Ephata báo vượt 50MB | Bộ cài quá lớn — báo Felix. |
+| Là chức năng **bên trong Giáo Lý Số**? | **4 · Tính năng Giáo Lý Số** → `types/feature.md` |
+| Người dùng nhận **một file** (PDF, DOCX, ảnh, bộ thiết kế)? | **1 · Tải về** → `types/download.md` |
+| Phải **cài vào máy** (Windows/macOS, chạy nền, offline, truy cập hệ thống)? | **5 · Phần mềm bán key** → `types/software.md` |
+| Cần **server/database/tài khoản riêng**, hoặc app đã chạy ở domain khác? | **3 · Link ngoài** → `types/link.md` |
+| Còn lại: chạy hoàn toàn trong trình duyệt (game, công cụ, công cụ có AI) | **2 · Chạy trên store** → `types/hosted.md` |
+
+Khi phân vân giữa **2** và **3**: nếu chỉ cần lưu dữ liệu trên máy người dùng (localStorage) và AI thì chọn **2** —
+Ephata lo hosting, AI, thu tiền và chặn người chưa mua. Chọn **3** chỉ khi thật sự cần server.
+
+### Bước 3 — Xác nhận
+Báo lại cho người tạo: **loại đã chọn + lý do 1–2 câu + sản phẩm cuối cùng phải giao cho Ephata là gì**
+(file gì, định dạng gì, giới hạn gì — lấy từ mục "Sản phẩm giao cho Ephata" và "Giới hạn hiện tại" của loại đó).
+Chờ người tạo đồng ý rồi mới làm.
+
+### Bước 4 — Làm theo hướng dẫn của loại
+Đọc toàn bộ `types/<loại>.md` và làm theo. Nêu plan ngắn + cách kiểm từng bước trước khi code.
+Không commit / push / tạo tag khi chưa hỏi. Báo kết quả kiểm thật, không đoán.
+
+### Bước 5 — Bàn giao
+Kết thúc bằng **checklist đưa lên admin** của loại đó (mục "Đưa lên admin" + "Kiểm sau khi lên"), điền sẵn giá trị cụ thể
+của sản phẩm này (tiêu đề, slug gợi ý, mô tả ngắn, danh mục gợi ý, giá, file cần upload).
+
+---
+
+## So sánh nhanh 5 loại
+
+| | 1 Tải về | 2 Chạy trên store | 3 Link ngoài | 4 Tính năng GLS | 5 Phần mềm bán key |
+|---|---|---|---|---|---|
+| Giao cho Ephata | 1 file | 1 file `.zip` bản build | 1 URL HTTPS | Feature key (+ URL) | `.exe` + `.dmg` (+ `.msix`) |
+| Ai host | Ephata | Ephata | Bạn | Giáo Lý Số | Ephata (bộ cài) |
+| Cách bán | Free / mua vĩnh viễn | Game: free / mua vĩnh viễn · Công cụ: free + trừ point AI | Free / thuê bao | Free / thuê bao | Mua key vĩnh viễn |
+| Pro Giáo Lý Số miễn phí | Có | Có (game) | Có | Có | **Không** |
+| Ephata chặn người chưa mua | Có (link tải ký 24h) | Ở trang chơi (file host công khai) | **Không** — app tự chặn | Chưa (chưa kết nối GLS) | Có (key + chữ ký) |
+| Mục trên admin | Tải về | Chạy trên store | Link ngoài | Tính năng Giáo Lý Số | Phần mềm cài đặt |
+
+---
+
+## Quy ước chung mọi loại
+
+- **Admin**: `https://www.ephatastore.com/login` → đăng nhập tài khoản admin → **Admin → Thêm sản phẩm** → chọn đúng thẻ loại.
+  (Store đang ở chế độ "Sắp ra mắt": khách chỉ thấy trang chờ, tài khoản admin thấy toàn bộ.)
+- **Tiền**: giá nhập bằng VND, người mua trả bằng **point** (100đ = 1 point), nạp point bằng chuyển khoản ở trang Ví.
+- **Slug**: chữ thường không dấu, số, gạch ngang; không trùng; **không đổi sau khi đã bán**.
+- **Ảnh bìa**: 16:9 (vd 1600×900), PNG/JPG/WebP, có tên sản phẩm dễ đọc ở cỡ nhỏ.
+- **Mô tả**: dòng tagline ngắn (≤ 140 ký tự) + mô tả chi tiết: làm được gì, cho ai, cần gì để dùng.
+- **Tiếng Việt có dấu** trong nội dung; tên file và slug **không dấu**.
+- **Nội dung Công giáo**: chính xác giáo lý, ghi nguồn; bản dịch Kinh Thánh, sách lễ, thánh ca thường có bản quyền.
+- **Mua thử**: dùng tài khoản admin nạp point và mua thật để kiểm từ đầu đến cuối.

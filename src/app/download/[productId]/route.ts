@@ -20,7 +20,7 @@ export async function GET(
   const supabase = createStoreAdminClient();
   const { data: product } = await supabase
     .from("products")
-    .select("download_path,tier,type")
+    .select("download_path,tier,type,price_month,giaoly_pro_free")
     .eq("id", productId)
     .maybeSingle();
   if (!product) {
@@ -32,6 +32,8 @@ export async function GET(
       id: productId,
       tier: product.tier,
       type: product.type,
+      priceMonth: product.price_month ?? 0,
+      giaolyProFree: product.giaoly_pro_free,
     }))
   ) {
     return new NextResponse("Bạn chưa có quyền dùng sản phẩm này.", { status: 403 });

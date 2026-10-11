@@ -14,6 +14,7 @@ export interface AdminProductRow {
   trial: boolean;
   trial_days: number;
   active: boolean;
+  giaoly_pro_free: boolean;
   icon: string | null;
   published: boolean;
   featured: boolean;
@@ -48,6 +49,11 @@ export interface AdminProductDetail {
   license_device_limit: number;
   license_offline_days: number;
   ms_store_url: string | null;
+  tier: "free" | "pro";
+  price_month: number;
+  trial: boolean;
+  trial_days: number;
+  giaoly_pro_free: boolean;
 }
 
 export async function adminListProducts(): Promise<AdminProductRow[]> {
@@ -55,7 +61,7 @@ export async function adminListProducts(): Promise<AdminProductRow[]> {
   const { data, error } = await supabase
     .from("products")
     .select(
-      "id,slug,title,type,price_vnd,original_price_vnd,min_plan,tier,price_month,trial,trial_days,active,icon,published,featured,is_new,is_popular,publisher:publishers(name)"
+      "id,slug,title,type,price_vnd,original_price_vnd,min_plan,tier,price_month,trial,trial_days,active,giaoly_pro_free,icon,published,featured,is_new,is_popular,publisher:publishers(name)"
     )
     .order("title", { ascending: true });
   if (error) throw new Error(error.message);
@@ -67,7 +73,7 @@ export async function adminGetProduct(id: string): Promise<AdminProductDetail | 
   const { data, error } = await supabase
     .from("products")
     .select(
-      "id,slug,title,tagline,description,type,category_id,publisher_id,price_vnd,original_price_vnd,cover_url,tags,min_plan,released_at,featured,is_new,is_popular,published,download_path,game_url,app_url,giaoly_feature_key,license_device_limit,license_offline_days,ms_store_url"
+      "id,slug,title,tagline,description,type,category_id,publisher_id,price_vnd,original_price_vnd,cover_url,tags,min_plan,released_at,featured,is_new,is_popular,published,download_path,game_url,app_url,giaoly_feature_key,license_device_limit,license_offline_days,ms_store_url,tier,price_month,trial,trial_days,giaoly_pro_free"
     )
     .eq("id", id)
     .maybeSingle();

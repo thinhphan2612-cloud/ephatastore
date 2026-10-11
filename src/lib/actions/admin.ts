@@ -15,41 +15,49 @@ const COVER_BUCKET = "product-covers";
 
 const FILES_BUCKET = "product-files";
 
-/** Upload ảnh bìa lên Storage public, trả về public URL. */
-async function uploadCover(file: File): Promise<string> {
-  const supabase = createStoreAdminClient();
-  const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
-  const path = `${crypto.randomUUID()}.${ext}`;
-  const { error } = await supabase.storage.from(COVER_BUCKET).upload(path, file, {
-    contentType: file.type || "image/jpeg",
-    upsert: false,
-  });
-  if (error) throw new Error(`Lỗi upload ảnh: ${error.message}`);
-  return supabase.storage.from(COVER_BUCKET).getPublicUrl(path).data.publicUrl;
-}
-
-/** Upload file tải về lên bucket PRIVATE, trả về path (không phải URL). */
-async function uploadDownloadFile(file: File): Promise<string> {
-  const supabase = createStoreAdminClient();
-  const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
-  const path = `${crypto.randomUUID()}/${safeName}`;
-  const { error } = await supabase.storage.from(FILES_BUCKET).upload(path, file, {
-    contentType: file.type || "application/octet-stream",
-    upsert: false,
-  });
-  if (error) throw new Error(`Lỗi upload file: ${error.message}`);
-  return path;
-}
-
 export interface SaveState {
   error?: string;
 }
+
+/**
+ * Bước 1 khi lưu sản phẩm có file: tạo signed upload URL để TRÌNH DUYỆT tải thẳng lên Storage
+ * (server action giới hạn body 1MB, Vercel ~4.5MB — không cho file đi qua server).
+ * cover → bucket public product-covers (ảnh bìa, ≤5MB) · download → bucket private product-files (≤50MB).
+ */
+export async function createProductUpload(input: {
+  purpose: "cover" | "download";
+  fileName: string;
+}): Promise<{ bucket: string; path: string; token: string }> {
+  await assertAdmin();
+  const supabase = createStoreAdminClient();
+  const bucket = input.purpose === "cover" ? COVER_BUCKET : FILES_BUCKET;
+  const ext = (input.fileName.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "") || "jpg";
+  const path =
+    input.purpose === "cover"
+      ? `${crypto.randomUUID()}.${ext}`
+      : `${crypto.randomUUID()}/${input.fileName.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
+  const { data, error } = await supabase.storage.from(bucket).createSignedUploadUrl(path);
+  if (error || !data) throw new Error(`Lỗi tạo link upload: ${error?.message}`);
+  return { bucket, path, token: data.token };
+}
+
+const UUID = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
+const COVER_PATH_RE = new RegExp(`^${UUID}\\.[a-z0-9]{1,5}$`);
+const DOWNLOAD_PATH_RE = new RegExp(`^${UUID}/[A-Za-z0-9._-]+$`);
+
+/** Đường dẫn trong bucket product-covers từ public URL (null nếu ảnh không nằm ở bucket này). */
+function coverPathFromUrl(url: string | null | undefined): string | null {
+  const m = url?.match(/\/storage\/v1\/object\/public\/product-covers\/(.+)$/);
+  return m ? m[1] : null;
+}
+
+/** Loại bán MỘT LẦN dùng vĩnh viễn; còn lại (tool/feature) là thuê bao. */
+const PERPETUAL_TYPES = ["asset", "image", "game", "software"];
 
 function parseProduct(formData: FormData) {
   const title = String(formData.get("title") ?? "").trim();
   const slugInput = String(formData.get("slug") ?? "").trim();
   const originalPrice = String(formData.get("original_price_vnd") ?? "").trim();
-  const minPlan = String(formData.get("min_plan") ?? "").trim();
   const releasedAt = String(formData.get("released_at") ?? "").trim();
   const tags = String(formData.get("tags") ?? "")
     .split(",")
@@ -64,11 +72,8 @@ function parseProduct(formData: FormData) {
     type: String(formData.get("type") ?? "tool"),
     category_id: String(formData.get("category_id") ?? ""),
     publisher_id: String(formData.get("publisher_id") ?? ""),
-    price_vnd: Number(formData.get("price_vnd") ?? 0) || 0,
     original_price_vnd: originalPrice ? Number(originalPrice) : null,
-    cover_url: String(formData.get("cover_url") ?? "").trim() || null,
     tags,
-    min_plan: minPlan === "free" || minPlan === "pro" ? minPlan : null,
     released_at: releasedAt || null,
     game_url: String(formData.get("game_url") ?? "").trim() || null,
     app_url: String(formData.get("app_url") ?? "").trim() || null,
@@ -80,21 +85,46 @@ function parseProduct(formData: FormData) {
   };
 }
 
-export async function saveProduct(
-  _prev: SaveState,
-  formData: FormData
-): Promise<SaveState> {
-  const res = await persistProduct(formData);
-  if (res.error) return res;
-  revalidatePath("/admin");
-  redirect("/admin");
+/**
+ * Giá theo mô hình point: tier/price_month là thứ store dùng để bán (price_vnd giữ đồng bộ để hiển thị).
+ * Form gửi: sale=free|paid, price (VND), trial, trial_days, giaoly_pro_free.
+ * Phần mềm: chỉ có price (giá key) — > 0 là có phí; không bao giờ free theo Pro Giáo Lý Số.
+ */
+function parsePricing(
+  formData: FormData,
+  type: string
+): Record<string, unknown> | { error: string } {
+  const price = Math.max(0, Math.round(Number(formData.get("price") ?? 0) || 0));
+  if (type === "software") {
+    return {
+      tier: price > 0 ? "pro" : "free",
+      price_month: price,
+      price_vnd: price,
+      min_plan: null,
+      giaoly_pro_free: false,
+      trial: false,
+    };
+  }
+  const paid = formData.get("sale") === "paid";
+  if (paid && price <= 0) return { error: "Nhập giá bán (VND) lớn hơn 0, hoặc chọn Miễn phí." };
+  const subscription = !PERPETUAL_TYPES.includes(type);
+  const tier = paid ? "pro" : "free";
+  return {
+    tier,
+    min_plan: tier,
+    price_month: paid ? price : 0,
+    price_vnd: paid ? price : 0,
+    trial: paid && subscription && formData.get("trial") === "on",
+    trial_days: Math.min(60, Math.max(1, Number(formData.get("trial_days")) || 7)),
+    giaoly_pro_free: paid && formData.get("giaoly_pro_free") === "on",
+  };
 }
 
 /**
- * Lưu sản phẩm phần mềm, KHÔNG redirect: form cần id để upload bộ cài thẳng từ trình duyệt
- * lên Storage sau đó (file bộ cài không đi qua server action — giới hạn body ~4.5MB).
+ * Lưu sản phẩm, KHÔNG redirect. Form gọi sau khi đã tải file (ảnh bìa / file tải về) thẳng lên Storage;
+ * phần mềm cần id trả về để upload bộ cài tiếp.
  */
-export async function saveSoftwareProduct(formData: FormData): Promise<SaveState & { id?: string }> {
+export async function saveProductData(formData: FormData): Promise<SaveState & { id?: string }> {
   const res = await persistProduct(formData);
   if (!res.error) revalidatePath("/admin");
   return res;
@@ -110,49 +140,47 @@ async function persistProduct(formData: FormData): Promise<SaveState & { id?: st
   if (!row.category_id) return { error: "Chưa chọn danh mục." };
   if (!row.publisher_id) return { error: "Chưa chọn nhà phát hành." };
 
-  // Ảnh bìa upload (nếu có) ghi đè cover_url từ text field.
-  const file = formData.get("cover_file");
-  if (file instanceof File && file.size > 0) {
-    try {
-      row.cover_url = await uploadCover(file);
-    } catch (e) {
-      return { error: e instanceof Error ? e.message : "Lỗi upload ảnh." };
-    }
+  const pricing = parsePricing(formData, row.type);
+  if ("error" in pricing) return { error: String(pricing.error) };
+
+  const supabase = createStoreAdminClient();
+  const payload: Record<string, unknown> = { ...row, ...pricing };
+
+  // File đã được trình duyệt tải thẳng lên Storage (createProductUpload) → chỉ nhận đường dẫn.
+  const coverPath = String(formData.get("cover_path") ?? "").trim();
+  if (coverPath) {
+    if (!COVER_PATH_RE.test(coverPath)) return { error: "Đường dẫn ảnh bìa không hợp lệ." };
+    payload.cover_url = supabase.storage.from(COVER_BUCKET).getPublicUrl(coverPath).data.publicUrl;
+  }
+  const downloadPath = String(formData.get("download_path") ?? "").trim();
+  if (downloadPath) {
+    if (!DOWNLOAD_PATH_RE.test(downloadPath)) return { error: "Đường dẫn file tải về không hợp lệ." };
+    payload.download_path = downloadPath;
   }
 
-  const payload: Record<string, unknown> = { ...row };
-
-  // File tải về upload (nếu có) → path trong bucket private.
-  const dfile = formData.get("download_file");
-  if (dfile instanceof File && dfile.size > 0) {
-    try {
-      payload.download_path = await uploadDownloadFile(dfile);
-    } catch (e) {
-      return { error: e instanceof Error ? e.message : "Lỗi upload file." };
-    }
-  }
-
-  // Phần mềm bán key: giá mua 1 lần = price_month; luôn trả point (không gate theo gói).
-  const isSoftware = row.type === "software";
-  if (isSoftware) {
+  // Phần mềm bán key: cấu hình license + link Microsoft Store.
+  if (row.type === "software") {
     const msStoreUrl = String(formData.get("ms_store_url") ?? "").trim();
     if (msStoreUrl && !/^https:\/\//.test(msStoreUrl))
       return { error: "Link Microsoft Store phải bắt đầu bằng https://" };
     Object.assign(payload, {
-      price_month: row.price_vnd,
-      tier: row.price_vnd > 0 ? "pro" : "free",
-      min_plan: null,
       license_device_limit: Math.max(1, Number(formData.get("license_device_limit")) || 2),
-      license_offline_days: Math.max(1, Number(formData.get("license_offline_days")) || 30),
+      // 0 = vĩnh viễn (không cần xác minh lại online).
+      license_offline_days:
+        formData.get("license_offline_forever") === "on"
+          ? 0
+          : Math.max(1, Number(formData.get("license_offline_days")) || 30),
       ms_store_url: msStoreUrl || null,
     });
   }
 
-  const supabase = createStoreAdminClient();
-
-  // Danh mục cũ (khi sửa) để gỡ liên kết nếu đổi danh mục chính.
+  // Bản cũ (khi sửa): danh mục để gỡ liên kết nếu đổi; file cũ để dọn sau khi thay.
   const { data: before } = id
-    ? await supabase.from("products").select("category_id").eq("id", id).maybeSingle()
+    ? await supabase
+        .from("products")
+        .select("category_id,cover_url,download_path")
+        .eq("id", id)
+        .maybeSingle()
     : { data: null };
 
   const { data: saved, error } = id
@@ -163,6 +191,12 @@ async function persistProduct(formData: FormData): Promise<SaveState & { id?: st
     if (error.code === "23505") return { error: `Slug "${row.slug}" đã tồn tại.` };
     return { error: error.message };
   }
+
+  // Dọn file cũ đã bị thay (best-effort).
+  const oldCover = coverPath ? coverPathFromUrl(before?.cover_url) : null;
+  if (oldCover && oldCover !== coverPath) await supabase.storage.from(COVER_BUCKET).remove([oldCover]);
+  if (downloadPath && before?.download_path && before.download_path !== downloadPath)
+    await supabase.storage.from(FILES_BUCKET).remove([before.download_path]);
 
   // Catalog đọc danh mục qua product_categories (nhiều-nhiều) → phải gắn danh mục chính vào đó.
   if (before?.category_id && before.category_id !== row.category_id) {
@@ -298,6 +332,7 @@ export async function updateProductConfig(formData: FormData) {
     trial: tier === "pro" && formData.get("trial") === "on",
     trial_days: Number(formData.get("trial_days") ?? 7) || 7,
     active: formData.get("active") === "on",
+    giaoly_pro_free: tier === "pro" && formData.get("giaoly_pro_free") === "on",
   };
 
   const supabase = createStoreAdminClient();
