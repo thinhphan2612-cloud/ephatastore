@@ -48,9 +48,9 @@ async function send(job: Job): Promise<void> {
 /**
  * Đồng bộ quyền tính năng của một user (đã liên kết Giáo Lý Số, là quản trị giáo xứ) sang Giáo Lý Số.
  * Gọi sau mọi thay đổi quyền sản phẩm loại tính năng: mua, dùng thử, nhận miễn phí, admin cấp/thu hồi.
- * Không phải sản phẩm tính năng (không có feature key) → bỏ qua.
+ * Không phải sản phẩm tính năng (không có feature key) → bỏ qua. Trả true nếu đã tạo + gửi job.
  */
-export async function syncFeatureProvision(userId: string, productId: string): Promise<void> {
+export async function syncFeatureProvision(userId: string, productId: string): Promise<boolean> {
   const supabase = createStoreAdminClient();
   const { data: product } = await supabase
     .from("products")
@@ -58,10 +58,10 @@ export async function syncFeatureProvision(userId: string, productId: string): P
     .eq("id", productId)
     .maybeSingle();
   const featureKey = product?.giaoly_feature_key;
-  if (!featureKey) return;
+  if (!featureKey) return false;
 
   const ctx = await getGiaolyContextFor(userId); // làm mới nếu cũ → đúng giáo xứ hiện tại
-  if (!ctx?.parishId) return; // chưa liên kết Giáo Lý Số — luồng mua đã chặn trước
+  if (!ctx?.parishId) return false; // chưa liên kết Giáo Lý Số — luồng mua đã chặn trước
   const prof = { parish_id: ctx.parishId };
 
   const now = new Date().toISOString();
@@ -90,14 +90,28 @@ export async function syncFeatureProvision(userId: string, productId: string): P
     .single();
   if (error || !job) throw new Error(error?.message ?? "Không tạo được job provision.");
   await send(job as Job);
+  return true;
 }
 
-/** Admin: gửi lại một job lỗi. */
+/**
+ * Admin: gửi lại một job lỗi = đồng bộ lại theo TRẠNG THÁI HIỆN TẠI (job mới), không gửi nguyên payload cũ —
+ * payload cũ có thể đã lỗi thời (quyền đã bị thu hồi / đã gia hạn sau đó). Job cũ đóng lại kèm ghi chú.
+ */
 export async function retryProvisionJob(id: string): Promise<void> {
-  const { data: job } = await createStoreAdminClient()
+  const supabase = createStoreAdminClient();
+  const { data: job } = await supabase
     .from("provision_jobs")
-    .select("id,payload")
+    .select("id,store_user_id,product_id")
     .eq("id", id)
     .maybeSingle();
-  if (job) await send(job as Job);
+  if (!job?.store_user_id || !job.product_id) return;
+  const sent = await syncFeatureProvision(job.store_user_id, job.product_id);
+  await supabase
+    .from("provision_jobs")
+    .update(
+      sent
+        ? { status: "done", last_error: "Đã thay bằng lần gửi mới theo trạng thái hiện tại (xem job mới nhất).", updated_at: new Date().toISOString() }
+        : { last_error: "Không gửi lại được: người dùng đã gỡ liên kết Giáo Lý Số hoặc không còn giáo xứ.", updated_at: new Date().toISOString() }
+    )
+    .eq("id", job.id);
 }

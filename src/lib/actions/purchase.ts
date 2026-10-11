@@ -8,13 +8,14 @@ import { createStoreAdminClient } from "@/lib/supabase/store-admin";
 import { getSettings } from "@/data/settings";
 import { vndToPoints } from "@/lib/points";
 import { generateLicenseKey } from "@/lib/software/license";
-import { isParishAdmin } from "@/lib/giaoly-context";
+import { getGiaolyContext, isParishAdmin } from "@/lib/giaoly-context";
 import { syncFeatureProvision } from "@/lib/giaoly-provision";
 import { isOwned } from "@/data/store-user";
+import { kindsFor, type PurchaseKind } from "@/lib/purchase-kinds";
+import { couponErrorOf, quoteCoupon } from "@/lib/coupons";
 
 const YEAR_DAYS = 365;
 
-export type PurchaseKind = "annual" | "freedom" | "topping" | "perpetual" | "software";
 
 /** Số point cần trả cho một lượt mua (0 nếu free). */
 export async function purchasePricePoints(
@@ -33,17 +34,21 @@ export async function purchasePricePoints(
 /**
  * Mua bằng point + cấp quyền ngay. Sản phẩm gắn nhãn "Miễn phí cho Pro Giáo Lý Số" + user có Pro → miễn phí.
  * kind: annual (365 ngày) | freedom (N ngày) | perpetual (vĩnh viễn: game, file tải về) | topping (all-access 365 ngày)
- *       | software (key vĩnh viễn — luôn trả point, kể cả Pro).
+ *       | software (key vĩnh viễn — luôn trả point, kể cả Pro). kind phải hợp loại sản phẩm (lib/purchase-kinds).
+ * coupon: mã giảm giá (tùy chọn) — áp trong transaction (redeem_coupon, 0022).
  */
 export async function confirmPurchase(formData: FormData) {
   const user = await getCurrentUser();
   const productId = String(formData.get("product_id") ?? "").trim();
   const kind = String(formData.get("kind") ?? "") as PurchaseKind;
-  if (!user)
-    redirect(kind === "topping" ? "/login?next=/buy/topping" : `/login?next=/buy/${productId}?kind=${kind}`);
+  const coupon = String(formData.get("coupon") ?? "").trim().toUpperCase().slice(0, 40);
+  const buyPath = kind === "topping" ? "/buy/topping" : `/buy/${productId}?kind=${kind}`;
+  if (!user) redirect(`/login?next=${encodeURIComponent(buyPath)}`);
+  const backToBuy = (): never =>
+    redirect(`${buyPath}${coupon ? `${buyPath.includes("?") ? "&" : "?"}coupon=${encodeURIComponent(coupon)}` : ""}`);
 
   const supabase = createStoreAdminClient();
-  if (kind === "software") return purchaseSoftware(user.id, productId);
+  if (kind === "software") return purchaseSoftware(user.id, productId, coupon, backToBuy);
   const settings = await getSettings();
 
   let priceMonth = 0;
@@ -54,11 +59,12 @@ export async function confirmPurchase(formData: FormData) {
       .select("id,slug,type,price_month,giaoly_pro_free,giaoly_feature_key,published")
       .eq("id", productId)
       .maybeSingle();
-    // Phần mềm chỉ mua qua kind=software (tạo key) — chặn lách nhánh Pro-free.
-    if (!product || !product.published || product.type === "software")
-      throw new Error("Sản phẩm không tồn tại.");
+    if (!product || !product.published) redirect("/library");
+    // Gói mua phải hợp loại sản phẩm (phần mềm chỉ qua kind=software).
+    if (!kindsFor(product.type).includes(kind)) redirect(`/product/${product.slug}?notice=kind_invalid`);
     // Tính năng Giáo Lý Số áp cho cả giáo xứ → chỉ quản trị giáo xứ đã liên kết mới mua được.
-    if (product.giaoly_feature_key && !(await isParishAdmin())) redirect(`/product/${product.slug}`);
+    if (product.giaoly_feature_key && !(await isParishAdmin()))
+      redirect(`/product/${product.slug}?notice=feature_parish_admin`);
     priceMonth = product.price_month ?? 0;
     proFree = product.giaoly_pro_free;
     // Đã sở hữu vĩnh viễn → không trừ point lần nữa (form cũ / bấm Back / mở lại link mua).
@@ -70,6 +76,10 @@ export async function confirmPurchase(formData: FormData) {
   const points = isPro ? 0 : await purchasePricePoints(kind, priceMonth);
   const days =
     kind === "perpetual" ? null : kind === "freedom" ? settings.freedomDays : YEAR_DAYS; // annual | topping
+  // Pro miễn phí: quyền chỉ tới hết hạn gói Pro (gói không hạn → 365 ngày), bấm nhiều lần không cộng dồn.
+  const until = isPro
+    ? ((await getGiaolyContext())?.planExpiresAt ?? new Date(Date.now() + YEAR_DAYS * 86400000).toISOString())
+    : null;
 
   // Trừ point + cấp quyền (cộng nối hạn) + ghi lịch sử trong MỘT transaction, chống trùng theo purchase_key
   // (trang /buy sinh khóa mới mỗi lần mở → bấm 2 lần / gửi lại không trừ 2 lần).
@@ -82,10 +92,17 @@ export async function confirmPurchase(formData: FormData) {
     p_days: days,
     p_source: isPro ? "giaoly_pro" : "purchase",
     p_key: key,
+    p_coupon: !isPro && coupon ? coupon : null,
+    p_until: until,
   });
   if (error) {
-    if (/INSUFFICIENT_POINTS/.test(error.message))
-      redirect(`/wallet?need=${points}&back=${encodeURIComponent(kind === "topping" ? "/buy/topping" : `/buy/${productId}?kind=${kind}`)}`);
+    if (/ALREADY_OWNED/.test(error.message)) redirect("/library");
+    if (couponErrorOf(error.message)) backToBuy(); // trang /buy báo lại lỗi mã
+    if (/INSUFFICIENT_POINTS/.test(error.message)) {
+      const q = coupon ? await quoteCoupon(user.id, coupon, points) : null;
+      const need = points - (q && "discount" in q ? q.discount : 0);
+      redirect(`/wallet?need=${need}&back=${encodeURIComponent(buyPath)}`);
+    }
     throw new Error(error.message);
   }
   if (kind !== "topping") await syncFeatureSafe(user.id, productId);
@@ -95,28 +112,38 @@ export async function confirmPurchase(formData: FormData) {
 }
 
 /**
- * Mua key phần mềm: RPC purchase_software trừ point + tạo key + cấp quyền trong 1 transaction
+ * Mua key phần mềm: RPC purchase_software trừ point (trừ mã giảm giá) + tạo key + cấp quyền trong 1 transaction
  * (đã có key → không trừ). Trùng key (23505) → toàn bộ rollback, thử lại với key mới.
  */
-async function purchaseSoftware(userId: string, productId: string): Promise<never> {
+async function purchaseSoftware(
+  userId: string,
+  productId: string,
+  coupon: string,
+  backToBuy: () => never
+): Promise<never> {
   const supabase = createStoreAdminClient();
   const { data: product } = await supabase
     .from("products")
     .select("id,slug,type,price_month,published")
     .eq("id", productId)
     .maybeSingle();
-  if (!product || !product.published || product.type !== "software")
-    throw new Error("Sản phẩm không tồn tại.");
+  if (!product || !product.published || product.type !== "software") redirect("/library");
 
   for (let attempt = 1; ; attempt++) {
     const { error } = await supabase.rpc("purchase_software", {
       p_user: userId,
       p_product: productId,
       p_key: generateLicenseKey(product.slug),
+      p_coupon: coupon || null,
     });
     if (!error) break;
-    if (/INSUFFICIENT_POINTS/.test(error.message))
-      redirect(`/wallet?need=${vndToPoints(product.price_month ?? 0)}`);
+    if (couponErrorOf(error.message)) backToBuy();
+    if (/INSUFFICIENT_POINTS/.test(error.message)) {
+      const points = vndToPoints(product.price_month ?? 0);
+      const q = coupon ? await quoteCoupon(userId, coupon, points) : null;
+      const need = points - (q && "discount" in q ? q.discount : 0);
+      redirect(`/wallet?need=${need}&back=${encodeURIComponent(`/buy/${productId}?kind=software`)}`);
+    }
     if (error.code === "23505" && attempt < 5) continue;
     throw new Error(error.message);
   }

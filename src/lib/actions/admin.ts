@@ -380,17 +380,22 @@ export async function updateProductConfig(formData: FormData) {
 // ---- Coupon ----
 export async function createCoupon(formData: FormData) {
   const admin = await assertAdmin();
-  const code = String(formData.get("code") ?? "").trim().toUpperCase();
+  const code = String(formData.get("code") ?? "").trim().toUpperCase().replace(/\s+/g, "").slice(0, 40);
   const kind = formData.get("kind") === "amount" ? "amount" : "percent";
-  const value = Number(formData.get("value") ?? 0) || 0;
-  if (!code || value <= 0) return;
+  const value = Math.floor(Number(formData.get("value") ?? 0) || 0);
+  if (!code || value <= 0 || (kind === "percent" && value > 100)) return;
+  // Hạn dùng: hết ngày đã chọn theo giờ Việt Nam. Số lượt tối đa: để trống = không giới hạn.
+  const expiresDate = String(formData.get("expires_at") ?? "").trim();
+  const expires_at = /^\d{4}-\d{2}-\d{2}$/.test(expiresDate) ? new Date(`${expiresDate}T23:59:59+07:00`).toISOString() : null;
+  const maxUses = Math.floor(Number(formData.get("max_uses") ?? 0) || 0);
+  const max_uses = maxUses > 0 ? maxUses : null;
 
   const supabase = createStoreAdminClient();
   const { error } = await supabase
     .from("discount_codes")
-    .insert({ code, kind, value, active: true });
+    .insert({ code, kind, value, active: true, expires_at, max_uses });
   if (error && error.code !== "23505") throw new Error(error.message);
-  if (!error) await logAdmin(admin, "coupon.create", { type: "coupon", id: code }, { kind, value });
+  if (!error) await logAdmin(admin, "coupon.create", { type: "coupon", id: code }, { kind, value, expires_at, max_uses });
 
   revalidatePath("/admin/coupons");
 }

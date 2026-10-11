@@ -89,12 +89,14 @@ export async function getMyTopups(userId: string, limit = 5): Promise<Topup[]> {
 /** Danh sách đơn nạp chờ duyệt (admin). */
 export async function adminListTopups(): Promise<(Topup & { email: string | null })[]> {
   const supabase = createStoreAdminClient();
-  const { data } = await supabase
-    .from("point_topups")
-    .select("id,user_id,code,amount_vnd,points,status,created_at")
-    .order("created_at", { ascending: false })
-    .limit(100);
-  const rows = (data ?? []) as Topup[];
+  // Đơn chờ duyệt lấy ĐỦ (trước đây chỉ 100 dòng mới nhất mọi trạng thái → đơn chờ cũ trôi khỏi hàng đợi,
+  // khách đã chuyển tiền mà không được cộng) + 100 đơn đã xử lý gần nhất.
+  const cols = "id,user_id,code,amount_vnd,points,status,created_at";
+  const [{ data: pending }, { data: done }] = await Promise.all([
+    supabase.from("point_topups").select(cols).eq("status", "pending").order("created_at", { ascending: true }),
+    supabase.from("point_topups").select(cols).neq("status", "pending").order("created_at", { ascending: false }).limit(100),
+  ]);
+  const rows = [...(pending ?? []), ...(done ?? [])] as Topup[];
 
   const ids = [...new Set(rows.map((r) => r.user_id))];
   const emailMap = new Map<string, string | null>();

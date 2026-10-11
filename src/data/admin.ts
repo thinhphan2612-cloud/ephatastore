@@ -105,13 +105,15 @@ export interface AdminCoupon {
   value: number;
   active: boolean;
   used_count: number;
+  max_uses: number | null;
+  expires_at: string | null;
 }
 
 export async function adminListCoupons(): Promise<AdminCoupon[]> {
   const supabase = createStoreAdminClient();
   const { data, error } = await supabase
     .from("discount_codes")
-    .select("id,code,kind,value,active,used_count")
+    .select("id,code,kind,value,active,used_count,max_uses,expires_at")
     .order("created_at", { ascending: false });
   if (error) throw new Error(error.message);
   return (data ?? []) as AdminCoupon[];
