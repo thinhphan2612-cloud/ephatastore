@@ -14,6 +14,7 @@ interface ProductRow {
   title: string;
   tagline: string;
   description: string;
+  description_html: string | null;
   type: Product["type"];
   price_vnd: number;
   original_price_vnd: number | null;
@@ -49,7 +50,7 @@ interface ProductRow {
 }
 
 const SELECT =
-  "id,slug,title,tagline,description,type,price_vnd,original_price_vnd,cover_url,gallery,tags,min_plan,tier,price_month,trial,trial_days,active,giaoly_pro_free,uses_wallet,icon,app_url,game_url,giaoly_feature_key,rating,rating_count,released_at,featured,is_new,is_popular,publisher:publishers(id,slug,name,avatar_url,verified),categories:product_categories(category:categories(slug))";
+  "id,slug,title,tagline,description,description_html,type,price_vnd,original_price_vnd,cover_url,gallery,tags,min_plan,tier,price_month,trial,trial_days,active,giaoly_pro_free,uses_wallet,icon,app_url,game_url,giaoly_feature_key,rating,rating_count,released_at,featured,is_new,is_popular,publisher:publishers(id,slug,name,avatar_url,verified),categories:product_categories(category:categories(slug))";
 
 function mapRow(r: ProductRow): Product {
   const categorySlugs = (r.categories ?? [])
@@ -61,6 +62,7 @@ function mapRow(r: ProductRow): Product {
     title: r.title,
     tagline: r.tagline,
     description: r.description,
+    descriptionHtml: r.description_html,
     type: r.type,
     categoryId: categorySlugs[0] ?? "",
     categorySlugs,

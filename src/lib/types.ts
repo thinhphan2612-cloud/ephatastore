@@ -38,6 +38,8 @@ export interface Product {
   /** một dòng mô tả ngắn hiện dưới tiêu đề */
   tagline: string;
   description: string;
+  /** mô tả chi tiết dạng HTML (đã lọc khi lưu; lọc lại khi hiển thị) — null thì dùng description */
+  descriptionHtml?: string | null;
   type: ProductType;
   /** danh mục chính (dùng cho breadcrumb) */
   categoryId: string;

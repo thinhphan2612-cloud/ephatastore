@@ -8,6 +8,8 @@ import { createReleaseUpload, saveRelease } from "@/lib/actions/software";
 import { createStoreAuthBrowserClient } from "@/lib/supabase/store-auth-browser";
 import type { AdminProductDetail } from "@/data/admin";
 import { TYPE_LABEL } from "@/lib/labels";
+import { SelectWithCreate } from "@/components/admin/catalog-fields";
+import { DescriptionEditor } from "@/components/admin/description-editor";
 import { vndToPoints } from "@/lib/points";
 import type { ProductType } from "@/lib/types";
 import { PLATFORMS, PLATFORM_LABEL, SEMVER_RE, type Platform } from "@/lib/software/version";
@@ -184,35 +186,18 @@ export function ProductForm({
         <input name="tagline" defaultValue={p?.tagline} className={input} />
       </Field>
 
-      <Field label="Mô tả chi tiết">
-        <textarea name="description" rows={4} defaultValue={p?.description} className={input} />
-      </Field>
+      <DescriptionEditor html={p?.description_html} text={p?.description} />
 
       <div className="grid gap-5 sm:grid-cols-2">
-        <Field label="Danh mục *">
-          <select name="category_id" required defaultValue={p?.category_id ?? ""} className={input}>
-            <option value="" disabled>
-              — Chọn —
-            </option>
-            {categories.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-          </select>
-        </Field>
-        <Field label="Nhà phát hành *">
-          <select name="publisher_id" required defaultValue={p?.publisher_id ?? ""} className={input}>
-            <option value="" disabled>
-              — Chọn —
-            </option>
-            {publishers.map((pub) => (
-              <option key={pub.id} value={pub.id}>
-                {pub.name}
-              </option>
-            ))}
-          </select>
-        </Field>
+        {/* div thay vì Field (label): khung "+ Thêm mới" nằm bên trong, label sẽ cướp focus. */}
+        <div>
+          <span className="mb-1 block text-sm text-text-muted">Danh mục *</span>
+          <SelectWithCreate kind="category" name="category_id" options={categories} defaultValue={p?.category_id} />
+        </div>
+        <div>
+          <span className="mb-1 block text-sm text-text-muted">Nhà phát hành *</span>
+          <SelectWithCreate kind="publisher" name="publisher_id" options={publishers} defaultValue={p?.publisher_id} />
+        </div>
       </div>
 
       {/* ===== Bán ===== */}

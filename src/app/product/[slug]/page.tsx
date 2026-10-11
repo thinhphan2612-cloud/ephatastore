@@ -2,7 +2,9 @@ import Link from "next/link";
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { getProductBySlug, getRelated } from "@/data/products";
-import { CATEGORY_BY_ID } from "@/data/categories";
+import { getCategoryBySlug } from "@/data/categories";
+import { sanitizeDescription } from "@/lib/rich-text";
+import { Expandable } from "@/components/expandable";
 import { getCurrentUser } from "@/lib/auth";
 import { getCurrentUserPlan } from "@/lib/plan";
 import { getGiaolyContext } from "@/lib/giaoly-context";
@@ -37,7 +39,7 @@ export default async function ProductPage({
   const product = await getProductBySlug(slug);
   if (!product) notFound();
 
-  const category = CATEGORY_BY_ID.get(product.categoryId);
+  const category = await getCategoryBySlug(product.categoryId);
   const related = await getRelated(product);
   const isGame = product.type === "game";
   const isHostedTool = product.type === "tool" && !!product.gameUrl;
@@ -98,8 +100,9 @@ export default async function ProductPage({
         <span className="text-text-muted">{product.title}</span>
       </nav>
 
+      {/* min-w-0: cột grid không bị nội dung rộng (bảng, code trong mô tả HTML) đẩy tràn ngang trang. */}
       <div className="grid gap-8 lg:grid-cols-[1.4fr_1fr]">
-        <div className="space-y-6">
+        <div className="min-w-0 space-y-6">
           <div className="relative flex aspect-video items-center justify-center overflow-hidden rounded-3xl border border-border">
             <div
               className="media-placeholder absolute inset-0"
@@ -110,7 +113,14 @@ export default async function ProductPage({
           </div>
           <div>
             <h2 className="font-display mb-2 text-2xl font-bold">Giới thiệu</h2>
-            <p className="leading-relaxed text-text-muted">{product.description}</p>
+            <Expandable>
+              {product.descriptionHtml ? (
+                // Lọc lại khi hiển thị: chính sách lọc đổi thì nội dung cũ cũng theo.
+                <div className="rich-text" dangerouslySetInnerHTML={{ __html: sanitizeDescription(product.descriptionHtml) }} />
+              ) : (
+                <p className="whitespace-pre-line leading-relaxed text-text-muted">{product.description}</p>
+              )}
+            </Expandable>
           </div>
           {product.tags.length > 0 && (
             <div className="flex flex-wrap gap-2">
@@ -123,7 +133,7 @@ export default async function ProductPage({
           )}
         </div>
 
-        <aside className="space-y-4">
+        <aside className="min-w-0 space-y-4">
           <div className="rounded-3xl border border-border bg-surface p-6">
             <div className="mb-4 flex items-start justify-between gap-4">
               <div className="grid h-14 w-14 place-items-center rounded-2xl border border-accent/30 bg-accent/10 text-[25px] text-accent">
@@ -142,6 +152,16 @@ export default async function ProductPage({
             </div>
             <h1 className="font-display text-[26px] font-bold">{product.title}</h1>
             <p className="mt-1 text-text-muted">{product.tagline}</p>
+            {product.publisher.slug && (
+              <p className="mt-2 text-sm text-text-faint">
+                Phát hành bởi <span className="font-medium text-text">{product.publisher.name}</span>
+                {product.publisher.verified && (
+                  <span className="ml-1 text-accent" title="Nhà phát hành đã xác minh">
+                    ✓
+                  </span>
+                )}
+              </p>
+            )}
             {featureKey && (
               <p className="mt-3 rounded-xl border border-border bg-white/[0.03] px-3 py-2 text-xs text-text-muted">
                 🧩 Tính năng trong Giáo Lý Số — bật cho <b className="text-text">cả giáo xứ</b> của bạn sau khi mua.
