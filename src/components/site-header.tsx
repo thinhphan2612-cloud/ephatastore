@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getCurrentUser, isAdminEmail } from "@/lib/auth";
+import { getCurrentUser, isAdminUser } from "@/lib/auth";
 import { getCurrentUserPlan } from "@/lib/plan";
 import { getBalance } from "@/data/wallet";
 import { signOut } from "@/lib/actions/auth";
@@ -7,7 +7,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 
 export async function SiteHeader() {
   const user = await getCurrentUser();
-  const isAdmin = isAdminEmail(user?.email);
+  const isAdmin = isAdminUser(user);
   const plan = user ? await getCurrentUserPlan() : "free";
   const balance = user ? await getBalance(user.id) : 0;
 
@@ -25,7 +25,8 @@ export async function SiteHeader() {
           />
         </Link>
 
-        <div className="hidden items-center gap-6 text-sm text-text-muted md:flex">
+        {/* Menu giữa từ lg (1024px): ở 768px menu + nút tài khoản tràn ngang thanh đầu trang. */}
+        <div className="hidden items-center gap-6 text-sm text-text-muted lg:flex">
           <Link href="/#categories" className="hover:text-text">
             Danh mục
           </Link>
@@ -59,8 +60,16 @@ export async function SiteHeader() {
                 </span>
               )}
               <Link
+                href="/library"
+                className="hidden whitespace-nowrap rounded-xl border border-border px-3 py-2.5 text-sm font-semibold text-text-muted hover:border-accent/50 hover:text-text sm:block"
+                title="Thư viện — sản phẩm bạn đã sở hữu"
+                aria-label="Thư viện"
+              >
+                ▤<span className="hidden lg:inline"> Thư viện</span>
+              </Link>
+              <Link
                 href="/wallet"
-                className="hidden rounded-xl border border-border-strong bg-white/5 px-3 py-2.5 text-sm font-bold text-text hover:border-accent/50 hover:bg-accent/10 sm:block"
+                className="hidden whitespace-nowrap rounded-xl border border-border-strong bg-white/5 px-3 py-2.5 text-sm font-bold text-text hover:border-accent/50 hover:bg-accent/10 sm:block"
                 title="Ví Point"
               >
                 ◆ {balance.toLocaleString("vi-VN")}

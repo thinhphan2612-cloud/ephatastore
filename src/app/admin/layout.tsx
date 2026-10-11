@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { getCurrentUser, isAdminEmail } from "@/lib/auth";
+import { getCurrentUser, isAdminUser } from "@/lib/auth";
 
 export const metadata = { title: "Admin" };
 
@@ -11,7 +11,7 @@ export default async function AdminLayout({
 }) {
   const user = await getCurrentUser();
   if (!user) redirect("/login?next=/admin");
-  if (!isAdminEmail(user.email)) redirect("/");
+  if (!isAdminUser(user)) redirect("/");
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8">

@@ -3,7 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 
 /**
  * - COMING_SOON bật (Production) → khách thấy trang "Sắp ra mắt"; /login vẫn mở để đăng nhập,
- *   tài khoản admin (ADMIN_EMAILS) đã đăng nhập thấy toàn bộ store (upload app, mua key thử).
+ *   tài khoản admin (ADMIN_USER_IDS) đã đăng nhập thấy toàn bộ store (upload app, mua key thử).
  * - Không bật (nhánh test / local) → chạy full store + refresh session.
  * Next 16: file convention "proxy".
  */
@@ -45,19 +45,20 @@ export async function proxy(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (gated && request.nextUrl.pathname !== "/login" && !isAdminEmail(user?.email)) {
+  if (gated && request.nextUrl.pathname !== "/login" && !isAdminId(user?.id)) {
     return comingSoon();
   }
 
   return response;
 }
 
-function isAdminEmail(email: string | undefined): boolean {
-  if (!email) return false;
-  return (process.env.ADMIN_EMAILS ?? "")
+/** Cùng quy tắc với lib/auth isAdminUser (proxy không import server-only module): admin theo ID tài khoản. */
+function isAdminId(id: string | undefined): boolean {
+  if (!id) return false;
+  return (process.env.ADMIN_USER_IDS ?? "")
     .split(",")
-    .map((e) => e.trim().toLowerCase())
-    .includes(email.toLowerCase());
+    .map((s) => s.trim().toLowerCase())
+    .includes(id.toLowerCase());
 }
 
 function comingSoon() {

@@ -4,6 +4,9 @@ import { getGiaolyContext } from "@/lib/giaoly-context";
 import { effectivePlan } from "@/lib/plan";
 import { unlinkGiaoly } from "@/lib/actions/giaoly-link";
 import { GiaolyLinkForm } from "@/components/giaoly-link-form";
+import Link from "next/link";
+import { getBalance } from "@/data/wallet";
+import { signOut } from "@/lib/actions/auth";
 
 export const metadata = { title: "Tài khoản" };
 
@@ -11,13 +14,36 @@ export default async function AccountPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/login?next=/account");
 
-  const ctx = await getGiaolyContext();
+  const [ctx, balance] = await Promise.all([getGiaolyContext(), getBalance(user.id)]);
   const plan = effectivePlan(ctx);
+  const tile =
+    "flex flex-col gap-1 rounded-xl border border-border bg-surface p-4 text-left hover:border-accent/50 hover:bg-accent/5";
 
   return (
     <div className="mx-auto max-w-xl px-4 py-10">
       <h1 className="text-2xl font-bold">Tài khoản</h1>
       <p className="mt-1 text-sm text-text-muted">{user.email}</p>
+
+      {/* Lối tắt — trên điện thoại thanh đầu trang ẩn Thư viện / Ví / Thoát, nên đặt ở đây. */}
+      <nav aria-label="Lối tắt tài khoản" className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <Link href="/library" className={tile}>
+          <span className="text-lg text-accent">▤</span>
+          <span className="font-semibold text-text">Thư viện của tôi</span>
+          <span className="text-xs text-text-muted">Sản phẩm đã sở hữu, tải về, key</span>
+        </Link>
+        <Link href="/wallet" className={tile}>
+          <span className="text-lg text-accent">◆</span>
+          <span className="font-semibold text-text">Ví point</span>
+          <span className="text-xs text-text-muted">Số dư {balance.toLocaleString("vi-VN")} point</span>
+        </Link>
+        <form action={signOut}>
+          <button type="submit" className={`${tile} h-full w-full`}>
+            <span className="text-lg text-text-faint">⎋</span>
+            <span className="font-semibold text-text">Đăng xuất</span>
+            <span className="text-xs text-text-muted">Thoát khỏi tài khoản này</span>
+          </button>
+        </form>
+      </nav>
 
       <section className="mt-8">
         <h2 className="mb-3 text-lg font-semibold">Liên kết Giáo Lý Số</h2>
