@@ -11,21 +11,24 @@ export const getCurrentUser = cache(async (): Promise<User | null> => {
   return user;
 });
 
-/** Danh sách email admin từ env. */
-function adminEmails(): string[] {
-  return (process.env.ADMIN_EMAILS ?? "")
+/**
+ * Admin xét theo ID tài khoản (env ADMIN_USER_IDS, phân cách bằng dấu phẩy) — KHÔNG theo email:
+ * đăng ký không xác minh email nên ai cũng có thể tạo tài khoản mang email admin; ID chỉ có sau khi tài khoản
+ * đã tồn tại và do chủ store tự thêm. Thiếu env → không ai là admin (đóng mặc định).
+ */
+function adminIds(): string[] {
+  return (process.env.ADMIN_USER_IDS ?? "")
     .split(",")
-    .map((e) => e.trim().toLowerCase())
+    .map((s) => s.trim().toLowerCase())
     .filter(Boolean);
 }
 
-export function isAdminEmail(email: string | undefined | null): boolean {
-  if (!email) return false;
-  return adminEmails().includes(email.toLowerCase());
+export function isAdminUser(user: Pick<User, "id"> | null | undefined): boolean {
+  return !!user && adminIds().includes(user.id.toLowerCase());
 }
 
 /** User hiện tại nếu là admin, ngược lại null. */
 export async function getAdminUser(): Promise<User | null> {
   const user = await getCurrentUser();
-  return user && isAdminEmail(user.email) ? user : null;
+  return isAdminUser(user) ? user : null;
 }
