@@ -1,0 +1,86 @@
+# Workflow phát hành cho app TAURI — chép vào .github/workflows/release.yml
+# Đã chạy thật trên Gelo 1.2.8 (job release). Job msstore: chưa chạy thật — thử lần đầu cẩn thận.
+#
+# Dùng: tăng version → `git tag -a v1.0.0 -m "1.0.0"` → `git push origin v1.0.0`
+# → ~10 phút: release NHÁP (không public) chứa <Tên>_<ver>_x64-setup.exe + <Tên>_<ver>_universal.dmg
+# → tải về → upload lên admin Ephata.
+#
+# Yêu cầu trong repo app (thiếu là fail — Gelo đã vấp cả 3):
+#   1. package.json có script  "tauri": "tauri"
+#   2. src-tauri/tauri.conf.json: "bundle": { "macOS": { "signingIdentity": "-" } }   (ký ad-hoc)
+#   3. KHÔNG thêm APPLE_* vào env bên dưới khi không có chứng thư Apple
+#      (secret không tồn tại vẫn thành chuỗi rỗng → Tauri cố import chứng thư và fail).
+name: Release
+on:
+  workflow_dispatch:
+  push:
+    tags: ['v*']
+
+# tauri-action tạo release nháp + upload bộ cài → cần quyền ghi (mặc định repo chỉ cho đọc).
+permissions:
+  contents: write
+
+jobs:
+  release:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            args: '--bundles nsis'
+          # Universal: 1 bản .dmg chạy cả Mac Intel lẫn Apple Silicon.
+          - os: macos-latest
+            args: '--target universal-apple-darwin --bundles app,dmg'
+            rust_targets: 'aarch64-apple-darwin,x86_64-apple-darwin'
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.rust_targets }}
+      - run: npm ci
+      - uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tagName: ${{ github.ref_name }}
+          releaseName: '__VERSION__'
+          releaseBody: 'Bộ cài để upload lên Ephata Store.'
+          releaseDraft: true
+          prerelease: false
+          args: ${{ matrix.args }}
+
+  # Bản Microsoft Store (.msix). Chỉ chạy khi repo có 3 Repository variables
+  # (Settings → Secrets and variables → Actions → Variables) lấy ở Partner Center → Product identity:
+  #   MSSTORE_IDENTITY_NAME, MSSTORE_PUBLISHER, MSSTORE_PUBLISHER_DISPLAY_NAME
+  # App phải có Cargo feature `msstore` (tắt kiểm bản mới, StartupTask) — xem README mục 5.
+  # File .msix tải ở mục Artifacts của lần chạy → nộp ở Partner Center.
+  msstore:
+    if: vars.MSSTORE_IDENTITY_NAME != ''
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - uses: dtolnay/rust-toolchain@stable
+      - run: npm ci
+      - run: npx tauri build --features msstore --no-bundle
+      - shell: pwsh
+        # SỬA: tên exe, DisplayName, Description cho đúng app. Version lấy từ tag (bỏ chữ v).
+        run: |
+          $version = '${{ github.ref_name }}'.TrimStart('v')
+          ./msstore/pack.ps1 `
+            -Source src-tauri/target/release/myapp.exe -Exe myapp.exe -Logos src-tauri/icons `
+            -Version $version -DisplayName 'My App' -Description 'Mô tả ngắn' `
+            -IdentityName '${{ vars.MSSTORE_IDENTITY_NAME }}' `
+            -Publisher '${{ vars.MSSTORE_PUBLISHER }}' `
+            -PublisherDisplayName '${{ vars.MSSTORE_PUBLISHER_DISPLAY_NAME }}' `
+            -Out App.msix
+      - uses: actions/upload-artifact@v4
+        with:
+          name: msstore-${{ github.ref_name }}
+          path: App.msix
