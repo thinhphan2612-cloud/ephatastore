@@ -5,10 +5,11 @@ import {
   adminListCategories,
   adminListPublishers,
 } from "@/data/admin";
-import { listReleases } from "@/data/software";
+import { adminListGiftKeys, listReleases } from "@/data/software";
 import { parseGameUrl } from "@/lib/hosted-access";
 import { ProductForm } from "@/components/admin/product-form";
 import { SoftwareReleases } from "@/components/admin/software-releases";
+import { GiftKeys } from "@/components/admin/gift-keys";
 import { HostedBuildUploader } from "@/components/admin/hosted-build-uploader";
 import { AppSecretPanel } from "@/components/admin/app-secret-panel";
 import { publicKeyBase64 } from "@/lib/software/license";
@@ -31,7 +32,7 @@ export default async function EditProductPage({
 
   const isSoftware = product.type === "software";
   const hosted = parseGameUrl(product.game_url);
-  const releases = isSoftware ? await listReleases(id) : [];
+  const [releases, giftKeys] = isSoftware ? await Promise.all([listReleases(id), adminListGiftKeys(id)]) : [[], []];
   // App ngoài (Link ngoài): khóa bí mật server để gọi /api/apps/v1. Tính năng Giáo Lý Số không dùng.
   const isExternalApp = !hosted && product.type === "tool";
   // Form theo đúng loại hiện tại — không cho chuyển loại tùy ý (đổi loại sau khi bán làm sai giá / cách giao hàng).
@@ -77,6 +78,7 @@ export default async function EditProductPage({
         slugLockedReason={slugLockReason(usage)}
       />
       {isSoftware && <SoftwareReleases slug={product.slug} releases={releases} />}
+      {isSoftware && <GiftKeys productId={product.id} defaultDevices={product.license_device_limit} keys={giftKeys} />}
       {isExternalApp && product.uses_wallet && !product.has_app_secret && (
         <p className="rounded-md border border-warn/40 bg-warn/10 px-3 py-2 text-sm text-warn">
           Đã bật “App trừ point qua Ví Ephata” nhưng chưa có khóa bí mật — app chưa gọi được API Ví. Tạo khóa ở khung dưới.

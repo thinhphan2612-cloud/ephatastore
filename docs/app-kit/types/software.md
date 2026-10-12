@@ -242,7 +242,8 @@ Gỡ: `Get-AppxPackage *<Tên>* | Remove-AppxPackage`.
 ### 5.5 Nộp & nối về Ephata
 **Trước khi nộp** (người duyệt của Microsoft sẽ mở các link): sản phẩm đã **live trên Ephata** (Đang bán + Hiện,
 `https://www.ephatastore.com/product/<slug>` mở được) và trang chính sách `…/quyen-rieng-tu/<slug>` mở được; có **key thử**
-riêng cho người duyệt (tạo bằng tài khoản admin, đủ suất thiết bị; duyệt xong thu hồi ở Admin → Người dùng).
+riêng cho người duyệt: **Admin → Sản phẩm → Sửa → khung "Key tặng / key thử"** (key rời, không gắn tài khoản, không trừ point;
+duyệt xong bấm **Khóa**). Khung này cũng dùng để tặng key cho thành viên / đối tác (nhập email → key hiện ở Thư viện của họ).
 
 Partner Center → app → **Submission**: Packages (upload `.msix`) → Properties → Age ratings → Store listings (chép từ
 `store-listing.md`) → Submission options (giữ, chưa phát hành ở lần đầu + runFullTrust + Notes for certification) → Submit.

@@ -199,9 +199,10 @@ All reading features are free and need no account: open any EPUB/MOBI/AZW3/FB2 f
 
 Pro features (Create EPUB, export highlights/notes, library backup) require a license key sold on Ephata Store (www.ephatastore.com), a non-game app using third-party payment as allowed by policy 10.8. To test Pro: open the ⋯ menu → "Bản quyền" (License) → paste the test key below → "Kích hoạt" (Activate). An internet connection is required for activation.
 
-Test key: <KEY THỬ — Felix tạo trên Ephata admin, đủ suất thiết bị cho người duyệt>
+Test key: <KEY THỬ — Admin → Sửa sản phẩm → "Key tặng / key thử", để trống email, ≥ 2 thiết bị>
 
 The user interface is in Vietnamese.
 ```
-> Key thử: tạo/mua 1 key riêng cho người duyệt (đừng dùng key của khách), đặt số thiết bị đủ dùng; duyệt xong có thể thu hồi
-> ở Admin → Người dùng. Nếu không đưa key, người duyệt chỉ kiểm được phần miễn phí và có thể từ chối vì không thử được tính năng trả phí.
+> Key thử: admin vào **Admin → Sản phẩm → Sửa (phần mềm) → khung "Key tặng / key thử"** → ghi chú (vd "Microsoft Store review
+> 10/2026"), số thiết bị (≥ 2 cho người duyệt), để trống email → **Tạo key** → Copy dán vào đây. Không trừ point, không tính đơn bán.
+> Duyệt xong bấm **Khóa** (cần thì "Gỡ thiết bị" để cấp lại). Không đưa key thì người duyệt chỉ thử được phần miễn phí và có thể từ chối.

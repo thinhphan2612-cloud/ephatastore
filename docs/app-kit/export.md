@@ -250,8 +250,9 @@ as allowed by policy 10.8. To test Pro: <menu → License → paste key → Acti
 Test key: <KEY THỬ — tạo riêng cho người duyệt>
 The user interface is in Vietnamese.
 ```
-> Key thử: tạo / mua 1 key riêng cho người duyệt (đừng dùng key của khách), đủ suất thiết bị; duyệt xong thu hồi ở
-> Admin → Người dùng. Không đưa key thì người duyệt chỉ thử được phần miễn phí và có thể từ chối.
+> Key thử: admin vào **Admin → Sản phẩm → Sửa (phần mềm) → khung "Key tặng / key thử"** → ghi chú (vd "Microsoft Store review
+> 10/2026"), số thiết bị (≥ 2 cho người duyệt), để trống email → **Tạo key** → Copy dán vào đây. Không trừ point, không tính đơn bán.
+> Duyệt xong bấm **Khóa** (cần thì "Gỡ thiết bị" để cấp lại). Không đưa key thì người duyệt chỉ thử được phần miễn phí và có thể từ chối.
 ~~~
 
 `check` báo **lỗi** khi vượt giới hạn ký tự / số dòng, thiếu Description ở một ngôn ngữ, số chú thích nhiều hơn số ảnh, hoặc
