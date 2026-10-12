@@ -26,10 +26,14 @@ release/<slug>-<version>/            vd release/gelo-1.2.8/
     │   ├── StoreLogo.png            50×50
     │   ├── Square44x44Logo.png      44×44
     │   └── Square150x150Logo.png    150×150
-    └── listing/                     ảnh tải lên Partner Center → Store listing
-        ├── app-tile-300.png         300×300
-        ├── screenshots/01.png…      1920×1080 PNG, 1–10 ảnh
-        └── hero-1920x1080.png       (tùy chọn) 1920×1080
+    └── listing/                     ảnh tải lên Partner Center → Store listing (TẤT CẢ là .png)
+        ├── screenshots/01.png…      1920×1080, 1–10 ảnh (bắt buộc ≥ 1)
+        ├── poster-720x1080.png      Store logos · Poster art 2:3 (hoặc 1440×2160)
+        ├── box-art-1080.png         Store logos · 1:1 Box art (hoặc 2160×2160)
+        ├── app-tile-300.png         Store display images · 1:1 App tile icon 300×300
+        ├── tile-150.png             Store display images · 1:1 150×150
+        ├── tile-71.png              Store display images · 1:1 71×71
+        └── hero-1920x1080.png       (tùy chọn) 16:9 Super hero art
 ```
 
 Không commit thư mục `release/` (thêm vào `.gitignore`) — bộ cài và ảnh nặng.
@@ -56,12 +60,16 @@ Tối đa **4** minh họa (ảnh + video + YouTube cộng lại).
 | `package-logos/StoreLogo.png` | 50×50 PNG | Nằm trong gói .msix. Tauri: có sẵn trong `src-tauri/icons` sau `npx tauri icon`. |
 | `package-logos/Square44x44Logo.png` | 44×44 PNG | Icon thanh tác vụ / menu Start. |
 | `package-logos/Square150x150Logo.png` | 150×150 PNG | Ô Start. |
-| `listing/app-tile-300.png` | **300×300** PNG | **1:1 App tile icon** — Microsoft khuyên mạnh; có thì Store ưu tiên dùng thay logo trong gói. |
-| `listing/screenshots/0N.png` | **1920×1080** PNG (tối thiểu 1366×768) | Bắt buộc ≥ 1, tối đa 10, **khuyên ≥ 4**; ≤ 50MB/ảnh; mỗi ảnh có chú thích ≤ 200 ký tự. Nội dung chính ở **2/3 trên** (Store có thể đè chữ lên 1/3 dưới). Không thêm logo / chữ quảng cáo. |
+| `listing/screenshots/0N.png` | **1920×1080** PNG (tối thiểu 1366×768) | **Screenshots → Desktop**: bắt buộc ≥ 1, tối đa 10, **khuyên ≥ 4**; ≤ 50MB/ảnh; mỗi ảnh có chú thích ≤ 200 ký tự. Nội dung chính ở **2/3 trên** (Store có thể đè chữ lên 1/3 dưới). Không thêm logo / chữ quảng cáo. |
+| `listing/poster-720x1080.png` | **720×1080** hoặc 1440×2160 PNG | **Store logos → Poster art** (Partner Center ghi "9:16" nhưng kích thước là 2:3). Bắt buộc nếu bán trên Xbox; app chỉ Windows thì tùy chọn nhưng **nên có** (Store dùng trong tìm kiếm / bộ sưu tập). Được có tên sản phẩm — đặt ở **2/3 trên**. |
+| `listing/box-art-1080.png` | **1080×1080** hoặc 2160×2160 PNG | **Store logos → 1:1 Box art**. Như Poster: bắt buộc cho Xbox, nên có; tên sản phẩm (nếu có) ở 2/3 trên. |
+| `listing/app-tile-300.png` | **300×300** PNG | **Store display images → 1:1 App tile icon** — "Displayed in the Store for Windows 10/11 customers". Microsoft khuyên mạnh; có thì Store dùng thay logo trong gói. |
+| `listing/tile-150.png` | **150×150** PNG | **Store display images → 1:1** 150×150. |
+| `listing/tile-71.png` | **71×71** PNG | **Store display images → 1:1** 71×71. Không có 3 ảnh vuông này thì Store dùng logo trong gói .msix. |
 | `listing/hero-1920x1080.png` | 1920×1080 PNG (tùy chọn) | "16:9 Super hero art": **không có chữ**, không chụp giao diện app, nội dung chính ở giữa. Microsoft dặn **tránh biểu tượng tôn giáo** trong ảnh này — sản phẩm Công giáo nên dùng hình minh họa trung tính (hoặc bỏ qua ảnh này). |
 
-2:3 Poster art và 1:1 Box art chỉ dành cho **game** / Xbox — app không cần. Nguồn: Microsoft Learn "App screenshots, images,
-and trailers for MSIX app" (kiểm lại khi nộp, Microsoft có thể đổi).
+**Mọi ảnh Microsoft Store đều phải là `.png`** (script kiểm). Danh sách ô theo màn hình Partner Center → Store listing (12/10/2026)
+và Microsoft Learn "App screenshots, images, and trailers for MSIX app" — kiểm lại khi nộp, Microsoft có thể đổi.
 
 ### Ảnh gốc nên giữ trong dự án
 
@@ -78,10 +86,14 @@ Trước khi xuất: làm **Bước 0** trong `README.md` (kiểm kit mới nh�
 ```bash
 npm i -D sharp                       # 1 lần
 node tools/app-kit/export/make-images.mjs build --out release/<slug>-<version> \
-  --cover art/cover.png --icon art/icon-1024.png --shots art/screenshots [--msstore] [--bg "#0b0d10"]
+  --cover art/cover.png --icon art/icon-1024.png --shots art/screenshots [--msstore] [--bg "#0b0d10"] \
+  [--poster art/poster.png] [--box art/box.png]
 ```
 - Ảnh bìa: cắt giữa về đúng 1600×900 (ảnh gốc khác tỉ lệ → script cảnh báo, mở `cover.jpg` xem lại).
-- Logo / logo Store: đặt vừa khung vuông, nền trong suốt.
+- Logo / logo Store (gói .msix + 3 ảnh vuông 300 / 150 / 71): đặt vừa khung vuông, nền trong suốt.
+- Poster art 720×1080 + Box art 1080×1080 (khi có `--msstore`): dùng ảnh thiết kế riêng nếu truyền `--poster` / `--box` (cắt giữa
+  đúng tỉ lệ); không truyền thì script **tự dựng tạm** từ icon trên nền `--bg` (icon ở 2/3 trên) và cảnh báo — nên thay bằng ảnh
+  thiết kế có tên sản phẩm.
 - Ảnh chụp: đặt vừa khung 1920×1080 **không cắt**, phần thừa tô màu `--bg`; 4 ảnh đầu (theo tên file) → `ephata/media/`,
   tối đa 10 → `msstore/listing/screenshots/` (khi có `--msstore`).
 - Video, `hero-1920x1080.png`, `description.html`, `listing.md`, bộ cài / file giao: **tự đặt vào** đúng chỗ ở mục 1.

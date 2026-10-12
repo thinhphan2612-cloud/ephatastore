@@ -5,7 +5,8 @@
 //
 // Sinh ảnh:
 //   node tools/app-kit/export/make-images.mjs build --out release/<slug>-<version> \
-//     --cover art/cover.png --icon art/icon-1024.png --shots art/screenshots [--msstore] [--bg "#0b0d10"]
+//     --cover art/cover.png --icon art/icon-1024.png --shots art/screenshots [--msstore] [--bg "#0b0d10"] \
+//     [--poster art/poster.png] [--box art/box.png]      (Microsoft Store: poster 2:3, box art 1:1 — không có thì tự dựng từ icon)
 // Kiểm trước khi đưa lên:
 //   node tools/app-kit/export/make-images.mjs check release/<slug>-<version>
 //
@@ -32,7 +33,10 @@ const SPEC = {
   logo: { w: 512, h: 512, max: 2 * MB },
   media: { w: 1920, h: 1080, max: 10 * MB, maxVideo: 50 * MB, count: 4 },
   pkg: { "StoreLogo.png": 50, "Square44x44Logo.png": 44, "Square150x150Logo.png": 150 },
-  tile: { w: 300, h: 300 },
+  // Partner Center → Store listing: "Store display images" (1:1, Windows 10/11) + "Store logos" (poster 2:3, box art 1:1).
+  tiles: { "app-tile-300.png": 300, "tile-150.png": 150, "tile-71.png": 71 },
+  poster: [{ w: 720, h: 1080 }, { w: 1440, h: 2160 }],
+  box: [{ w: 1080, h: 1080 }, { w: 2160, h: 2160 }],
   shot: { w: 1920, h: 1080, minW: 1366, minH: 768, max: 50 * MB, count: 10 },
   hero: { w: 1920, h: 1080 },
   upload: 50 * MB, // giới hạn mỗi file tải lên Ephata (bộ cài, file tải về, build.zip)
@@ -99,7 +103,27 @@ async function build(o) {
       fs.mkdirSync(pkg, { recursive: true });
       fs.mkdirSync(listing, { recursive: true });
       for (const [name, size] of Object.entries(SPEC.pkg)) await square(size).toFile(path.join(pkg, name));
-      await square(SPEC.tile.w).toFile(path.join(listing, "app-tile-300.png"));
+      for (const [name, size] of Object.entries(SPEC.tiles)) await square(size).toFile(path.join(listing, name));
+      // Poster 2:3 + Box art 1:1: dùng ảnh thiết kế riêng nếu có; không thì đặt icon lên nền --bg ở 2/3 trên
+      // (Store có thể phủ chữ lên 1/3 dưới). Ảnh tự dựng chỉ là tạm — nên thiết kế riêng, có tên sản phẩm ở 2/3 trên.
+      const art = async (src, w, h, file, label) => {
+        if (src) {
+          const m = await meta(src);
+          if (Math.abs(m.w / m.h - w / h) > 0.02) warn(`${label} gốc ${m.w}×${m.h} khác tỉ lệ ${w}:${h} → đã cắt giữa; kiểm lại ${file}.`);
+          return sharp(src).resize(w, h, { fit: "cover", position: "centre" }).flatten({ background: bg }).png().toFile(path.join(listing, file));
+        }
+        const size = Math.round(Math.min(w, h) * 0.56);
+        const iconBuf = await square(size).toBuffer();
+        // Nền 3 kênh (không trong suốt) — sharp áp composite sau cùng nên flatten không có tác dụng ở đây.
+        const composed = await sharp({ create: { width: w, height: h, channels: 3, background: bg } })
+          .composite([{ input: iconBuf, left: Math.round((w - size) / 2), top: Math.round(h * 0.36 - size / 2) }])
+          .png()
+          .toBuffer();
+        await sharp(composed).flatten({ background: bg }).png().toFile(path.join(listing, file));
+        warn(`${file}: tự dựng từ icon trên nền màu — nên thay bằng ảnh thiết kế riêng (--${label === "Poster" ? "poster" : "box"}).`);
+      };
+      await art(o.poster, 720, 1080, "poster-720x1080.png", "Poster");
+      await art(o.box, 1080, 1080, "box-art-1080.png", "Box art");
     }
   } else warn("Không có --icon: bỏ qua logo" + (o.msstore ? " và logo Microsoft Store." : "."));
 
@@ -189,8 +213,21 @@ async function check(dirArg) {
     for (const [name, size] of Object.entries(SPEC.pkg))
       if (!(await expectImage(path.join(ms, "package-logos", name), { w: size, h: size, png: true, label: "Logo gói MSIX" })))
         err(`Thiếu msstore/package-logos/${name} (${size}×${size}) — pack.ps1 cần đủ 3 logo.`);
-    if (!(await expectImage(path.join(ms, "listing", "app-tile-300.png"), { ...SPEC.tile, png: true, label: "App tile icon" })))
-      warn("Không có msstore/listing/app-tile-300.png — Microsoft khuyên mạnh nên có (300×300).");
+    for (const [name, size] of Object.entries(SPEC.tiles))
+      if (!(await expectImage(path.join(ms, "listing", name), { w: size, h: size, png: true, label: "Store display image" })))
+        warn(`Không có msstore/listing/${name} (${size}×${size}) — không có thì Store dùng logo trong gói; Microsoft khuyên nên có.`);
+    // Poster / Box art: nhận 1 trong 2 kích thước Partner Center cho phép; bắt buộc nếu bán trên Xbox.
+    const pick = (re) => (fs.existsSync(path.join(ms, "listing")) ? fs.readdirSync(path.join(ms, "listing")).filter((f) => re.test(f)) : []);
+    for (const [label, re, sizes] of [["Poster art (2:3)", /^poster.*\.png$/i, SPEC.poster], ["Box art (1:1)", /^box-art.*\.png$/i, SPEC.box]]) {
+      const files = pick(re);
+      if (!files.length) warn(`Không có ${label} trong msstore/listing/ — chỉ bắt buộc khi bán trên Xbox, nhưng nên có cho trang Store đẹp.`);
+      for (const f of files) {
+        const m = await meta(path.join(ms, "listing", f));
+        if (m.format !== "png") err(`${label} msstore/listing/${f}: phải là PNG.`);
+        if (!sizes.some((z) => z.w === m.w && z.h === m.h))
+          err(`${label} msstore/listing/${f}: ${m.w}×${m.h}, cần ${sizes.map((z) => `${z.w}×${z.h}`).join(" hoặc ")}.`);
+      }
+    }
     const shots = listImages(path.join(ms, "listing", "screenshots"));
     if (!shots.length) err("Microsoft Store cần ít nhất 1 ảnh chụp (msstore/listing/screenshots/, PNG ≥ 1366×768); khuyên ≥ 4.");
     if (shots.length > SPEC.shot.count) err(`Microsoft Store nhận tối đa 10 ảnh chụp (đang có ${shots.length}).`);
@@ -221,7 +258,7 @@ try {
   if (cmd === "build") await build(o);
   else if (cmd === "check" && o._[1]) await check(o._[1]);
   else {
-    console.log("Dùng: make-images.mjs build --out <thư mục> [--cover f] [--icon f] [--shots dir] [--msstore] [--bg màu]");
+    console.log("Dùng: make-images.mjs build --out <thư mục> [--cover f] [--icon f] [--shots dir] [--msstore] [--poster f] [--box f] [--bg màu]");
     console.log("      make-images.mjs check <thư mục>");
     process.exitCode = 2;
   }

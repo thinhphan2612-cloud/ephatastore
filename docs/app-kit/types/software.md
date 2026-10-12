@@ -190,7 +190,8 @@ Chuẩn bị trước bằng **`export.md`**: thư mục `release/<slug>-<versio
    `Package/Identity/Name`, `Package/Identity/Publisher` (`CN=…`), `Package/Properties/PublisherDisplayName`.
 3. Store **tự ký lại gói** khi duyệt → không cần mua chứng thư.
 4. Chuẩn bị: URL chính sách quyền riêng tư (app gọi mạng để kích hoạt), mô tả, phân loại tuổi; ảnh theo **`export.md`**
-   (`msstore/listing/`: app tile 300×300, 1–10 ảnh chụp 1920×1080 PNG kèm chú thích, hero 1920×1080 tùy chọn — không chữ,
+   (`msstore/listing/`, **tất cả .png**: 1–10 ảnh chụp 1920×1080 kèm chú thích; Store logos: Poster art 720×1080 + Box art
+   1080×1080; Store display images: 300×300 / 150×150 / 71×71; hero 1920×1080 tùy chọn — không chữ,
    tránh biểu tượng tôn giáo theo hướng dẫn của Microsoft).
 5. Thanh toán: app không phải game được dùng thanh toán bên thứ ba (key mua trên Ephata) theo Store policy 10.8.x —
    **kiểm lại bản hiện hành trước khi nộp**. Đặt giá trên Store là Free.
