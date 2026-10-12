@@ -16,6 +16,9 @@ export interface AdminProductRow {
   active: boolean;
   giaoly_pro_free: boolean;
   icon: string | null;
+  logo_url: string | null;
+  game_url: string | null;
+  updated_at: string;
   published: boolean;
   featured: boolean;
   is_new: boolean;
@@ -70,7 +73,7 @@ export async function adminListProducts(): Promise<AdminProductRow[]> {
   const { data, error } = await supabase
     .from("products")
     .select(
-      "id,slug,title,type,price_vnd,original_price_vnd,min_plan,tier,price_month,trial,trial_days,active,giaoly_pro_free,icon,published,featured,is_new,is_popular,publisher:publishers(name)"
+      "id,slug,title,type,price_vnd,original_price_vnd,min_plan,tier,price_month,trial,trial_days,active,giaoly_pro_free,icon,logo_url,game_url,updated_at,published,featured,is_new,is_popular,publisher:publishers(name)"
     )
     .order("title", { ascending: true });
   if (error) throw new Error(error.message);
