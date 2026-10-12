@@ -1,5 +1,7 @@
 # Ephata App Kit — tạo sản phẩm cho Ephata Store
 
+**Kit v12 · cập nhật 12/10/2026** — số phiên bản ở dòng này; thay đổi từng bản xem mục "Phiên bản kit" cuối file.
+
 Bộ chuẩn để làm **bất kỳ sản phẩm nào** bán trên Ephata Store (chợ sản phẩm số Công giáo, ephatastore.com).
 Mở một phiên code mới với AI → đưa kit này vào → AI hỏi ý tưởng, xác định sản phẩm thuộc loại nào trong 5 loại,
 rồi làm theo đúng hướng dẫn của loại đó.
@@ -27,6 +29,13 @@ app-kit/
 ## Hướng dẫn cho AI (đọc trước khi làm gì khác)
 
 Bạn đang giúp một thành viên team Ephata tạo sản phẩm. Làm theo đúng thứ tự:
+
+### Bước 0 — Dùng kit mới nhất
+Kit trong `tools/app-kit/` là bản chụp lúc tải, **không tự cập nhật**. Mỗi khi mở phiên làm việc mới cho dự án này và
+**trước khi xuất bộ bàn giao** (`export.md`): tải
+`https://raw.githubusercontent.com/thinhphan2612-cloud/ephatastore/dev/docs/app-kit/README.md`,
+so số "Kit vN" (dòng thứ 3) với `tools/app-kit/README.md`. Bản trên GitHub mới hơn → tải lại **toàn bộ** kit (nguyên văn, giữ cấu trúc —
+danh sách file ở `PROMPT.md`), rồi tóm tắt cho người làm các mục mới trong "Phiên bản kit" và việc nào của dự án cần làm lại.
 
 ### Bước 1 — Phỏng vấn ý tưởng
 Hỏi người tạo (gom thành **một lượt hỏi**, đừng hỏi từng câu):
@@ -100,6 +109,8 @@ soạn theo `description.md` (đã tự kiểm theo mục "Được dùng" / "Gi
 - **Đã có người dùng thì khóa**: slug, **loại sản phẩm** và **feature key** không đổi được (muốn bán loại khác → tạo sản phẩm mới).
 - **Hai người cùng sửa một sản phẩm**: người lưu sau bằng form mở từ trước bị chặn ("vừa được người khác sửa") — tải lại trang rồi sửa.
 - **Slug**: chữ thường không dấu, số, gạch ngang; không trùng; **không đổi sau khi đã bán**.
+- **Nổi bật / Mới**: admin bật ở trang **Sửa** sản phẩm. Sản phẩm Nổi bật có nhãn **★ Nổi bật** trên thẻ và đứng đầu khi khách
+  sắp xếp "Nổi bật" (mặc định ở trang chủ / danh mục); kế đến là sản phẩm Mới, rồi theo ngày phát hành.
 - **Ảnh bìa**: **1600×900** (16:9), JPG/WebP/PNG ≤ 5MB (nên ≤ 1MB). Hiện ở thẻ sản phẩm (~300px ngang) và đầu trang sản phẩm —
   hình + chữ chính đặt ở giữa, chữ đủ to để đọc ở cỡ nhỏ. Ảnh khác tỉ lệ sẽ bị cắt.
 - **Logo ứng dụng** (tùy chọn, nên có): ảnh **vuông 512×512** (tối thiểu 256), PNG/JPG/WebP, ≤ 2MB — hiện ở card thông tin trang sản phẩm; không có thì
@@ -114,3 +125,12 @@ soạn theo `description.md` (đã tự kiểm theo mục "Được dùng" / "Gi
 - **Tiếng Việt có dấu** trong nội dung; tên file và slug **không dấu**.
 - **Nội dung Công giáo**: chính xác giáo lý, ghi nguồn; bản dịch Kinh Thánh, sách lễ, thánh ca thường có bản quyền.
 - **Mua thử**: dùng tài khoản admin nạp point và mua thật để kiểm từ đầu đến cuối.
+
+---
+
+## Phiên bản kit
+
+- **v12 (12/10/2026)** — thêm số phiên bản + **Bước 0** (AI tự kiểm và tải lại kit mới); mục "Nổi bật / Mới"; sửa hướng dẫn
+  nút giao diện (menu Theo máy / Sáng / Tối) trong `description.md`; bỏ ghi chú "store đang Coming Soon" (store đã mở).
+- **v11 (12/10/2026)** — thêm `export.md` + `export/make-images.mjs`: xuất bộ bàn giao `release/<slug>-<version>/`, chuẩn kích thước
+  ảnh Ephata (bìa 1600×900, logo 512×512, minh họa 1920×1080) và Microsoft Store; thẻ sản phẩm hiện ảnh bìa đúng 16:9.

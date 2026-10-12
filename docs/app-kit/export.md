@@ -73,6 +73,8 @@ and trailers for MSIX app" (kiểm lại khi nộp, Microsoft có thể đổi).
 
 ## 3. Sinh ảnh + kiểm bằng script
 
+Trước khi xuất: làm **Bước 0** trong `README.md` (kiểm kit mới nhất trên GitHub) — chuẩn kích thước / thư mục có thể đã đổi.
+
 ```bash
 npm i -D sharp                       # 1 lần
 node tools/app-kit/export/make-images.mjs build --out release/<slug>-<version> \

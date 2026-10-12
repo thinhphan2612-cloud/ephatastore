@@ -113,7 +113,7 @@ quả cũ (`duplicate:true`), không trừ 2 lần. Báo giá trước cho ngư�
 3. Slug là `EPHATA_PRODUCT` — đổi slug thì phải đổi biến này ở app (slug bị khóa khi đã có người dùng).
 
 ## Kiểm sau khi lên
-- Bằng tài khoản admin (store đang Coming Soon): mua / dùng thử → **Thư viện → Dùng ngay ↗** → (lần đầu) màn hình cho phép → app
+- Bằng tài khoản admin: mua / dùng thử → **Thư viện → Dùng ngay ↗** → (lần đầu) màn hình cho phép → app
   nhận diện đúng email.
 - Mở app ở trình duyệt thứ hai rồi quay lại trình duyệt đầu, dùng dịch vụ có phí → vẫn chạy (app đọc mã mới nhất từ DB).
 - Thử 1 lần dịch vụ có phí → lịch sử Ví ghi "Sử dụng · tên app · lý do"; thử ngắt kết nối ở trang Ví → app nhận `CONNECTION_REVOKED`.
