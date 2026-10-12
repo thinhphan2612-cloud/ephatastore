@@ -1,6 +1,10 @@
 import Link from "next/link";
+import Form from "next/form";
 import { getCategories } from "@/data/categories";
+import { getAllProducts } from "@/data/products";
+import { ProductCard } from "@/components/product-card";
 import { COMPANY } from "@/lib/company";
+import type { Product } from "@/lib/types";
 
 const STATS = [
   { b: "✦ Rõ đối tượng", s: "Linh mục · Giáo dân · Người tìm hiểu" },
@@ -8,72 +12,102 @@ const STATS = [
   { b: "⚡ Dùng ngay trên web", s: "Ưu tiên đơn giản, nhanh và dễ chia sẻ" },
 ];
 
-const FEATURED = [
-  {
-    tag: "GAME SHOW",
-    eyebrow: "Game Store",
-    title: "Rung Chuông Vàng",
-    desc: "Game show giáo lý chạy trên trình duyệt, có màn hình điều khiển và màn hình trình chiếu.",
-    href: "/category/game-store",
-  },
-  {
-    tag: "WEB APP",
-    eyebrow: "Linh mục quản xứ",
-    title: "Quản lý giáo lý",
-    desc: "Quản lý lớp, học viên, giáo lý viên, điểm danh và kết quả theo từng năm học.",
-    href: "/category/linh-muc-quan-xu",
-  },
-  {
-    tag: "DESIGN KIT",
-    eyebrow: "Thiết kế Công giáo",
-    title: "Bộ Rước lễ lần đầu",
-    desc: "Bộ nhận diện đồng nhất cho banner, thiệp, backdrop, chứng chỉ và truyền thông.",
-    href: "/category/thiet-ke-cong-giao",
-  },
-];
+// Gợi ý bấm nhanh dưới ô tìm — đều ra kết quả với dữ liệu hiện có.
+const SUGGEST = ["Rung Chuông Vàng", "Chứng chỉ", "Đơn từ", "Hôn nhân", "Quản lý giáo lý"];
+
+// Mỗi danh mục một tông màu riêng (thẻ tối, chữ trắng ở cả 2 theme) — dễ phân biệt hơn một nền chung.
+const TINTS = ["#8d7040", "#3f6f95", "#3d7f5f", "#94506a", "#6a5a9a", "#357f80", "#9a6236", "#4f6b8a"];
+
+const eyebrow = "text-xs font-extrabold uppercase tracking-[0.14em] text-accent-hover";
+const wrap = "mx-auto w-[min(1180px,calc(100%-40px))]";
 
 export default async function HomePage() {
-  const categories = await getCategories();
+  const [categories, products] = await Promise.all([getCategories(), getAllProducts()]);
+
+  const count = (slug: string) =>
+    products.filter((p) => p.categoryId === slug || p.categorySlugs.includes(slug)).length;
+  // Nổi bật + mới lên kệ (cờ do admin bật); thiếu thì bù bằng sản phẩm mới phát hành nhất.
+  const picked = [
+    ...products.filter((p) => p.featured),
+    ...products.filter((p) => p.isNew && !p.featured),
+    ...products.filter((p) => !p.featured && !p.isNew),
+  ].slice(0, 8);
+  const pickedIds = new Set(picked.map((p) => p.id));
+  const free = products.filter((p) => p.tier === "free" && !pickedIds.has(p.id)).slice(0, 8);
+
   return (
     <div>
       {/* HERO */}
       <header className="border-b border-border">
-        <div className="mx-auto w-[min(1180px,calc(100%-40px))] py-[clamp(56px,9vw,105px)] text-center">
-          <span className="inline-block rounded-full border border-accent/25 bg-accent/5 px-3.5 py-2 text-[11px] font-extrabold uppercase tracking-[0.14em] text-accent-hover">
+        <div className={`${wrap} py-[clamp(48px,8vw,96px)] text-center`}>
+          <span className="inline-block rounded-full border border-accent/25 bg-accent/5 px-3.5 py-2 text-xs font-extrabold uppercase tracking-[0.12em] text-accent-hover">
             ● Công cụ số · dành cho cộng đồng Công giáo
           </span>
-          <h1 className="font-display mx-auto my-7 max-w-[1000px] text-[clamp(40px,8vw,86px)] font-bold leading-[0.98]">
+          <h1 className="font-display mx-auto my-6 max-w-[1000px] text-[clamp(38px,7.5vw,82px)] font-bold leading-[1.02]">
             Mở ra những cách mới
             <br />
             <em className="not-italic text-accent">để phục vụ.</em>
           </h1>
-          <p className="mx-auto max-w-[720px] text-[17px] leading-[1.7] text-text-muted">
+          <p className="mx-auto max-w-[720px] text-[18px] leading-[1.7] text-text-muted">
             Ephata Store gom ứng dụng, biểu mẫu, thiết kế, tài liệu và game giáo lý về
             một nơi — dễ tìm, dễ dùng, dễ triển khai cho giáo xứ và cộng đoàn.
           </p>
-          <div className="mt-8 flex flex-wrap justify-center gap-3">
+
+          {/* Tìm nhanh: gõ không dấu cũng được */}
+          <Form
+            action="/browse"
+            className="mx-auto mt-8 flex max-w-[640px] gap-2 rounded-2xl border border-border-strong bg-bg-elevated p-2 focus-within:border-accent"
+          >
+            <input
+              type="search"
+              name="q"
+              placeholder="Tìm công cụ, game…"
+              aria-label="Tìm sản phẩm"
+              className="min-w-0 flex-1 bg-transparent px-3 text-[17px] text-text placeholder:text-text-faint focus:outline-none"
+            />
+            <button
+              type="submit"
+              className="shrink-0 rounded-xl bg-accent px-5 py-3 text-base font-extrabold text-accent-contrast hover:bg-accent-hover"
+            >
+              Tìm
+            </button>
+          </Form>
+          <div className="mx-auto mt-3 flex max-w-[680px] flex-wrap items-center justify-center gap-2 text-sm">
+            <span className="text-text-faint">Gợi ý:</span>
+            {SUGGEST.map((q) => (
+              <Link
+                key={q}
+                href={`/browse?q=${encodeURIComponent(q)}`}
+                className="rounded-full border border-border bg-white/[0.03] px-3 py-1.5 text-text-muted hover:border-accent/50 hover:text-text"
+              >
+                {q}
+              </Link>
+            ))}
+          </div>
+
+          <div className="mt-7 flex flex-wrap justify-center gap-3">
             <Link
               href="#categories"
-              className="inline-flex items-center gap-2 rounded-xl bg-accent px-5 py-3.5 text-sm font-extrabold text-accent-contrast hover:bg-accent-hover"
+              className="inline-flex items-center gap-2 rounded-xl border border-border-strong bg-white/5 px-5 py-3.5 text-base font-extrabold text-text hover:border-accent/50"
             >
-              Khám phá Store →
+              Xem theo danh mục ↓
             </Link>
             <Link
               href="/category/game-store"
-              className="inline-flex items-center gap-2 rounded-xl border border-border-strong bg-white/5 px-5 py-3.5 text-sm font-extrabold text-text hover:border-accent/50"
+              className="inline-flex items-center gap-2 rounded-xl border border-border-strong bg-white/5 px-5 py-3.5 text-base font-extrabold text-text hover:border-accent/50"
             >
               ▷ Vào Game Store
             </Link>
           </div>
 
-          <div className="mt-14 grid grid-cols-1 overflow-hidden rounded-3xl border border-border bg-white/[0.03] text-left sm:grid-cols-3">
+          <div className="mt-12 grid grid-cols-1 overflow-hidden rounded-3xl border border-border bg-white/[0.03] text-left sm:grid-cols-3">
             {STATS.map((s, i) => (
               <div
                 key={i}
-                className="border-b border-border p-6 last:border-b-0 sm:border-b-0 sm:border-r sm:last:border-r-0"
+                className="border-b border-border px-6 py-5 last:border-b-0 sm:border-b-0 sm:border-r sm:last:border-r-0"
               >
-                <b className="mb-1.5 block">{s.b}</b>
-                <span className="text-[13px] text-text-faint">{s.s}</span>
+                <b className="mb-1 block text-base">{s.b}</b>
+                <span className="text-[15px] text-text-muted">{s.s}</span>
               </div>
             ))}
           </div>
@@ -81,95 +115,65 @@ export default async function HomePage() {
       </header>
 
       {/* CATEGORIES */}
-      <section id="categories" className="py-[clamp(48px,8vw,90px)]">
-        <div className="mx-auto w-[min(1180px,calc(100%-40px))]">
-          <div className="text-[11px] font-extrabold uppercase tracking-[0.18em] text-accent-hover">
-            // 01 / DÀNH CHO BẠN
-          </div>
-          <h2 className="font-display my-3 mb-9 text-[clamp(32px,5vw,54px)] font-bold">
-            Chọn đúng nơi bạn cần.
-          </h2>
-          <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-4">
+      <section id="categories" className="scroll-mt-20 py-[clamp(44px,7vw,80px)]">
+        <div className={wrap}>
+          <div className={eyebrow}>Dành cho bạn</div>
+          <h2 className="font-display mb-8 mt-2 text-[clamp(30px,4.6vw,50px)] font-bold">Chọn đúng nơi bạn cần.</h2>
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
             {categories.map((c, i) => (
               <Link
                 key={c.id}
                 href={`/category/${c.slug}`}
-                className="group relative flex min-h-[300px] flex-col justify-end overflow-hidden rounded-[26px] border border-border p-6 transition hover:-translate-y-1 hover:border-accent/40"
+                className="group flex min-h-[150px] flex-col rounded-[22px] border border-white/10 p-4 text-white transition hover:-translate-y-0.5 hover:border-accent/60 sm:min-h-[180px] sm:p-5"
+                style={{ background: `linear-gradient(150deg, ${TINTS[i % TINTS.length]} 0%, #1b1f24 78%)` }}
               >
-                <div className="media-placeholder absolute inset-0 transition-transform duration-300 group-hover:scale-[1.04]" />
-                <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-black/40 to-black/90" />
-                <span className="absolute right-6 top-6 z-10 text-[11px] text-white/70">
-                  {String(i + 1).padStart(2, "0")} ↗
-                </span>
-                <div className="relative z-10 mb-auto grid h-12 w-12 place-items-center rounded-[15px] border border-white/20 bg-black/35 text-[21px] text-accent backdrop-blur">
-                  {c.icon}
+                <div className="mb-auto flex items-start justify-between gap-2">
+                  <span className="grid h-11 w-11 place-items-center rounded-[14px] border border-white/25 bg-black/25 text-[20px] text-[#f3d27a]">
+                    {c.icon}
+                  </span>
+                  <span className="whitespace-nowrap rounded-full bg-black/30 px-2.5 py-1 text-xs font-semibold text-white/85">
+                    {count(c.slug)} sản phẩm
+                  </span>
                 </div>
-                <div className="relative z-10">
-                  <div className="text-[11px] font-extrabold uppercase tracking-[0.18em] text-accent-hover">
-                    {c.eyebrow}
-                  </div>
-                  <h3 className="my-2 text-[21px] font-bold [text-shadow:0_2px_14px_rgba(0,0,0,0.65)]">
-                    {c.name}
-                  </h3>
-                  <p className="text-[13px] leading-[1.65] text-white/80 [text-shadow:0_2px_12px_rgba(0,0,0,0.6)]">
-                    {c.description}
-                  </p>
-                </div>
+                <h3 className="mt-4 text-[17px] font-bold leading-snug sm:text-[19px]">{c.name}</h3>
+                {c.description && (
+                  <p className="mt-1 hidden text-[14px] leading-[1.55] text-white/80 sm:line-clamp-2">{c.description}</p>
+                )}
               </Link>
             ))}
           </div>
         </div>
       </section>
 
-      {/* FEATURED */}
-      <section className="border-y border-border bg-white/[0.03] py-[clamp(48px,8vw,90px)]">
-        <div className="mx-auto w-[min(1180px,calc(100%-40px))]">
-          <div className="text-[11px] font-extrabold uppercase tracking-[0.18em] text-accent-hover">
-            // 02 / NỔI BẬT
-          </div>
-          <h2 className="font-display my-3 mb-9 text-[clamp(32px,5vw,54px)] font-bold">
-            Công cụ đáng dùng.
-          </h2>
-          <div className="grid grid-cols-1 gap-3.5 md:grid-cols-3">
-            {FEATURED.map((f) => (
-              <Link
-                key={f.title}
-                href={f.href}
-                className="group relative flex min-h-[360px] flex-col justify-end overflow-hidden rounded-[26px] border border-border p-7 transition hover:-translate-y-1 hover:border-accent/40"
-              >
-                <div className="media-placeholder absolute inset-0 transition-transform duration-300 group-hover:scale-[1.04]" />
-                <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-black/40 to-black/90" />
-                <span className="relative z-10 mb-auto self-start rounded-full border border-white/15 bg-black/35 px-2.5 py-1.5 text-[10px] font-black tracking-[0.15em] text-accent-hover backdrop-blur">
-                  {f.tag}
-                </span>
-                <div className="relative z-10">
-                  <div className="text-[11px] font-extrabold uppercase tracking-[0.18em] text-accent-hover">
-                    {f.eyebrow}
-                  </div>
-                  <h3 className="my-2 text-[26px] font-bold [text-shadow:0_2px_14px_rgba(0,0,0,0.65)]">
-                    {f.title}
-                  </h3>
-                  <p className="text-[14px] leading-[1.65] text-white/80 [text-shadow:0_2px_12px_rgba(0,0,0,0.6)]">
-                    {f.desc}
-                  </p>
-                </div>
-              </Link>
-            ))}
-          </div>
+      {/* SẢN PHẨM THẬT */}
+      <section className="border-y border-border bg-white/[0.03] py-[clamp(44px,7vw,80px)]">
+        <div className={`${wrap} space-y-14`}>
+          <Shelf
+            label="Nổi bật"
+            title="Mới lên kệ & đáng dùng."
+            note="Sản phẩm mới và được Ephata giới thiệu."
+            products={picked}
+            moreHref="/browse"
+          />
+          <Shelf
+            label="Miễn phí"
+            title="Dùng ngay, không cần mua."
+            note="Chỉ cần tài khoản miễn phí là mở được."
+            products={free}
+            moreHref="/browse?price=free"
+          />
         </div>
       </section>
 
       {/* CTA */}
       <section id="about" className="py-[clamp(40px,6vw,80px)]">
-        <div className="mx-auto w-[min(1180px,calc(100%-40px))]">
+        <div className={wrap}>
           <div className="rounded-[30px] border border-accent/20 bg-gradient-to-br from-accent/10 to-bg-elevated p-[clamp(30px,5vw,48px)]">
-            <div className="text-[11px] font-extrabold uppercase tracking-[0.18em] text-accent-hover">
-              // EPHATA / HÃY MỞ RA
-            </div>
+            <div className={eyebrow}>Ephata · Hãy mở ra</div>
             <h2 className="font-display my-4 max-w-[860px] text-[clamp(30px,5vw,52px)] font-bold">
               Công nghệ tốt nhất là công nghệ giúp việc phục vụ trở nên nhẹ hơn.
             </h2>
-            <p className="max-w-[680px] leading-[1.7] text-text-muted">
+            <p className="max-w-[680px] text-[17px] leading-[1.7] text-text-muted">
               Ephata Store được thiết kế như một “kho công cụ số”: mỗi sản phẩm có thể là
               web app, template, tài liệu tải về hoặc game chạy trực tiếp.
             </p>
@@ -179,15 +183,13 @@ export default async function HomePage() {
 
       {/* CONTACT */}
       <section className="border-t border-border bg-gradient-to-b from-white/[0.02] to-transparent py-[clamp(48px,7vw,78px)]">
-        <div className="mx-auto grid w-[min(1180px,calc(100%-40px))] gap-10 md:grid-cols-[1.1fr_0.9fr] md:gap-[70px]">
+        <div className={`${wrap} grid gap-10 md:grid-cols-[1.1fr_0.9fr] md:gap-[70px]`}>
           <div>
-            <div className="text-[11px] font-extrabold uppercase tracking-[0.18em] text-accent-hover">
-              // LIÊN HỆ EPHATA
-            </div>
+            <div className={eyebrow}>Liên hệ Ephata</div>
             <h2 className="font-display my-4 text-[clamp(30px,4.5vw,50px)] font-bold">
               Cần hỗ trợ hoặc muốn đề xuất một công cụ?
             </h2>
-            <p className="max-w-[600px] leading-[1.7] text-text-muted">
+            <p className="max-w-[600px] text-[17px] leading-[1.7] text-text-muted">
               Liên hệ Ephata Store để tư vấn triển khai cho giáo xứ, giáo lý viên hoặc
               chương trình riêng.
             </p>
@@ -203,6 +205,44 @@ export default async function HomePage() {
   );
 }
 
+/** Một kệ sản phẩm: điện thoại cuộn ngang, màn rộng lưới 4 cột. */
+function Shelf({
+  label,
+  title,
+  note,
+  products,
+  moreHref,
+}: {
+  label: string;
+  title: string;
+  note: string;
+  products: Product[];
+  moreHref: string;
+}) {
+  if (products.length === 0) return null;
+  return (
+    <div>
+      <div className="mb-6 flex flex-wrap items-end justify-between gap-x-6 gap-y-2">
+        <div>
+          <div className={eyebrow}>{label}</div>
+          <h2 className="font-display mt-2 text-[clamp(28px,4.2vw,44px)] font-bold">{title}</h2>
+          <p className="mt-1 text-base text-text-muted">{note}</p>
+        </div>
+        <Link href={moreHref} className="text-base font-semibold text-brand hover:text-brand-hover">
+          Xem tất cả →
+        </Link>
+      </div>
+      <div className="scrollbar-thin -mx-1 flex snap-x gap-4 overflow-x-auto px-1 pb-2 sm:mx-0 sm:grid sm:grid-cols-2 sm:overflow-visible sm:px-0 sm:pb-0 lg:grid-cols-4">
+        {products.map((p) => (
+          <div key={p.id} className="w-[78%] shrink-0 snap-start sm:w-auto [&>a]:h-full">
+            <ProductCard product={p} />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function ContactCard({
   label,
   value,
@@ -214,14 +254,11 @@ function ContactCard({
 }) {
   const inner = (
     <>
-      <span className="mb-1.5 block text-[10px] uppercase tracking-[0.14em] text-text-faint">
-        {label}
-      </span>
-      <b className="text-sm">{value}</b>
+      <span className="mb-1 block text-xs uppercase tracking-[0.1em] text-text-muted">{label}</span>
+      <b className="text-base">{value}</b>
     </>
   );
-  const cls =
-    "block rounded-2xl border border-border bg-white/[0.03] px-[18px] py-[17px]";
+  const cls = "block rounded-2xl border border-border bg-white/[0.03] px-[18px] py-[17px]";
   return href ? (
     <Link href={href} className={`${cls} hover:border-accent/50`}>
       {inner}
