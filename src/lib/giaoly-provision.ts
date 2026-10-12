@@ -1,6 +1,7 @@
 import "server-only";
 import { createStoreAdminClient } from "@/lib/supabase/store-admin";
 import { getGiaolyContextFor } from "@/lib/giaoly-context";
+import { notifyAdmin } from "@/lib/admin-notify";
 
 /**
  * Bật / tắt tính năng bên Giáo Lý Số cho GIÁO XỨ khi quyền trên Ephata thay đổi.
@@ -32,6 +33,17 @@ async function send(job: Job): Promise<void> {
     } catch (e) {
       error = e instanceof Error ? e.message : "Không gọi được Giáo Lý Số.";
     }
+  }
+  if (error && endpoint && secret) {
+    // Lỗi đồng bộ → báo admin ngay (bỏ qua khi chưa cấu hình — môi trường local / preview) (trước đây chỉ hiện ở Admin → Đồng bộ GLS, không ai biết để thử lại).
+    const p = job.payload as { action?: string; parish_id?: string; feature_key?: string };
+    await notifyAdmin({
+      title: `Đồng bộ Giáo Lý Số lỗi — ${p.action === "revoke_feature" ? "tắt" : "bật"} ${p.feature_key ?? "tính năng"}`,
+      eyebrow: "// Đồng bộ Giáo Lý Số · Lỗi",
+      lines: [`Giáo xứ: ${p.parish_id ?? "?"}`, `Lệnh: ${p.action ?? "?"} · ${p.feature_key ?? "?"}`, `Lỗi: ${error.slice(0, 300)}`],
+      href: "/admin/provisions",
+      cta: "Mở Admin → Đồng bộ GLS (Thử lại)",
+    });
   }
   const { data: cur } = await supabase.from("provision_jobs").select("attempts").eq("id", job.id).single();
   await supabase

@@ -157,3 +157,15 @@ export function topupRejectedEmail(t: { code: string; amountVnd: number; reason:
 ${button(contact, "Gửi yêu cầu hỗ trợ →")}`;
   return { subject, text, html: layout({ preheader: `Lý do: ${t.reason.slice(0, 80)}`, eyebrow: "// Ví point · Đơn nạp", title: "Đơn nạp chưa được duyệt", body }) };
 }
+
+/** Email nội bộ báo admin (đơn nạp mới, đồng bộ Giáo Lý Số lỗi…). `lines`: các dòng thông tin, đã là chữ thuần. */
+export function adminNoticeEmail(n: { title: string; eyebrow: string; lines: string[]; href: string; cta: string }) {
+  const subject = `[Ephata Store] ${n.title}`;
+  const text = [...n.lines, "", `${n.cta}: ${SITE}${n.href}`].join("\n");
+  const body = `
+<div style="margin-top:18px;padding:16px 18px;background:${C.surface};border-left:3px solid ${C.accent};border-radius:10px;font-size:14px;line-height:1.8;color:${C.text};">
+  ${n.lines.map((l) => esc(l)).join("<br>")}
+</div>
+${button(`${SITE}${n.href}`, `${n.cta} →`)}`;
+  return { subject, text, html: layout({ preheader: n.lines[0] ?? n.title, eyebrow: n.eyebrow, title: n.title, body }) };
+}
