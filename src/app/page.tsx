@@ -3,6 +3,8 @@ import Form from "next/form";
 import { getCategories } from "@/data/categories";
 import { getAllProducts } from "@/data/products";
 import { ProductCard } from "@/components/product-card";
+import { ContactDialog } from "@/components/contact-dialog";
+import { getCurrentUser } from "@/lib/auth";
 import { COMPANY } from "@/lib/company";
 import type { Product } from "@/lib/types";
 
@@ -15,14 +17,11 @@ const STATS = [
 // Gợi ý bấm nhanh dưới ô tìm — đều ra kết quả với dữ liệu hiện có.
 const SUGGEST = ["Rung Chuông Vàng", "Chứng chỉ", "Đơn từ", "Hôn nhân", "Quản lý giáo lý"];
 
-// Mỗi danh mục một tông màu riêng (thẻ tối, chữ trắng ở cả 2 theme) — dễ phân biệt hơn một nền chung.
-const TINTS = ["#8d7040", "#3f6f95", "#3d7f5f", "#94506a", "#6a5a9a", "#357f80", "#9a6236", "#4f6b8a"];
-
 const eyebrow = "text-xs font-extrabold uppercase tracking-[0.14em] text-accent-hover";
 const wrap = "mx-auto w-[min(1180px,calc(100%-40px))]";
 
 export default async function HomePage() {
-  const [categories, products] = await Promise.all([getCategories(), getAllProducts()]);
+  const [categories, products, user] = await Promise.all([getCategories(), getAllProducts(), getCurrentUser()]);
 
   const count = (slug: string) =>
     products.filter((p) => p.categoryId === slug || p.categorySlugs.includes(slug)).length;
@@ -119,26 +118,27 @@ export default async function HomePage() {
         <div className={wrap}>
           <div className={eyebrow}>Dành cho bạn</div>
           <h2 className="font-display mb-8 mt-2 text-[clamp(30px,4.6vw,50px)] font-bold">Chọn đúng nơi bạn cần.</h2>
-          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-            {categories.map((c, i) => (
+          {/* Dạng danh mục: một khung, mỗi dòng một mục — gọn, đọc nhanh, không cần ảnh minh họa. */}
+          <div className="grid grid-cols-1 gap-px overflow-hidden rounded-2xl border border-border bg-border sm:grid-cols-2">
+            {categories.map((c) => (
               <Link
                 key={c.id}
                 href={`/category/${c.slug}`}
-                className="group flex min-h-[150px] flex-col rounded-[22px] border border-white/10 p-4 text-white transition hover:-translate-y-0.5 hover:border-accent/60 sm:min-h-[180px] sm:p-5"
-                style={{ background: `linear-gradient(150deg, ${TINTS[i % TINTS.length]} 0%, #1b1f24 78%)` }}
+                className="group flex min-w-0 items-center gap-3 bg-surface px-4 py-3.5 transition hover:bg-surface-hover sm:gap-4 sm:px-5 sm:py-4"
               >
-                <div className="mb-auto flex items-start justify-between gap-2">
-                  <span className="grid h-11 w-11 place-items-center rounded-[14px] border border-white/25 bg-black/25 text-[20px] text-[#f3d27a]">
-                    {c.icon}
-                  </span>
-                  <span className="whitespace-nowrap rounded-full bg-black/30 px-2.5 py-1 text-xs font-semibold text-white/85">
-                    {count(c.slug)} sản phẩm
-                  </span>
-                </div>
-                <h3 className="mt-4 text-[17px] font-bold leading-snug sm:text-[19px]">{c.name}</h3>
-                {c.description && (
-                  <p className="mt-1 hidden text-[14px] leading-[1.55] text-white/80 sm:line-clamp-2">{c.description}</p>
-                )}
+                <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl border border-border bg-bg-elevated text-[19px] text-accent">
+                  {c.icon}
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-[17px] font-semibold leading-snug text-text group-hover:text-accent">{c.name}</span>
+                  {c.description && <span className="block truncate text-[14px] text-text-muted">{c.description}</span>}
+                </span>
+                <span className="shrink-0 text-right text-[13px] tabular-nums text-text-faint">
+                  {count(c.slug)} <span className="hidden sm:inline">sản phẩm</span>
+                </span>
+                <span aria-hidden className="shrink-0 text-lg text-text-faint transition group-hover:translate-x-0.5 group-hover:text-accent">
+                  ›
+                </span>
               </Link>
             ))}
           </div>
@@ -195,7 +195,12 @@ export default async function HomePage() {
             </p>
           </div>
           <div className="grid gap-2.5">
-            <ContactCard label="Gửi yêu cầu hỗ trợ" value="Mở form liên hệ →" href="/lien-he" />
+            <ContactDialog
+              label="Gửi yêu cầu hỗ trợ"
+              value="Mở form liên hệ →"
+              defaultEmail={user?.email ?? undefined}
+              className="block rounded-2xl border border-border bg-white/[0.03] px-[18px] py-[17px] hover:border-accent/50"
+            />
             <ContactCard label="Trả lời qua" value="Email bạn nhập trong form" />
             <ContactCard label="Đơn vị vận hành" value={COMPANY.name} />
           </div>
@@ -243,27 +248,11 @@ function Shelf({
   );
 }
 
-function ContactCard({
-  label,
-  value,
-  href,
-}: {
-  label: string;
-  value: string;
-  href?: string;
-}) {
-  const inner = (
-    <>
+function ContactCard({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="block rounded-2xl border border-border bg-white/[0.03] px-[18px] py-[17px]">
       <span className="mb-1 block text-xs uppercase tracking-[0.1em] text-text-muted">{label}</span>
       <b className="text-base">{value}</b>
-    </>
-  );
-  const cls = "block rounded-2xl border border-border bg-white/[0.03] px-[18px] py-[17px]";
-  return href ? (
-    <Link href={href} className={`${cls} hover:border-accent/50`}>
-      {inner}
-    </Link>
-  ) : (
-    <div className={cls}>{inner}</div>
+    </div>
   );
 }

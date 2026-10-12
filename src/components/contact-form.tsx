@@ -12,10 +12,13 @@ export function ContactForm({
   defaultEmail,
   defaultTopic,
   defaultMessage,
+  onDone,
 }: {
   defaultEmail?: string;
   defaultTopic?: string;
   defaultMessage?: string;
+  /** Mở trong popup: gửi xong hiện nút Đóng thay cho link về trang chủ. */
+  onDone?: () => void;
 }) {
   const [state, formAction, pending] = useActionState<ContactState, FormData>(submitContact, {});
   // Gửi lỗi (thiếu tên, nội dung ngắn…) → React reset form; điền lại giá trị vừa nhập từ state.
@@ -26,9 +29,15 @@ export function ContactForm({
       <div className="space-y-3 text-center">
         <p className="font-medium text-success">Đã gửi. Cảm ơn bạn!</p>
         <p className="text-sm text-text-muted">Chúng tôi sẽ trả lời qua email bạn đã nhập, thường trong giờ làm việc.</p>
-        <Link href="/" className="inline-block text-sm text-accent hover:text-accent-hover">
-          ← Về trang chủ
-        </Link>
+        {onDone ? (
+          <button type="button" onClick={onDone} className="text-sm font-semibold text-accent hover:text-accent-hover">
+            Đóng
+          </button>
+        ) : (
+          <Link href="/" className="inline-block text-sm text-accent hover:text-accent-hover">
+            ← Về trang chủ
+          </Link>
+        )}
       </div>
     );
   }
