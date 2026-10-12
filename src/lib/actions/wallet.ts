@@ -9,6 +9,7 @@ import { vndToPoints } from "@/lib/points";
 import { safeNext } from "@/lib/safe-next";
 import { sendEmail } from "@/lib/email";
 import { topupApprovedEmail, topupRejectedEmail } from "@/lib/email-templates";
+import { notifyAdmin } from "@/lib/admin-notify";
 
 async function assertAdmin() {
   const admin = await getAdminUser();
@@ -60,6 +61,20 @@ export async function createTopup(
     .select("id")
     .single();
   if (error || !data) return { error: "Không tạo được đơn nạp. Thử lại sau ít phút." };
+
+  // Báo admin có đơn mới để đối soát chuyển khoản sớm (khách chờ duyệt mới có point).
+  await notifyAdmin({
+    title: `Đơn nạp mới ${code} — ${amount.toLocaleString("vi-VN")}đ`,
+    eyebrow: "// Nạp point · Chờ duyệt",
+    lines: [
+      `Khách: ${user.email ?? user.id}`,
+      `Mã nạp (nội dung CK): ${code}`,
+      `Số tiền: ${amount.toLocaleString("vi-VN")}đ → ${points.toLocaleString("vi-VN")} point`,
+      "Đối soát tài khoản ngân hàng rồi duyệt / từ chối ở trang Nạp point.",
+    ],
+    href: "/admin/topups",
+    cta: "Mở Admin → Nạp point",
+  });
 
   // Đến từ trang mua (thiếu point) → mang theo đường quay lại, để cộng point xong mua tiếp được ngay.
   const back = safeNext(String(formData.get("back") ?? ""), "");

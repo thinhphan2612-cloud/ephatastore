@@ -30,6 +30,8 @@ const ACTION_LABEL: Record<string, string> = {
   "release.delete": "Xóa bản phát hành",
   "app.secret_rotate": "Tạo khóa bí mật app",
   "provision.retry": "Gửi lại đồng bộ GLS",
+  "wallet.adjust": "Điều chỉnh point",
+  "wallet.refund": "Hoàn point lượt mua",
 };
 
 interface Row {

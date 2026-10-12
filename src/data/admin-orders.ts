@@ -110,3 +110,57 @@ export async function adminGetUserParishItems(userId: string): Promise<{ parishI
   }));
   return { parishId, items };
 }
+
+export interface AdminLedgerRow {
+  id: string;
+  amount: number;
+  balance_after: number;
+  kind: string;
+  ref: string | null;
+  note: string | null;
+  created_at: string;
+  refunded_at: string | null;
+  /** Tên sản phẩm / "Full Topping" / tên app (ref app:…) nếu xác định được. */
+  label: string | null;
+  /** Hoàn được ở trang admin: lượt trừ mua sản phẩm / topping / key, chưa hoàn (app tự hoàn qua API). */
+  refundable: boolean;
+}
+
+/** Ví của user cho admin hỗ trợ: số dư, 50 dòng lịch sử gần nhất (kèm tên sản phẩm), 10 đơn nạp gần nhất. */
+export async function adminGetUserWallet(userId: string) {
+  const supabase = createStoreAdminClient();
+  const [{ data: w }, { data: ledger }, { data: topups }] = await Promise.all([
+    supabase.from("point_wallets").select("balance").eq("user_id", userId).maybeSingle(),
+    supabase
+      .from("point_ledger")
+      .select("id,amount,balance_after,kind,ref,note,created_at,refunded_at")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(50),
+    supabase
+      .from("point_topups")
+      .select("id,code,amount_vnd,points,status,created_at,reject_reason")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(10),
+  ]);
+  const rows = (ledger ?? []) as Omit<AdminLedgerRow, "label" | "refundable">[];
+  const UUID = /^[0-9a-f-]{36}$/;
+  const ids = [
+    ...new Set(rows.map((r) => (r.ref ?? "").replace(/^app:/, "")).filter((x) => UUID.test(x))),
+  ];
+  const { data: prods } = ids.length
+    ? await supabase.from("products").select("id,title").in("id", ids)
+    : { data: [] as { id: string; title: string }[] };
+  const title = new Map((prods ?? []).map((p) => [p.id, p.title]));
+  const out: AdminLedgerRow[] = rows.map((r) => {
+    const ref = r.ref ?? "";
+    const label = ref === "topping" ? "Full Topping" : (title.get(ref.replace(/^app:/, "")) ?? null);
+    return {
+      ...r,
+      label,
+      refundable: r.kind === "spend" && r.amount < 0 && !ref.startsWith("app:") && !r.refunded_at,
+    };
+  });
+  return { balance: (w?.balance as number | undefined) ?? 0, ledger: out, topups: topups ?? [] };
+}

@@ -444,33 +444,120 @@ export async function revokeEntitlement(formData: FormData) {
   const parishFromForm = String(formData.get("parish_id") ?? "").trim();
   if (!userId || !productId) return;
 
+  const detail = await revokeProductAccess(userId, productId, parishFromForm || null);
+  await logAdmin(admin, "entitlement.revoke", { type: "user", id: userId }, { product_id: productId, ...detail });
+  revalidatePath(`/admin/users/${userId}`);
+}
+
+/**
+ * Tắt quyền dùng một sản phẩm của user (dùng chung cho "Thu hồi" và "Hoàn tiền + thu hồi").
+ * Tính năng GLS → quyền của giáo xứ (hạn = bây giờ) + gửi lệnh tắt; phần mềm → xóa quyền + khóa key; còn lại → xóa quyền.
+ * productId = "topping" → cắt Full Topping đang còn hạn.
+ */
+async function revokeProductAccess(userId: string, productId: string, parishOverride: string | null): Promise<Record<string, unknown>> {
   const supabase = createStoreAdminClient();
+  const now = new Date().toISOString();
+  if (productId === "topping") {
+    const { error } = await supabase
+      .from("subscriptions")
+      .update({ expires_at: now })
+      .eq("store_user_id", userId)
+      .eq("kind", "topping")
+      .gt("expires_at", now);
+    if (error) throw new Error(error.message);
+    return { topping: true };
+  }
   const { product, parishId: userParish } = await grantTarget(userId, productId);
-  const parishId = parishFromForm || userParish;
-  if (product?.giaoly_feature_key && parishId) {
+  const parishId = parishOverride || userParish;
+  if (product?.giaoly_feature_key) {
+    if (!parishId) return { skipped: "user không còn giáo xứ — thu hồi ở trang của quản trị khác cùng giáo xứ" };
     const { error } = await supabase
       .from("parish_entitlements")
-      .update({ expires_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+      .update({ expires_at: now, updated_at: now })
       .eq("parish_id", parishId)
       .eq("product_id", productId);
     if (error) throw new Error(error.message);
     await syncParishFeature(parishId, productId, userId).catch((e) => console.error("provision", e));
-    await logAdmin(admin, "entitlement.revoke", { type: "user", id: userId }, { product_id: productId, parish_id: parishId });
-    revalidatePath(`/admin/users/${userId}`);
-    return;
+    return { parish_id: parishId };
   }
-
-  const { error } = await supabase
-    .from("entitlements")
-    .delete()
-    .eq("store_user_id", userId)
-    .eq("product_id", productId);
+  const { error } = await supabase.from("entitlements").delete().eq("store_user_id", userId).eq("product_id", productId);
   if (error) throw new Error(error.message);
   if (product?.type === "software")
     await supabase.from("licenses").update({ status: "revoked" }).eq("store_user_id", userId).eq("product_id", productId);
-  await logAdmin(admin, "entitlement.revoke", { type: "user", id: userId }, { product_id: productId });
+  return {};
+}
 
+// ---- Hỗ trợ khách: điều chỉnh / hoàn point ----
+
+const USER_NOTICE = (userId: string, m: string): never => redirect(`/admin/users/${userId}?notice=${encodeURIComponent(m)}`);
+
+/** Admin cộng / trừ point cho khách (vd chuyển khoản không khớp đơn, bù lỗi). Bắt buộc lý do — hiện trong lịch sử Ví của khách. */
+export async function adjustUserPoints(formData: FormData) {
+  const admin = await assertAdmin();
+  const userId = String(formData.get("user_id") ?? "").trim();
+  const amount = Math.trunc(Number(formData.get("amount") ?? 0) || 0);
+  const reason = String(formData.get("reason") ?? "").trim().slice(0, 200);
+  if (!userId) return;
+  if (!amount || Math.abs(amount) > 1_000_000) USER_NOTICE(userId, "Số point phải khác 0 và tối đa ±1.000.000.");
+  if (reason.length < 5) USER_NOTICE(userId, "Ghi lý do (ít nhất 5 ký tự) — khách thấy lý do này trong lịch sử Ví.");
+
+  const { data: balance, error } = await createStoreAdminClient().rpc("adjust_points", {
+    p_user: userId,
+    p_amount: amount,
+    p_kind: "adjust",
+    p_ref: "admin",
+    p_note: reason,
+  });
+  if (error) USER_NOTICE(userId, /INSUFFICIENT_POINTS/.test(error.message) ? "Số dư không đủ để trừ." : `Không điều chỉnh được: ${error.message}`);
+  await logAdmin(admin, "wallet.adjust", { type: "user", id: userId }, { amount, reason, balance });
   revalidatePath(`/admin/users/${userId}`);
+  USER_NOTICE(userId, `Đã ${amount > 0 ? "cộng" : "trừ"} ${Math.abs(amount).toLocaleString("vi-VN")} point. Số dư mới: ${Number(balance).toLocaleString("vi-VN")}.`);
+}
+
+/**
+ * Hoàn point cho MỘT lượt trừ (mua sản phẩm / Full Topping / key phần mềm) — mỗi lượt hoàn 1 lần (admin_refund_spend, 0025).
+ * Ô "Thu hồi quyền dùng" (admin chọn): tắt quyền sản phẩm đó của khách (toàn bộ, không chỉ phần của lượt này).
+ */
+export async function refundSpend(formData: FormData) {
+  const admin = await assertAdmin();
+  const userId = String(formData.get("user_id") ?? "").trim();
+  const ledgerId = String(formData.get("ledger_id") ?? "").trim();
+  const reason = String(formData.get("reason") ?? "").trim().slice(0, 200);
+  const revoke = formData.get("revoke") === "on";
+  if (!userId || !ledgerId) return;
+  if (reason.length < 5) USER_NOTICE(userId, "Ghi lý do hoàn (ít nhất 5 ký tự).");
+
+  const supabase = createStoreAdminClient();
+  const { data: row } = await supabase.from("point_ledger").select("user_id,ref,amount").eq("id", ledgerId).maybeSingle();
+  if (!row || row.user_id !== userId) USER_NOTICE(userId, "Không tìm thấy lượt trừ point này của khách.");
+
+  const { data: balance, error } = await supabase.rpc("admin_refund_spend", { p_ledger: ledgerId, p_note: reason });
+  if (error) {
+    const m = /ALREADY_REFUNDED/.test(error.message)
+      ? "Lượt này đã được hoàn trước đó."
+      : /NOT_REFUNDABLE/.test(error.message)
+        ? "Lượt này không hoàn ở đây được (lượt trừ của app qua Ví — app tự hoàn)."
+        : `Không hoàn được: ${error.message}`;
+    USER_NOTICE(userId, m);
+  }
+
+  let revoked: Record<string, unknown> | null = null;
+  const productRef = row!.ref ?? "";
+  if (revoke && (productRef === "topping" || /^[0-9a-f-]{36}$/.test(productRef)))
+    revoked = await revokeProductAccess(userId, productRef, null);
+
+  await logAdmin(admin, "wallet.refund", { type: "user", id: userId }, {
+    ledger_id: ledgerId,
+    points: -row!.amount,
+    ref: productRef,
+    reason,
+    revoked: revoke ? (revoked ?? { skipped: "không xác định được sản phẩm" }) : false,
+  });
+  revalidatePath(`/admin/users/${userId}`);
+  USER_NOTICE(
+    userId,
+    `Đã hoàn ${(-row!.amount).toLocaleString("vi-VN")} point (số dư mới ${Number(balance).toLocaleString("vi-VN")})${revoke ? " và thu hồi quyền dùng" : ", khách vẫn giữ quyền dùng"}.`
+  );
 }
 
 // ---- Cấu hình nhanh sản phẩm (tier / giá / trial / active) ----
