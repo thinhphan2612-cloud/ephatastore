@@ -2,13 +2,21 @@ import { cache } from "react";
 import type { User } from "@supabase/supabase-js";
 import { createStoreAuthServerClient } from "@/lib/supabase/store-auth-server";
 
-/** User đăng nhập hiện tại (tài khoản STORE), hoặc null. Cache theo request. */
-export const getCurrentUser = cache(async (): Promise<User | null> => {
+/** Danh tính đăng nhập dùng trong app: chỉ cần id + email. */
+export type AuthUser = Pick<User, "id" | "email">;
+
+/**
+ * User đăng nhập hiện tại (tài khoản STORE), hoặc null. Cache theo request.
+ * getClaims(): xác minh chữ ký phiên (ES256) ngay trên máy chủ bằng khóa công khai đã cache — không gọi Supabase Auth mỗi trang
+ * (trước đây getUser() tốn 1 vòng mạng / trang). Token ký kiểu cũ (HS) thì thư viện tự gọi getUser() như trước.
+ * Đánh đổi: phiên bị thu hồi ở nơi khác vẫn dùng được tới khi access token hết hạn (≤ 1 giờ).
+ */
+export const getCurrentUser = cache(async (): Promise<AuthUser | null> => {
   const supabase = await createStoreAuthServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  return user;
+  const { data, error } = await supabase.auth.getClaims();
+  const c = data?.claims;
+  if (error || !c?.sub || c.role !== "authenticated") return null;
+  return { id: c.sub, email: typeof c.email === "string" && c.email ? c.email : undefined };
 });
 
 /**
@@ -28,7 +36,7 @@ export function isAdminUser(user: Pick<User, "id"> | null | undefined): boolean 
 }
 
 /** User hiện tại nếu là admin, ngược lại null. */
-export async function getAdminUser(): Promise<User | null> {
+export async function getAdminUser(): Promise<AuthUser | null> {
   const user = await getCurrentUser();
   return isAdminUser(user) ? user : null;
 }

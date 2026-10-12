@@ -8,8 +8,8 @@ import { ThemeToggle } from "@/components/theme-toggle";
 export async function SiteHeader() {
   const user = await getCurrentUser();
   const isAdmin = isAdminUser(user);
-  const plan = user ? await getCurrentUserPlan() : "free";
-  const balance = user ? await getBalance(user.id) : 0;
+  // Gói Pro và số dư đọc song song (trước đây lần lượt → thêm 1 vòng database mỗi trang).
+  const [plan, balance] = user ? await Promise.all([getCurrentUserPlan(), getBalance(user.id)]) : ["free" as const, 0];
 
   return (
     <nav className="sticky top-0 z-40 border-b border-border bg-bg/80 backdrop-blur-xl">

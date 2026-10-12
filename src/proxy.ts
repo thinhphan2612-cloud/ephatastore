@@ -41,9 +41,9 @@ export async function proxy(request: NextRequest) {
     }
   );
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // getClaims(): làm mới phiên khi access token hết hạn + xác minh chữ ký ngay tại chỗ (không gọi Supabase Auth mỗi request).
+  const { data } = await supabase.auth.getClaims();
+  const user = data?.claims?.sub ? { id: data.claims.sub } : null;
 
   // Trang đăng nhập / quên mật khẩu / xác nhận email / đặt mật khẩu luôn mở (thành viên mới đặt mật khẩu lần đầu).
   if (gated && !GATE_OPEN.has(request.nextUrl.pathname) && !isAdminId(user?.id)) {
