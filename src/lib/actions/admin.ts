@@ -688,21 +688,20 @@ export async function deleteCoupon(formData: FormData) {
 // ---- Cài đặt / chính sách ----
 export async function saveSettings(formData: FormData) {
   const admin = await assertAdmin();
-  const fullToppingPrice = Number(formData.get("full_topping_price") ?? 0) || 0;
-  const freedomDays = Number(formData.get("freedom_days") ?? 30) || 30;
-  const accessMode = formData.get("access_mode") === "store" ? "store" : "giaoly_pro";
+  // Kẹp trong khoảng hợp lệ — giá 0 / trống trước đây bị âm thầm thay bằng giá mặc định khi đọc.
+  const fullToppingPrice = Math.min(100_000_000, Math.max(10_000, Math.round(Number(formData.get("full_topping_price") ?? 0) || 0)));
+  const freedomDays = Math.min(365, Math.max(1, Math.round(Number(formData.get("freedom_days") ?? 30) || 30)));
 
   const supabase = createStoreAdminClient();
   const { error } = await supabase.from("store_settings").upsert(
     [
       { key: "full_topping_price", value: String(fullToppingPrice) },
       { key: "freedom_days", value: String(freedomDays) },
-      { key: "access_mode", value: accessMode },
     ],
     { onConflict: "key" }
   );
   if (error) throw new Error(error.message);
-  await logAdmin(admin, "settings.save", { type: "settings" }, { fullToppingPrice, freedomDays, accessMode });
+  await logAdmin(admin, "settings.save", { type: "settings" }, { fullToppingPrice, freedomDays });
 
   revalidatePath("/admin/settings");
 }
