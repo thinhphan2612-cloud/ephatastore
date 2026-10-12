@@ -33,7 +33,7 @@ export function ProductCard({ product }: { product: Product }) {
   return (
     <Link
       href={`/product/${product.slug}`}
-      className="group flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-surface transition hover:-translate-y-0.5 hover:border-accent/50 hover:shadow-[0_12px_32px_rgba(0,0,0,0.25)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
+      className="group flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-surface shadow-card transition hover:-translate-y-0.5 hover:border-accent/50 hover:shadow-[0_12px_32px_rgba(0,0,0,0.25)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
     >
       {/* Khung ảnh: chỉ có ảnh, không đè chữ */}
       <div className="relative aspect-video overflow-hidden border-b border-border">
@@ -58,6 +58,12 @@ export function ProductCard({ product }: { product: Product }) {
         <span className="absolute left-3 top-3 rounded-md bg-black/60 px-2 py-1 text-[11px] font-bold uppercase tracking-[0.08em] text-white backdrop-blur">
           {TYPE_LABEL[product.type]}
         </span>
+        {/* Cờ Nổi bật (admin bật ở trang Sửa) — màu cố định để rõ trên mọi ảnh, cả 2 theme. */}
+        {product.featured && (
+          <span className="absolute right-3 top-3 rounded-md bg-[#e0bf65] px-2 py-1 text-[11px] font-extrabold uppercase tracking-[0.08em] text-[#14110a] shadow">
+            ★ Nổi bật
+          </span>
+        )}
       </div>
 
       {/* Phần chữ trên nền đặc: luôn đọc rõ ở cả 2 theme */}

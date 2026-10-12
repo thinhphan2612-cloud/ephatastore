@@ -39,7 +39,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <script
           dangerouslySetInnerHTML={{
             __html:
-              "try{if(localStorage.getItem('ephata_theme')==='light'){document.documentElement.dataset.theme='light';document.documentElement.style.colorScheme='light';}}catch(e){}",
+              // Theme: khách chọn Sáng / Tối, hoặc mặc định Theo máy (prefers-color-scheme, đổi theo máy ngay khi máy đổi).
+              "(function(){var r=document.documentElement,m=window.matchMedia&&matchMedia('(prefers-color-scheme: light)');function pref(){try{var p=localStorage.getItem('ephata_theme');return p==='light'||p==='dark'?p:'system'}catch(e){return 'system'}}function apply(){var p=pref(),l=p==='light'||(p==='system'&&!!m&&m.matches);r.dataset.themePref=p;if(l){r.dataset.theme='light';r.style.colorScheme='light'}else{delete r.dataset.theme;r.style.colorScheme='dark'}}window.__ephataApplyTheme=apply;apply();if(m&&m.addEventListener)m.addEventListener('change',apply)})()",
           }}
         />
         <SiteHeader />

@@ -4,19 +4,21 @@
   Ephata Store — design system v3 (theo prototype).
   Dark-first: nền đen ánh vàng liturgical, chữ ấm, accent gold.
 */
+/* Độ tương phản chữ (WCAG, tối thiểu 4.5:1) — đo 2026-10-12: chữ phụ (faint) ≥ 4.8, chữ vàng ≥ 4.9, chữ trên nút ≥ 5.5. */
 :root {
-  /* nền & bề mặt */
-  --bg: #07090b;
-  --bg-elevated: #0d1115;
-  --surface: #12181d;
-  --surface-hover: #1a232a;
-  --border: rgba(255, 255, 255, 0.1);
-  --border-strong: rgba(255, 255, 255, 0.2);
+  /* nền & bề mặt — xám than ánh xanh, các lớp tách nhau rõ */
+  --bg: #0d1114;
+  --bg-elevated: #151b20;
+  --surface: #182027;
+  --surface-hover: #202a32;
+  --border: rgba(255, 255, 255, 0.12);
+  --border-strong: rgba(255, 255, 255, 0.22);
+  --card-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
 
-  /* chữ */
-  --text: #f7f4ec;
-  --text-muted: #9aa4ac;
-  --text-faint: rgba(255, 255, 255, 0.42);
+  /* chữ — trắng ngà dịu mắt */
+  --text: #ece8df;
+  --text-muted: #a3adb5;
+  --text-faint: rgba(255, 255, 255, 0.55);
 
   /* thương hiệu */
   --accent: #e0bf65; /* gold */
@@ -32,25 +34,27 @@
   --discount: #4c9f38;
 }
 
-/* Theme SÁNG (opt-in qua nút chuyển) */
+/* Theme SÁNG — script đầu trang đặt data-theme="light" theo lựa chọn của khách hoặc theo máy (mặc định). */
 :root[data-theme="light"] {
-  --bg: #f8f8f6;
+  --bg: #f3f2ee;
   --bg-elevated: #ffffff;
   --surface: #ffffff;
-  --surface-hover: #f3f3ef;
-  --border: rgba(22, 28, 34, 0.1);
-  --border-strong: rgba(22, 28, 34, 0.18);
-  --text: #171a1d;
-  --text-muted: #5e6871;
-  --text-faint: rgba(22, 28, 34, 0.45);
-  --accent: #b48a28;
-  --accent-hover: #caa03a;
+  --surface-hover: #f1efe9;
+  --border: rgba(22, 28, 34, 0.14);
+  --border-strong: rgba(22, 28, 34, 0.24);
+  --card-shadow: 0 1px 2px rgba(16, 24, 32, 0.06), 0 2px 8px rgba(16, 24, 32, 0.04);
+  --text: #15181b;
+  --text-muted: #4f5961;
+  --text-faint: rgba(22, 28, 34, 0.64);
+  /* vàng đồng: đủ đậm cho chữ trên nền trắng, nút vàng chữ trắng vẫn rõ */
+  --accent: #86631a;
+  --accent-hover: #74560f;
   --accent-contrast: #ffffff;
-  --brand: #3f74b8;
-  --brand-hover: #2f5f9e;
-  --success: #2f7d5b;
-  --danger: #c94257;
-  --warn: #b0650f;
+  --brand: #2f64a8;
+  --brand-hover: #24538f;
+  --success: #2a7350;
+  --danger: #b8384c;
+  --warn: #9a5a0c;
 }
 
 @theme inline {
@@ -72,6 +76,7 @@
   --color-danger: var(--danger);
   --color-warn: var(--warn);
   --color-discount: var(--discount);
+  --shadow-card: var(--card-shadow);
 
   --font-sans: var(--font-ui);
   --font-display: var(--font-display);
@@ -109,11 +114,14 @@ body {
   mask-image: linear-gradient(#000, transparent 72%);
 }
 
-/* lưới mờ nền */
+/* lưới mờ nền — chỉ ở vùng đầu trang, phần dưới để nền trơn cho dễ đọc */
 body::before {
   content: "";
-  position: fixed;
-  inset: 0;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 760px;
   z-index: -1;
   background-image:
     linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px),

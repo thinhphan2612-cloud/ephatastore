@@ -83,7 +83,7 @@ export default async function HomePage({
                   key={q}
                   href={`/?q=${encodeURIComponent(q)}`}
                   scroll={false}
-                  className="rounded-full border border-border bg-white/[0.03] px-3 py-1 text-text-muted hover:border-accent/50 hover:text-text"
+                  className="rounded-full border border-border bg-surface px-3 py-1 text-text-muted hover:border-accent/50 hover:text-text"
                 >
                   {q}
                 </Link>
@@ -101,7 +101,7 @@ export default async function HomePage({
       </section>
 
       {/* BẮT ĐẦU — 3 bước + 2 cách dùng nhiều sản phẩm */}
-      <section className="border-t border-border bg-white/[0.02] py-12">
+      <section className="border-t border-border bg-bg-elevated py-12">
         <div className={`${wrap} grid gap-6 lg:grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)]`}>
           <div>
             <div className={eyebrow}>Bắt đầu</div>
@@ -168,7 +168,7 @@ export default async function HomePage({
               label="Gửi yêu cầu hỗ trợ"
               value="Mở form liên hệ →"
               defaultEmail={user?.email ?? undefined}
-              className="block rounded-2xl border border-border bg-white/[0.03] px-[18px] py-[15px] hover:border-accent/50"
+              className="block rounded-2xl border border-border bg-surface px-[18px] py-[15px] hover:border-accent/50"
             />
           </div>
         </div>

@@ -58,7 +58,7 @@ export default async function AdminTopupsPage() {
                       <input type="hidden" name="id" value={t.id} />
                       <ConfirmSubmit
                         confirm={`Duyệt nạp ${t.code}? Cộng ${t.points.toLocaleString("vi-VN")} point cho ${t.email}.`}
-                        className="rounded-md bg-success px-3 py-1.5 text-sm font-semibold text-white hover:opacity-90"
+                        className="rounded-md bg-success px-3 py-1.5 text-sm font-semibold text-bg hover:opacity-90"
                       >
                         ✓ Duyệt (đã nhận CK)
                       </ConfirmSubmit>
