@@ -129,25 +129,6 @@ export async function getProductBySlug(slug: string): Promise<Product | undefine
   return all.find((p) => p.slug === slug);
 }
 
-export async function getFeatured(): Promise<Product[]> {
-  const all = await loadProducts();
-  return all.filter((p) => p.featured);
-}
-
-export async function getNewReleases(): Promise<Product[]> {
-  const all = await loadProducts();
-  return all
-    .filter((p) => p.isNew)
-    .sort((a, b) => +new Date(b.releasedAt) - +new Date(a.releasedAt));
-}
-
-export async function getPopular(): Promise<Product[]> {
-  const all = await loadProducts();
-  return all
-    .filter((p) => p.isPopular)
-    .sort((a, b) => b.ratingCount - a.ratingCount);
-}
-
 export async function getRelated(product: Product, limit = 4): Promise<Product[]> {
   const all = await loadProducts();
   return all

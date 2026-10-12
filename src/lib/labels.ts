@@ -8,12 +8,3 @@ export const TYPE_LABEL: Record<ProductType, string> = {
   feature: "Tính năng",
   software: "Phần mềm",
 };
-
-export const TYPE_ICON: Record<ProductType, string> = {
-  tool: "🛠️",
-  game: "🎮",
-  asset: "🎨",
-  image: "🖼️",
-  feature: "🧩",
-  software: "💻",
-};
