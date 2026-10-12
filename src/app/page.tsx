@@ -20,6 +20,54 @@ const STEPS = [
   { t: "Mua & dùng", d: "Sản phẩm đã mua nằm ở Thư viện: mở công cụ, chơi game, tải file hoặc lấy key." },
 ];
 
+// Câu hỏi thường gặp — nội dung khớp trang Điều khoản (/dieu-khoan); đổi chính sách thì sửa cả hai.
+const FAQ: { q: string; a: React.ReactNode }[] = [
+  {
+    q: "Point là gì? Có hết hạn không?",
+    a: <>Point là đơn vị thanh toán trên Ephata: 100đ = 1 point. Point <b>không có hạn sử dụng</b>, nhưng không quy đổi lại thành tiền và không chuyển sang tài khoản khác.</>,
+  },
+  {
+    q: "Nạp point bao lâu thì được cộng?",
+    a: (
+      <>
+        Chuyển khoản đúng số tiền và nội dung ghi ở trang <Link href="/wallet">Ví</Link>; point được cộng sau khi Ephata xác nhận đã nhận
+        tiền. Quá 24 giờ làm việc chưa thấy cộng, gửi <Link href="/lien-he?chu-de=nap-point">Liên hệ</Link> kèm mã nạp.
+      </>
+    ),
+  },
+  {
+    q: "Mua xong thì dùng / tải lại ở đâu?",
+    a: (
+      <>
+        Mọi sản phẩm đã mua nằm ở <Link href="/library">Thư viện</Link>. Mua vĩnh viễn (file, game, key phần mềm) dùng không thời hạn; gói
+        năm, mua lẻ, Full Topping dùng đến hạn ghi trong Thư viện — không tự gia hạn, mua thêm trước khi hết hạn thì thời gian được cộng nối.
+      </>
+    ),
+  },
+  {
+    q: "Tôi đã có tài khoản Giáo Lý Số?",
+    a: (
+      <>
+        <Link href="/login">Đăng nhập</Link> thẳng bằng tài khoản Giáo Lý Số — hệ thống tự tạo và liên kết tài khoản Ephata. Sản phẩm có nhãn
+        “Miễn phí với Pro Giáo Lý Số” được dùng miễn phí khi gói Pro của giáo xứ còn hạn.
+      </>
+    ),
+  },
+  {
+    q: "Phần mềm cài được trên mấy máy?",
+    a: <>Mỗi key dùng trên số thiết bị ghi ở trang sản phẩm. Đổi máy thì tự gỡ máy cũ trong Thư viện rồi kích hoạt trên máy mới. Không chia sẻ hay bán lại key.</>,
+  },
+  {
+    q: "Có được hoàn point không?",
+    a: (
+      <>
+        Sản phẩm số đã giao (đã tải về, đã kích hoạt key, đã bật tính năng) không hoàn point. Lỗi từ phía hệ thống (trừ sai, trừ trùng, dịch vụ
+        không thực hiện được) được hoàn point vào Ví. Chi tiết ở <Link href="/dieu-khoan">Điều khoản</Link>.
+      </>
+    ),
+  },
+];
+
 // Gợi ý bấm nhanh dưới ô tìm — đều ra kết quả với dữ liệu hiện có.
 const SUGGEST = ["Rung Chuông Vàng", "Chứng chỉ", "Đơn từ", "Hôn nhân", "Quản lý giáo lý"];
 
@@ -134,6 +182,32 @@ export default async function HomePage({
         </div>
       </section>
 
+      {/* CÂU HỎI THƯỜNG GẶP */}
+      <section className="py-12">
+        <div className={`${wrap} grid gap-6 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.7fr)]`}>
+          <div>
+            <div className={eyebrow}>Hỏi đáp</div>
+            <h2 className="font-display mt-2 text-[clamp(24px,3vw,32px)] font-bold">Câu hỏi thường gặp.</h2>
+            <p className="mt-2 text-[15px] text-text-muted">Không thấy câu trả lời? Gửi yêu cầu hỗ trợ ở cuối trang.</p>
+          </div>
+          <div className="divide-y divide-border overflow-hidden rounded-2xl border border-border bg-surface">
+            {FAQ.map((f) => (
+              <details key={f.q} className="group">
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-5 py-4 text-base font-semibold text-text hover:bg-surface-hover [&::-webkit-details-marker]:hidden">
+                  {f.q}
+                  <span aria-hidden className="shrink-0 text-xl leading-none text-text-faint transition group-open:rotate-45">
+                    +
+                  </span>
+                </summary>
+                <p className="px-5 pb-4 text-[15px] leading-relaxed text-text-muted [&_a]:font-semibold [&_a]:text-brand [&_a:hover]:text-brand-hover">
+                  {f.a}
+                </p>
+              </details>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* GIỚI THIỆU — 1 dải gọn */}
       <section className="py-12">
         <div className={wrap}>
@@ -143,6 +217,10 @@ export default async function HomePage({
               <h2 className="font-display mt-3 text-[clamp(24px,3.2vw,34px)] font-bold leading-snug text-balance">
                 Công nghệ tốt nhất là công nghệ giúp việc phục vụ trở nên nhẹ hơn.
               </h2>
+              {/* Số liệu lấy thẳng từ dữ liệu (không viết cứng) */}
+              <p className="mt-3 text-[15px] text-text-muted">
+                Phát triển bởi <b className="text-text">{COMPANY.name}</b> · {products.length} sản phẩm · {categories.length} danh mục
+              </p>
             </div>
             <ul className="space-y-3">
               {STATS.map((s) => (

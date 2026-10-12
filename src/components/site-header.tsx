@@ -70,9 +70,9 @@ export async function SiteHeader() {
               <Link
                 href="/wallet"
                 className="hidden whitespace-nowrap rounded-xl border border-border-strong bg-surface px-3 py-2.5 text-sm font-bold text-text hover:border-accent/50 hover:bg-accent/10 sm:block"
-                title="Ví Point"
+                title="Ví point — nạp và xem lịch sử"
               >
-                ◆ {balance.toLocaleString("vi-VN")}
+                {balance.toLocaleString("vi-VN")} <span className="font-semibold text-text-muted">point</span>
               </Link>
               <Link
                 href="/account"
