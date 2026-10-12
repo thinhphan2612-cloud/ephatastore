@@ -1,10 +1,9 @@
 import "server-only";
-import type { User } from "@supabase/supabase-js";
-import { getAdminUser } from "@/lib/auth";
+import { getAdminUser, type AuthUser } from "@/lib/auth";
 import { createStoreAdminClient } from "@/lib/supabase/store-admin";
 
 /** Admin đang đăng nhập; không phải admin → lỗi. */
-export async function requireAdmin(): Promise<User> {
+export async function requireAdmin(): Promise<AuthUser> {
   const admin = await getAdminUser();
   if (!admin) throw new Error("Không có quyền admin.");
   return admin;
@@ -15,7 +14,7 @@ export async function requireAdmin(): Promise<User> {
  * Best-effort: lỗi ghi nhật ký không làm hỏng thao tác chính (chỉ log ra server).
  */
 export async function logAdmin(
-  admin: User,
+  admin: AuthUser,
   action: string,
   target?: { type: string; id?: string | null },
   detail?: Record<string, unknown>
