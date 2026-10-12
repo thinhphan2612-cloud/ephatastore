@@ -1,5 +1,6 @@
 import { getSettings } from "@/data/settings";
 import { saveSettings } from "@/lib/actions/admin";
+import { vndToPoints } from "@/lib/points";
 
 const input =
   "w-full rounded-md border border-border bg-bg-elevated px-3 py-2 text-text focus:border-accent focus:outline-none";
@@ -13,25 +14,22 @@ export default async function AdminSettingsPage() {
 
       <form action={saveSettings} className="space-y-4 rounded-lg border border-border bg-surface p-5">
         <label className="block">
-          <span className="mb-1 block text-sm text-text-muted">Chế độ truy cập</span>
-          <select name="access_mode" defaultValue={s.accessMode} className={input}>
-            <option value="giaoly_pro">Gói Pro Giáo Lý Số (giai đoạn đầu — cần Pro, không bán trên store)</option>
-            <option value="store">Bán trên store (gói năm / Freedom / Full Topping / Trial)</option>
-          </select>
-        </label>
-
-        <label className="block">
           <span className="mb-1 block text-sm text-text-muted">
             Giá Full Topping (all-access) / tháng — VND
           </span>
           <input
             type="number"
             name="full_topping_price"
-            min={0}
+            min={10000}
+            max={100000000}
             step={10000}
             defaultValue={s.fullToppingPrice}
             className={input}
           />
+          <span className="mt-1 block text-xs text-text-faint">
+            Đang áp dụng: khách trả 12 tháng / lần = {(s.fullToppingPrice * 12).toLocaleString("vi-VN")}đ ={" "}
+            <b className="text-text-muted">{vndToPoints(s.fullToppingPrice * 12).toLocaleString("vi-VN")} point / năm</b>.
+          </span>
         </label>
 
         <label className="block">
@@ -48,9 +46,10 @@ export default async function AdminSettingsPage() {
           />
         </label>
 
-        <p className="text-xs text-text-faint">
-          Freedom: mua lẻ một sản phẩm để dùng trong số ngày trên (giá bằng 1 tháng). Full
-          Topping: thuê bao mở khoá mọi sản phẩm PRO (đang phát triển).
+        <p className="text-xs leading-relaxed text-text-faint">
+          <b>Mua lẻ (Freedom)</b>: công cụ / tính năng bán thuê bao có thêm nút “Mua lẻ N ngày”, giá bằng 1 tháng. <b>Full Topping</b>:
+          thuê bao 365 ngày của khách, mở mọi sản phẩm PRO trừ phần mềm bán key và tính năng Giáo Lý Số. Đổi giá chỉ áp cho lượt mua sau
+          đó. Miễn phí cho Pro Giáo Lý Số đặt riêng ở từng sản phẩm (ô “Miễn phí cho Pro Giáo Lý Số”).
         </p>
 
         <button
