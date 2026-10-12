@@ -11,23 +11,32 @@ const typeLabel = (t: ProductType) => (t === "feature" ? "Tính năng GLS" : TYP
 /**
  * Cửa hàng có bộ lọc: sidebar trái (danh mục / giá / loại, chọn 1 mỗi nhóm, có số đếm) + lưới thẻ.
  * `limit` (trang chủ): chỉ hiện N thẻ đầu, kèm link "Xem tất cả" sang /browse cùng bộ lọc.
+ * `lockedCat` (trang danh mục): danh mục cố định theo URL; bấm danh mục khác = sang trang danh mục đó (giữ các lọc còn lại).
  */
 export function Catalog({
   products,
   categories,
-  query,
+  query: rawQuery,
   base,
   limit,
+  lockedCat,
 }: {
   products: Product[];
   categories: Category[];
   query: CatalogQuery;
   base: string;
   limit?: number;
+  lockedCat?: string;
 }) {
+  const query = lockedCat ? { ...rawQuery, cat: lockedCat } : rawQuery;
   const result = sortProducts(filterProducts(products, query), query.sort);
   const shown = limit ? result.slice(0, limit) : result;
-  const href = (patch: Partial<CatalogQuery>) => catalogHref(base, query, patch);
+  const href = (patch: Partial<CatalogQuery>) => catalogHref(base, lockedCat ? { ...query, cat: "" } : query, patch);
+  // Trang danh mục: đổi danh mục = đổi trang; "Tất cả" = trang Khám phá.
+  const catHref = (slug: string) =>
+    lockedCat
+      ? catalogHref(slug ? `/category/${slug}` : "/browse", { ...query, cat: "" })
+      : href({ cat: slug });
 
   // Số đếm mỗi lựa chọn = áp các bộ lọc của nhóm KHÁC (đổi lựa chọn trong nhóm sẽ ra đúng số này).
   const byCat = filterProducts(products, query, "cat");
@@ -39,8 +48,8 @@ export function Catalog({
     {
       title: "Danh mục",
       items: [
-        { label: "Tất cả", count: byCat.length, active: !query.cat, href: href({ cat: "" }) },
-        ...categories.map((c) => ({ label: c.name, count: inCat(c.slug), active: query.cat === c.slug, href: href({ cat: c.slug }) })),
+        { label: "Tất cả", count: byCat.length, active: !query.cat, href: catHref("") },
+        ...categories.map((c) => ({ label: c.name, count: inCat(c.slug), active: query.cat === c.slug, href: catHref(c.slug) })),
       ],
     },
     {
@@ -63,7 +72,7 @@ export function Catalog({
   // Chip các bộ lọc đang bật (bấm để bỏ).
   const chips = [
     query.q && { label: `“${query.q}”`, href: href({ q: "" }) },
-    query.cat && { label: categories.find((c) => c.slug === query.cat)?.name ?? query.cat, href: href({ cat: "" }) },
+    query.cat && !lockedCat && { label: categories.find((c) => c.slug === query.cat)?.name ?? query.cat, href: href({ cat: "" }) },
     query.price && { label: query.price === "free" ? "Miễn phí" : "Có phí", href: href({ price: "" }) },
     query.type && { label: TYPES.includes(query.type as ProductType) ? typeLabel(query.type as ProductType) : query.type, href: href({ type: "" }) },
   ].filter(Boolean) as { label: string; href: string }[];
