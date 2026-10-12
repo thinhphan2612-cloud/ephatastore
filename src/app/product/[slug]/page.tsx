@@ -486,12 +486,12 @@ async function SoftwarePanel({
     <>
       {/* Giá key + hành động chính */}
       <div className="mt-4 rounded-2xl border border-border bg-white/[0.03] p-3.5">
-        <div className="flex items-baseline justify-between gap-3">
+        <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
           <div className="flex items-baseline gap-1.5">
             <b className="text-[24px] leading-none tabular-nums">{points.toLocaleString("vi-VN")}</b>
             <span className="text-xs font-semibold text-text-muted">point</span>
           </div>
-          <span className="truncate text-[11px] text-text-faint">
+          <span className="text-[11px] text-text-faint">
             Key vĩnh viễn · ≈ {formatPrice(priceVnd)} · {deviceLimit} thiết bị
           </span>
         </div>
@@ -522,67 +522,58 @@ async function SoftwarePanel({
             </span>
           )}
         </div>
-        {order.map((p, idx) => {
-          const rel = releases[p];
-          const store = p === "windows" && sw?.ms_store_url;
-          if (idx > 0) {
-            // Nền tảng phụ: một dòng gọn.
-            if (!rel && !store)
+        {/* 2 nút ngang hàng, cùng một mẫu; hệ điều hành của khách đứng trước. */}
+        <div className="grid grid-cols-2 gap-2">
+          {order.map((p) => {
+            const rel = releases[p];
+            const store = p === "windows" && sw?.ms_store_url;
+            if (!rel && !store) {
               return (
-                <p key={p} className="mt-2 flex items-center gap-1.5 text-xs text-text-faint">
-                  <OsIcon p={p} /> {PLATFORM_LABEL[p]} · sắp có
-                </p>
+                <div key={p} className="flex items-center gap-2 rounded-xl border border-dashed border-border px-2.5 py-2 text-text-faint">
+                  <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-white/5">
+                    <OsIcon p={p} />
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block text-sm font-bold">{PLATFORM_LABEL[p]}</span>
+                    <span className="block text-[11px]">Sắp có</span>
+                  </span>
+                </div>
               );
+            }
             return (
               <a
                 key={p}
                 href={store ? sw!.ms_store_url! : `/dl/${slug}/${p}`}
                 {...(store ? { target: "_blank", rel: "noopener noreferrer" } : {})}
-                className="mt-2 flex items-center gap-1.5 text-xs text-text-muted hover:text-text"
-              >
-                <OsIcon p={p} />
-                <span className="truncate">
-                  Tải cho {PLATFORM_LABEL[p]}
-                  {store ? " · Microsoft Store ↗" : ` · .${p === "windows" ? "exe" : "dmg"}${rel!.size_bytes ? ` · ${size(rel!.size_bytes)}` : ""}`}
-                </span>
-              </a>
-            );
-          }
-          if (!rel && !store) {
-            return (
-              <div key={p} className="flex items-center gap-2.5 rounded-xl border border-dashed border-border px-3 py-2 text-sm text-text-faint">
-                <OsIcon p={p} /> {PLATFORM_LABEL[p]} · sắp có
-              </div>
-            );
-          }
-          return (
-            <div key={p}>
-              <a
-                href={store ? sw!.ms_store_url! : `/dl/${slug}/${p}`}
-                {...(store ? { target: "_blank", rel: "noopener noreferrer" } : {})}
-                className="flex items-center gap-2.5 rounded-xl border border-accent/50 bg-accent/10 px-3 py-2 transition hover:bg-accent/15"
+                title={store ? "Tải từ Microsoft Store" : `Tải ${rel!.file_name}`}
+                className="flex items-center gap-2 rounded-xl border border-accent/40 bg-accent/10 px-2.5 py-2 transition hover:border-accent/70 hover:bg-accent/15"
               >
                 <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-accent text-accent-contrast">
                   <OsIcon p={p} />
                 </span>
-                <span className="min-w-0 flex-1">
-                  <span className="block text-sm font-bold text-text">{store ? "Tải từ Microsoft Store" : `Tải cho ${PLATFORM_LABEL[p]}`}</span>
+                <span className="min-w-0">
+                  <span className="block text-sm font-bold text-text">{PLATFORM_LABEL[p]}</span>
                   <span className="block truncate text-[11px] text-text-faint">
-                    {store ? "Tự cập nhật qua Store" : `${rel!.file_name}${rel!.size_bytes ? ` · ${size(rel!.size_bytes)}` : ""}`}
+                    {store ? (
+                      "Microsoft Store ↗"
+                    ) : (
+                      <>
+                        {/* Màn hẹp: chỉ dung lượng (nút ~130px), rộng hơn mới kèm đuôi file. */}
+                        <span className="hidden sm:inline">.{p === "windows" ? "exe" : "dmg"}{rel!.size_bytes ? " · " : ""}</span>
+                        {rel!.size_bytes ? size(rel!.size_bytes) : <span className="sm:hidden">.{p === "windows" ? "exe" : "dmg"}</span>}
+                      </>
+                    )}
                   </span>
                 </span>
-                <span className="shrink-0 text-accent" aria-hidden>
-                  {store ? "↗" : "↓"}
-                </span>
               </a>
-              {store && rel && (
-                <a href={`/dl/${slug}/windows`} className="mt-1 block text-center text-[11px] text-text-faint hover:text-text">
-                  Không dùng được Store? Tải .exe{rel.size_bytes ? ` · ${size(rel.size_bytes)}` : ""}
-                </a>
-              )}
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
+        {sw?.ms_store_url && releases.windows && (
+          <a href={`/dl/${slug}/windows`} className="mt-1.5 block text-center text-[11px] text-text-faint hover:text-text">
+            Không dùng được Store? Tải .exe{releases.windows.size_bytes ? ` · ${size(releases.windows.size_bytes)}` : ""}
+          </a>
+        )}
         <p className="mt-3 border-t border-border pt-2.5 text-[11px] text-text-faint">
           Cài app → mục <b className="font-semibold text-text-muted">Bản quyền</b> → dán key{key ? " (ở Thư viện)" : " sau khi mua"} → Kích hoạt
         </p>
