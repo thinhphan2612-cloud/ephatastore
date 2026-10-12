@@ -19,6 +19,8 @@ File thô: `https://raw.githubusercontent.com/thinhphan2612-cloud/ephatastore/de
 Sau đó đọc `tools/app-kit/README.md` và làm đúng mục "Hướng dẫn cho AI": phỏng vấn ý tưởng của tôi, chọn 1 trong 5 loại
 sản phẩm, xác nhận với tôi, rồi làm theo hướng dẫn của loại đó.
 Không commit / push / tạo tag khi chưa hỏi tôi.
+Kit có số phiên bản ở đầu `README.md` ("Kit vN"). Mỗi phiên làm việc mới và trước khi xuất bộ bàn giao, kiểm bản trên
+GitHub (mục "Bước 0" trong README); có bản mới thì tải lại toàn bộ kit và báo tôi những gì đã đổi.
 
 Ý tưởng sơ bộ của tôi: <mô tả vài câu — hoặc để trống, AI sẽ hỏi>
 

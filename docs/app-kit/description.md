@@ -85,7 +85,7 @@ Mẫu thật đã qua bộ lọc: [`examples/mo-ta-ai-la-trieu-phu.html`](exampl
 ## Kiểm trước khi lưu
 1. Bấm tab **Xem trước** trong form — đó là đúng HTML sau khi lọc. Thứ gì không thấy ở đây là đã bị loại.
 2. Lưu → mở trang sản phẩm, thu hẹp cửa sổ (hoặc mở trên điện thoại): không có thanh cuộn ngang ở cả trang,
-   ảnh/video không tràn, chữ đọc được ở cả giao diện sáng và tối (nút ☀ trên thanh đầu trang).
+   ảnh/video không tràn, chữ đọc được ở cả giao diện sáng và tối (nút giao diện ◐ / ☀ / ☾ trên thanh đầu trang → chọn **Sáng**, rồi **Tối**).
 3. Ảnh/video đều tải được (không ô trống, không lỗi trong DevTools).
 
 Ảnh trong mô tả phải là URL `https` công khai — Ephata **chưa có** ô tải ảnh riêng cho mô tả (ảnh bìa là ô khác).
