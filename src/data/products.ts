@@ -1,6 +1,7 @@
 import { cache } from "react";
 import type { Product } from "@/lib/types";
 import { createStoreClient } from "@/lib/supabase/store";
+import { parseGallery } from "@/lib/gallery";
 
 /**
  * Tầng dữ liệu sản phẩm — đọc từ Supabase store.
@@ -19,7 +20,8 @@ interface ProductRow {
   price_vnd: number;
   original_price_vnd: number | null;
   cover_url: string | null;
-  gallery: string[] | null;
+  gallery: unknown;
+  logo_url: string | null;
   tags: string[] | null;
   min_plan: "free" | "pro" | null;
   tier: "free" | "pro";
@@ -50,7 +52,7 @@ interface ProductRow {
 }
 
 const SELECT =
-  "id,slug,title,tagline,description,description_html,type,price_vnd,original_price_vnd,cover_url,gallery,tags,min_plan,tier,price_month,trial,trial_days,active,giaoly_pro_free,uses_wallet,icon,app_url,game_url,giaoly_feature_key,rating,rating_count,released_at,featured,is_new,is_popular,publisher:publishers(id,slug,name,avatar_url,verified),categories:product_categories(category:categories(slug))";
+  "id,slug,title,tagline,description,description_html,type,price_vnd,original_price_vnd,cover_url,gallery,logo_url,tags,min_plan,tier,price_month,trial,trial_days,active,giaoly_pro_free,uses_wallet,icon,app_url,game_url,giaoly_feature_key,rating,rating_count,released_at,featured,is_new,is_popular,publisher:publishers(id,slug,name,avatar_url,verified),categories:product_categories(category:categories(slug))";
 
 function mapRow(r: ProductRow): Product {
   const categorySlugs = (r.categories ?? [])
@@ -76,7 +78,8 @@ function mapRow(r: ProductRow): Product {
     price: r.price_vnd,
     originalPrice: r.original_price_vnd ?? undefined,
     coverUrl: r.cover_url ?? "",
-    gallery: r.gallery ?? [],
+    gallery: parseGallery(r.gallery),
+    logoUrl: r.logo_url ?? undefined,
     tags: r.tags ?? [],
     minPlan: r.min_plan,
     tier: r.tier ?? (r.min_plan === "pro" ? "pro" : "free"),

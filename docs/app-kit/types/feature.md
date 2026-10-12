@@ -42,6 +42,7 @@ Loại này **code trong repo Giáo Lý Số** (repo và database riêng, không
   dùng ở `useFeature(...)` bên Giáo Lý Số. **Đã có giáo xứ mua thì không đổi được key** (admin khóa ô) — chọn kỹ từ đầu.
 - Mô tả: tính năng làm gì trong Giáo Lý Số, ai dùng (quản trị giáo xứ / giáo lý viên). Nói rõ "áp dụng cho cả giáo xứ".
 - Ảnh bìa 16:9 (nên là ảnh chụp màn hình tính năng trong Giáo Lý Số).
+- **Logo vuông** + tối đa **4 ảnh / video minh họa** (ảnh ≤ 10MB, MP4/WebM ≤ 50MB hoặc link YouTube) — xem README, mục "Quy ước chung". Nên có ảnh chụp tính năng ngay trong app Giáo Lý Số.
 
 ## Giá & quyền
 - Khung **Bán**: Miễn phí, hoặc **Thuê bao** (giá/tháng: gói năm = ×12, mua lẻ N ngày, dùng thử N ngày — dùng thử 1 lần / giáo xứ).

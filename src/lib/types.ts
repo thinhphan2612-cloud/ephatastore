@@ -1,3 +1,4 @@
+import type { GalleryItem } from "@/lib/gallery";
 /**
  * Mô hình dữ liệu miền của Ephata Store.
  * Đây là hợp đồng dùng chung cho UI; tầng dữ liệu (mock -> Supabase) sẽ trả về đúng shape này.
@@ -53,8 +54,10 @@ export interface Product {
   originalPrice?: number;
 
   coverUrl: string;
-  /** ảnh gallery cho trang chi tiết */
-  gallery: string[];
+  /** ảnh / video minh họa cho trang chi tiết (tối đa 4, lib/gallery) */
+  gallery: GalleryItem[];
+  /** logo ứng dụng (ảnh vuông); không có = dùng icon */
+  logoUrl?: string;
   tags: string[];
 
   /** gói tối thiểu; null = ai cũng mua/dùng được */

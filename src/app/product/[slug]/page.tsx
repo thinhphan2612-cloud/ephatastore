@@ -20,6 +20,7 @@ import { AddToGiaolyButton } from "@/components/add-to-giaoly-button";
 import { ProductRow } from "@/components/product-row";
 import { getMyLicenseKey, getSoftwareProduct, latestReleases } from "@/data/software";
 import { PLATFORMS, PLATFORM_LABEL, type Platform } from "@/lib/software/version";
+import { MediaGallery } from "@/components/media-gallery";
 
 export async function generateMetadata({
   params,
@@ -119,21 +120,32 @@ export default async function ProductPage({
       {/* Hàng trên: ảnh bìa | card thông tin nằm ngang nhau. Giới thiệu ở dưới, rộng hết trang. */}
       <div className="grid items-start gap-8 lg:grid-cols-[1.4fr_1fr]">
         <div className="min-w-0">
-          <div className="relative flex aspect-video items-center justify-center overflow-hidden rounded-3xl border border-border">
-            <div
-              className="media-placeholder absolute inset-0"
-              style={product.coverUrl ? { background: `center/cover url(${product.coverUrl})` } : undefined}
-            />
-            <div className="absolute inset-0 bg-gradient-to-b from-black/20 to-black/70" />
-            <span className="relative z-10 text-[64px]">{product.icon ?? "✦"}</span>
-          </div>
+          {/* Ảnh bìa + tối đa 4 ảnh / video minh họa (khung lớn + thumbnail). Không có ảnh nào → logo / icon trên nền mặc định. */}
+          <MediaGallery
+            title={product.title}
+            coverUrl={product.coverUrl || undefined}
+            items={product.gallery}
+            fallback={
+              product.logoUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={product.logoUrl} alt="" className="h-24 w-24 rounded-3xl object-cover shadow-lg" />
+              ) : (
+                <span className="text-[64px]">{product.icon ?? "✦"}</span>
+              )
+            }
+          />
         </div>
 
         <aside className="min-w-0 space-y-4">
           <div className="rounded-3xl border border-border bg-surface p-6">
             <div className="mb-4 flex items-start justify-between gap-4">
-              <div className="grid h-14 w-14 place-items-center rounded-2xl border border-accent/30 bg-accent/10 text-[25px] text-accent">
-                {product.icon ?? "✦"}
+              <div className="grid h-14 w-14 place-items-center overflow-hidden rounded-2xl border border-accent/30 bg-accent/10 text-[25px] text-accent">
+                {product.logoUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={product.logoUrl} alt={`Logo ${product.title}`} className="h-full w-full object-cover" />
+                ) : (
+                  (product.icon ?? "✦")
+                )}
               </div>
               <span
                 className={`rounded-full border px-2.5 py-1.5 text-[9px] font-black tracking-[0.14em] ${
@@ -459,83 +471,131 @@ async function SoftwarePanel({
     headers().then((h) => h.get("user-agent") ?? ""),
   ]);
   const points = vndToPoints(priceVnd);
-  const os = guessPlatform(ua);
-  const btn = (p: Platform) =>
-    `block w-full rounded-xl px-4 py-3 text-center text-sm font-bold ${
-      os === p
-        ? "bg-accent text-accent-contrast hover:bg-accent-hover"
-        : "border border-border-strong bg-white/5 text-text hover:border-accent/50"
-    }`;
-  const soon =
-    "block w-full cursor-not-allowed rounded-xl border border-border px-4 py-3 text-center text-sm font-bold text-text-faint opacity-60";
+  // Nút chính theo hệ điều hành của khách; nền tảng còn lại là một hàng gọn bên dưới.
+  const os: Platform = guessPlatform(ua) ?? "windows";
+  const order: Platform[] = [os, ...PLATFORMS.filter((p) => p !== os)];
+  const newest = Object.values(releases).sort((a, b) => b!.created_at.localeCompare(a!.created_at))[0];
+  const size = (b: number | null) => (b ? `${(b / 1048576).toLocaleString("vi-VN", { maximumFractionDigits: 1 })} MB` : "");
+  const deviceLimit = sw?.license_device_limit ?? 2;
 
   return (
     <>
-      <div className="mt-5 grid grid-cols-2 gap-3 rounded-2xl border border-border bg-white/[0.03] p-4">
-        <div>
-          <span className="mb-1.5 block text-[11px] text-text-faint">Key vĩnh viễn</span>
-          <b className="text-[27px]">
-            {points.toLocaleString("vi-VN")}
-            <small className="ml-1 text-xs font-semibold text-text-muted">point</small>
-          </b>
+      {/* Giá key + hành động chính */}
+      <div className="mt-5 rounded-2xl border border-border bg-white/[0.03] p-4">
+        <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-2">
+          <div>
+            <div className="whitespace-nowrap text-[11px] font-semibold uppercase tracking-[0.12em] text-text-faint">Key bản quyền vĩnh viễn</div>
+            <div className="mt-1 flex items-baseline gap-1.5">
+              <b className="text-[28px] leading-none tabular-nums">{points.toLocaleString("vi-VN")}</b>
+              <span className="text-xs font-semibold text-text-muted">point</span>
+            </div>
+          </div>
+          <div className="text-xs leading-5 text-text-muted sm:text-right">
+            <span className="block whitespace-nowrap">≈ {formatPrice(priceVnd)} · mua 1 lần</span>
+            <span className="block whitespace-nowrap">Dùng trên {deviceLimit} thiết bị</span>
+          </div>
         </div>
-        <div className="border-l border-border pl-4 text-xs leading-5 text-text-muted">
-          ≈ {formatPrice(priceVnd)} · mua 1 lần
-          <br />
-          Dùng trên {sw?.license_device_limit ?? 2} thiết bị
+        <div className="mt-4">
+          {key ? (
+            <Link
+              href="/library"
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-accent px-4 py-3 font-extrabold text-accent-contrast hover:bg-accent-hover"
+            >
+              <span aria-hidden>✓</span> Đã sở hữu — xem key
+            </Link>
+          ) : (
+            <Link
+              href={`/buy/${productId}?kind=software`}
+              className="block w-full rounded-xl bg-accent px-4 py-3 text-center font-extrabold text-accent-contrast hover:bg-accent-hover"
+            >
+              Mua key · {points.toLocaleString("vi-VN")} point
+            </Link>
+          )}
         </div>
       </div>
 
-      <div className="mt-5 space-y-2">
-        <div className="text-[11px] uppercase tracking-[0.13em] text-text-faint">Tải về miễn phí</div>
-        {PLATFORMS.map((p) => {
-          const rel = releases[p];
-          if (p === "windows" && sw?.ms_store_url) {
+      {/* Tải về miễn phí */}
+      <div className="mt-4 rounded-2xl border border-border p-4">
+        <div className="flex items-baseline justify-between gap-2">
+          <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-text-faint">Tải về miễn phí</span>
+          {newest && (
+            <span className="text-[11px] tabular-nums text-text-faint">
+              v{newest.version} · {formatDate(newest.created_at)}
+            </span>
+          )}
+        </div>
+        <div className="mt-3 space-y-2">
+          {order.map((p, idx) => {
+            const rel = releases[p];
+            const primary = idx === 0;
+            const store = p === "windows" && sw?.ms_store_url;
+            if (!rel && !store) {
+              return (
+                <div key={p} className="flex items-center gap-3 rounded-xl border border-dashed border-border px-3 py-2.5 text-sm text-text-faint">
+                  <OsIcon p={p} />
+                  {PLATFORM_LABEL[p]} · sắp có
+                </div>
+              );
+            }
+            const href = store ? sw!.ms_store_url! : `/dl/${slug}/${p}`;
             return (
               <div key={p}>
-                <a href={sw.ms_store_url} target="_blank" rel="noopener noreferrer" className={btn(p)}>
-                  {PLATFORM_LABEL[p]} · Microsoft Store ↗
+                <a
+                  href={href}
+                  {...(store ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+                  className={`flex items-center gap-3 rounded-xl px-3.5 transition ${
+                    primary
+                      ? "border border-accent/50 bg-accent/10 py-3 hover:bg-accent/15"
+                      : "border border-border py-2.5 hover:border-accent/40"
+                  }`}
+                >
+                  <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-lg ${primary ? "bg-accent text-accent-contrast" : "bg-white/5 text-text-muted"}`}>
+                    <OsIcon p={p} />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className={`block text-sm font-bold ${primary ? "text-text" : "text-text-muted"}`}>
+                      {store ? "Tải từ Microsoft Store" : `Tải cho ${PLATFORM_LABEL[p]}`}
+                    </span>
+                    <span className="block truncate text-[11px] text-text-faint">
+                      {store ? "Tự cập nhật qua Store" : `${rel!.file_name}${rel!.size_bytes ? ` · ${size(rel!.size_bytes)}` : ""}`}
+                    </span>
+                  </span>
+                  <span className={`shrink-0 text-lg ${primary ? "text-accent" : "text-text-faint"}`} aria-hidden>
+                    {store ? "↗" : "↓"}
+                  </span>
                 </a>
-                {rel && (
-                  <a href={`/dl/${slug}/windows`} className="mt-1 block text-center text-xs text-text-faint hover:text-text">
-                    Không dùng được Store? Tải .exe (v{rel.version})
+                {store && rel && (
+                  <a href={`/dl/${slug}/windows`} className="mt-1 block text-center text-[11px] text-text-faint hover:text-text">
+                    Không dùng được Store? Tải .exe (v{rel.version}{rel.size_bytes ? ` · ${size(rel.size_bytes)}` : ""})
                   </a>
                 )}
               </div>
             );
-          }
-          return rel ? (
-            <a key={p} href={`/dl/${slug}/${p}`} className={btn(p)}>
-              {PLATFORM_LABEL[p]} · Tải {p === "windows" ? ".exe" : ".dmg"} (v{rel.version})
-            </a>
-          ) : (
-            <span key={p} className={soon}>
-              {PLATFORM_LABEL[p]} · Sắp có
-            </span>
-          );
-        })}
-      </div>
-
-      <div className="mt-5 space-y-2 border-t border-border pt-5">
-        {key ? (
-          <Link
-            href="/library"
-            className="block w-full rounded-xl bg-accent px-4 py-3 text-center font-extrabold text-accent-contrast hover:bg-accent-hover"
-          >
-            Xem key →
-          </Link>
-        ) : (
-          <Link
-            href={`/buy/${productId}?kind=software`}
-            className="block w-full rounded-xl bg-accent px-4 py-3 text-center font-extrabold text-accent-contrast hover:bg-accent-hover"
-          >
-            Mua key — {points.toLocaleString("vi-VN")} point →
-          </Link>
-        )}
-        <p className="text-center text-xs text-text-faint">
-          Cài app, mở mục Bản quyền và nhập key để kích hoạt.
-        </p>
+          })}
+        </div>
+        <ol className="mt-4 grid gap-1.5 border-t border-border pt-3 text-xs text-text-muted">
+          {["Tải và cài app", "Mở mục Bản quyền trong app", key ? "Dán key (ở Thư viện) → Kích hoạt" : "Mua key → dán key → Kích hoạt"].map((t, n) => (
+            <li key={t} className="flex items-center gap-2">
+              <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full border border-border text-[10px] font-bold text-text-faint">
+                {n + 1}
+              </span>
+              {t}
+            </li>
+          ))}
+        </ol>
       </div>
     </>
+  );
+}
+
+function OsIcon({ p }: { p: Platform }) {
+  return p === "windows" ? (
+    <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden fill="currentColor">
+      <path d="M0 2.3 6.5 1.4v6.2H0V2.3Zm7.3-1L16 0v7.6H7.3V1.3ZM0 8.4h6.5v6.2L0 13.7V8.4Zm7.3 0H16V16l-8.7-1.2V8.4Z" />
+    </svg>
+  ) : (
+    <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden fill="currentColor">
+      <path d="M11.2 8.5c0-1.7 1.4-2.5 1.5-2.6-.8-1.2-2-1.3-2.5-1.3-1-.1-2 .6-2.6.6-.5 0-1.3-.6-2.2-.6C4.3 4.6 3.2 5.3 2.6 6.4c-1.2 2.1-.3 5.2.9 6.9.6.8 1.2 1.7 2.1 1.7.8 0 1.2-.5 2.2-.5s1.3.5 2.2.5c.9 0 1.5-.8 2-1.7.7-1 .9-1.9.9-2-.1 0-1.7-.7-1.7-2.8ZM9.6 3.5c.4-.5.8-1.3.7-2-.7 0-1.5.5-1.9 1-.4.5-.8 1.2-.7 1.9.7.1 1.5-.4 1.9-.9Z" />
+    </svg>
   );
 }

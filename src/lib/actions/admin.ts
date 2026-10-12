@@ -10,6 +10,7 @@ import { htmlToText, sanitizeDescription } from "@/lib/rich-text";
 import { removeStorageFolder } from "@/lib/storage-folder";
 import { retryProvisionJob, syncParishFeature } from "@/lib/giaoly-provision";
 import { attempt, type ActionResult } from "@/lib/action-result";
+import { IMAGE_EXT, VIDEO_EXT, MAX_GALLERY, youtubeId, type GalleryItem } from "@/lib/gallery";
 
 const assertAdmin = requireAdmin;
 
@@ -27,18 +28,24 @@ export interface SaveState {
  * cover → bucket public product-covers (ảnh bìa, ≤5MB) · download → bucket private product-files (≤50MB).
  */
 export async function createProductUpload(input: {
-  purpose: "cover" | "download";
+  purpose: "cover" | "download" | "logo" | "media";
   fileName: string;
 }): Promise<ActionResult<{ bucket: string; path: string; token: string }>> {
   return attempt(async () => {
     await assertAdmin();
     const supabase = createStoreAdminClient();
-    const bucket = input.purpose === "cover" ? COVER_BUCKET : FILES_BUCKET;
     const ext = (input.fileName.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "") || "jpg";
+    // Logo: ảnh (bucket ảnh bìa). Media: ảnh / video minh họa (bucket product-media, 0026).
+    if (input.purpose === "logo" && !["png", "jpg", "jpeg", "webp"].includes(ext))
+      throw new Error("Logo phải là ảnh PNG / JPG / WebP.");
+    if (input.purpose === "media" && ![...IMAGE_EXT, ...VIDEO_EXT].includes(ext))
+      throw new Error("Ảnh minh họa: PNG / JPG / WebP / GIF; video: MP4 / WebM.");
+    const bucket =
+      input.purpose === "download" ? FILES_BUCKET : input.purpose === "media" ? MEDIA_BUCKET : COVER_BUCKET;
     const path =
-      input.purpose === "cover"
-        ? `${crypto.randomUUID()}.${ext}`
-        : `${crypto.randomUUID()}/${input.fileName.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
+      input.purpose === "download"
+        ? `${crypto.randomUUID()}/${input.fileName.replace(/[^a-zA-Z0-9._-]/g, "_")}`
+        : `${crypto.randomUUID()}.${ext}`;
     const { data, error } = await supabase.storage.from(bucket).createSignedUploadUrl(path);
     if (error || !data) throw new Error(`Lỗi tạo link upload: ${error?.message}`);
     return { bucket, path, token: data.token };
@@ -48,6 +55,33 @@ export async function createProductUpload(input: {
 const UUID = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
 const COVER_PATH_RE = new RegExp(`^${UUID}\\.[a-z0-9]{1,5}$`);
 const DOWNLOAD_PATH_RE = new RegExp(`^${UUID}/[A-Za-z0-9._-]+$`);
+const MEDIA_BUCKET = "product-media";
+
+/**
+ * Ảnh / video minh họa gửi từ form (gallery_json): tối đa 4 mục; file phải nằm trong bucket product-media của store,
+ * YouTube phải là mã hợp lệ. Trả danh sách đã chuẩn hóa hoặc lỗi.
+ */
+function parseGalleryInput(raw: string, mediaBase: string): GalleryItem[] | { error: string } {
+  let arr: unknown;
+  try {
+    arr = JSON.parse(raw || "[]");
+  } catch {
+    return { error: "Dữ liệu ảnh minh họa không hợp lệ." };
+  }
+  if (!Array.isArray(arr)) return { error: "Dữ liệu ảnh minh họa không hợp lệ." };
+  if (arr.length > MAX_GALLERY) return { error: `Tối đa ${MAX_GALLERY} ảnh / video minh họa.` };
+  const out: GalleryItem[] = [];
+  for (const it of arr as Record<string, unknown>[]) {
+    if (it?.type === "youtube") {
+      const id = typeof it.id === "string" ? youtubeId(it.id) : null;
+      if (!id) return { error: "Link YouTube không hợp lệ." };
+      out.push({ type: "youtube", id });
+    } else if ((it?.type === "image" || it?.type === "video") && typeof it.url === "string" && it.url.startsWith(mediaBase)) {
+      out.push({ type: it.type, url: it.url });
+    } else return { error: "Ảnh / video minh họa phải tải lên qua form (không dán link ngoài)." };
+  }
+  return out;
+}
 
 /** Đường dẫn trong bucket product-covers từ public URL (null nếu ảnh không nằm ở bucket này). */
 function coverPathFromUrl(url: string | null | undefined): string | null {
@@ -229,6 +263,19 @@ async function persistProduct(formData: FormData): Promise<SaveState & { id?: st
   if (coverPath) {
     if (!COVER_PATH_RE.test(coverPath)) return { error: "Đường dẫn ảnh bìa không hợp lệ." };
     payload.cover_url = supabase.storage.from(COVER_BUCKET).getPublicUrl(coverPath).data.publicUrl;
+  }
+  // Logo ứng dụng (bucket ảnh bìa) — logo_remove = bỏ logo, về icon mặc định.
+  const logoPath = String(formData.get("logo_path") ?? "").trim();
+  if (logoPath) {
+    if (!COVER_PATH_RE.test(logoPath)) return { error: "Đường dẫn logo không hợp lệ." };
+    payload.logo_url = supabase.storage.from(COVER_BUCKET).getPublicUrl(logoPath).data.publicUrl;
+  } else if (formData.get("logo_remove") === "1") payload.logo_url = null;
+  // Ảnh / video minh họa (tối đa 4).
+  if (formData.has("gallery_json")) {
+    const mediaBase = supabase.storage.from(MEDIA_BUCKET).getPublicUrl("x").data.publicUrl.replace(/x$/, "");
+    const g = parseGalleryInput(String(formData.get("gallery_json") ?? ""), mediaBase);
+    if (!Array.isArray(g)) return { error: g.error };
+    payload.gallery = g;
   }
   const downloadPath = String(formData.get("download_path") ?? "").trim();
   if (downloadPath) {

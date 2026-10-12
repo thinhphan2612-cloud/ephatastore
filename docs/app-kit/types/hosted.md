@@ -15,6 +15,7 @@ cần cài đặt/truy cập máy tính (→ Phần mềm bán key).
 - **1 file `.zip`** chứa bản build: `index.html` (**đúng chữ thường**) ở gốc (hoặc trong 1 thư mục con — Ephata tự bóc lớp thư mục
   ngoài cùng). Tên file / thư mục **không dấu**: a–z, 0–9, `. _ -` (Ephata từ chối tên có dấu / ký tự đặc biệt trước khi tải lên).
 - **Ảnh bìa** 16:9 (vd 1600×900), tối đa 5MB.
+- **Logo vuông** + tối đa **4 ảnh / video minh họa** (ảnh ≤ 10MB, MP4/WebM ≤ 50MB hoặc link YouTube) — xem README, mục "Quy ước chung". Game / công cụ: 1 video gameplay ngắn + 2–3 ảnh màn hình. Form tải lên chỉ có ảnh bìa → thêm logo / minh họa ở trang **Sửa**.
 - Tên, mô tả ngắn, danh mục; game có phí: giá mua vĩnh viễn.
 
 ## Yêu cầu kỹ thuật (bắt buộc)
