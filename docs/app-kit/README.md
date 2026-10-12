@@ -1,6 +1,6 @@
 # Ephata App Kit — tạo sản phẩm cho Ephata Store
 
-**Kit v13 · cập nhật 12/10/2026** — số phiên bản ở dòng này; thay đổi từng bản xem mục "Phiên bản kit" cuối file.
+**Kit v14 · cập nhật 12/10/2026** — số phiên bản ở dòng này; thay đổi từng bản xem mục "Phiên bản kit" cuối file.
 
 Bộ chuẩn để làm **bất kỳ sản phẩm nào** bán trên Ephata Store (chợ sản phẩm số Công giáo, ephatastore.com).
 Mở một phiên code mới với AI → đưa kit này vào → AI hỏi ý tưởng, xác định sản phẩm thuộc loại nào trong 5 loại,
@@ -13,6 +13,7 @@ app-kit/
 ├── description.md       ← mô tả chi tiết sản phẩm bằng HTML (mọi loại)
 ├── export.md            ← xuất bộ bàn giao khi chốt: ảnh đúng kích thước + file / bộ cài (mọi loại)
 ├── export/make-images.mjs ← script sinh bộ ảnh chuẩn + kiểm thư mục bàn giao
+├── examples/            ← mẫu thật: mô tả HTML (Ai là triệu phú), store-listing Microsoft Store (EPHATA ebooks)
 ├── types/
 │   ├── download.md      ← Loại 1: Tải về
 │   ├── hosted.md        ← Loại 2: Chạy trên store (game / công cụ web)
@@ -130,6 +131,11 @@ soạn theo `description.md` (đã tự kiểm theo mục "Được dùng" / "Gi
 
 ## Phiên bản kit
 
+- **v14 (12/10/2026)** — mẫu **`msstore/store-listing.md`** (mọi ô Partner Center theo từng ngôn ngữ, ô dùng chung, runFullTrust,
+  ghi chú cho người duyệt + key thử) + ví dụ thật `examples/store-listing-ephata-ebooks.md`; **`privacy-policy.md`** đăng tại
+  `/quyen-rieng-tu/<slug>` trước khi nộp; thứ tự nộp Store (lên Ephata trước). **Không ghi số thiết bị / số ngày offline** vào mô tả
+  hay listing (trang tự hiện theo cấu hình admin). `check` kiểm giới hạn ký tự của `store-listing.md`. Dự án loại 5 đang làm: soạn
+  `store-listing.md` + `privacy-policy.md`, bỏ số thiết bị / ngày khỏi `description.html`, chạy lại `check`.
 - **v13 (12/10/2026)** — ảnh Microsoft Store theo đúng màn hình Partner Center: thêm **Poster art 720×1080** + **Box art 1080×1080**
   (Store logos) và **150×150 / 71×71** (Store display images, cùng 300×300); tất cả là PNG. `make-images.mjs` sinh + kiểm các ảnh này
   (`--poster` / `--box` cho ảnh thiết kế riêng). Dự án loại 5 đã xuất bộ bàn giao: chạy lại `build --msstore` rồi `check`.

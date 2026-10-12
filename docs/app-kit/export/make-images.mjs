@@ -180,6 +180,83 @@ function expectUpload(dir, label) {
   return files.length;
 }
 
+// Số thiết bị / số ngày offline viết cứng — trang sản phẩm tự hiện theo cấu hình admin nên không được ghi vào mô tả / listing.
+const HARDCODED = [
+  /\b\d+\s*(máy|thiết bị)/giu, // không đặt \b sau "bị": \b chỉ hiểu chữ ASCII
+  /\b\d+\s*(PCs?|devices?)\b/gi,
+  /tối đa\s*\d+\s*ngày/giu,
+  /offline[^.\n]{0,40}\d+\s*(ngày|days)/giu,
+  /\d+\s*(ngày|days)[^.\n]{0,40}(offline|xác minh|verify)/giu,
+];
+function warnHardcoded(text, where) {
+  const found = new Set();
+  for (const re of HARDCODED) for (const m of text.matchAll(re)) found.add(m[0].trim());
+  if (found.size)
+    warn(`${where}: thấy "${[...found].join('", "')}" — số thiết bị / ngày offline tùy cấu hình admin, trang sản phẩm tự hiện → bỏ khỏi bài viết.`);
+}
+
+// store-listing.md: mỗi mục "## … (xx-XX)" là 1 ngôn ngữ; ô = nhãn **…** + khối ``` ngay sau.
+function checkStoreListing(file, shotCount) {
+  const text = fs.readFileSync(file, "utf8").replace(/\r\n/g, "\n");
+  const where = rel(file);
+  const sections = text.split(/\n(?=## )/);
+  const blocks = (sec) =>
+    [...sec.matchAll(/\*\*([^*\n]+)\*\*[^\n]*\n+```[^\n]*\n([\s\S]*?)\n```/g)].map((m) => ({ label: m[1].trim(), body: m[2] }));
+  const len = (t) => [...t].length; // đếm theo ký tự (tiếng Việt có dấu tính 1)
+  const lines = (t) => t.split("\n").map((l) => l.trim()).filter(Boolean);
+  const langs = sections.filter((sec) => /^## [^\n]*\([a-z]{2}-[A-Z]{2}\)/.test(sec));
+  if (!langs.length) err(`${where}: không thấy mục ngôn ngữ nào ("## Tiếng Việt (vi-VN)") — làm theo mẫu export.md mục 5.`);
+  for (const sec of langs) {
+    const lang = sec.match(/\(([a-z]{2}-[A-Z]{2})\)/)[1];
+    const b = blocks(sec);
+    const get = (re) => b.find((x) => re.test(x.label));
+    const desc = get(/^Description/i);
+    if (!desc || !desc.body.trim()) err(`${where} [${lang}]: thiếu Description (bắt buộc).`);
+    else if (len(desc.body) > 10000) err(`${where} [${lang}]: Description ${len(desc.body)} ký tự, tối đa 10.000.`);
+    const news = get(/^What's new/i);
+    if (news && len(news.body) > 1500) err(`${where} [${lang}]: What's new ${len(news.body)} ký tự, tối đa 1.500.`);
+    const feats = get(/^Product features/i);
+    if (feats) {
+      const fl = lines(feats.body);
+      if (fl.length > 20) err(`${where} [${lang}]: Product features ${fl.length} dòng, tối đa 20.`);
+      fl.filter((l) => len(l) > 200).forEach((l) => err(`${where} [${lang}]: Product feature quá 200 ký tự: "${l.slice(0, 40)}…".`));
+    }
+    const short = get(/^Short description/i);
+    if (short) {
+      if (len(short.body) > 1000) err(`${where} [${lang}]: Short description ${len(short.body)} ký tự, tối đa 1.000.`);
+      else if (len(short.body) > 270) warn(`${where} [${lang}]: Short description ${len(short.body)} ký tự — một số nơi chỉ hiện 270 ký tự đầu.`);
+    }
+    const terms = get(/^Search terms/i);
+    if (terms) {
+      const tl = lines(terms.body);
+      if (tl.length > 7) err(`${where} [${lang}]: Search terms ${tl.length} cụm, tối đa 7.`);
+      tl.filter((l) => len(l) > 30).forEach((l) => err(`${where} [${lang}]: Search term quá 30 ký tự: "${l}".`));
+    }
+    const caps = get(/^Screenshot captions/i);
+    if (caps) {
+      const cl = lines(caps.body);
+      cl.filter((l) => len(l.replace(/^\d+\s+/, "")) > 200).forEach((l) => err(`${where} [${lang}]: chú thích ảnh quá 200 ký tự: "${l.slice(0, 40)}…".`));
+      if (shotCount && cl.length > shotCount) err(`${where} [${lang}]: ${cl.length} chú thích nhưng chỉ có ${shotCount} ảnh chụp.`);
+      else if (shotCount && cl.length < shotCount) warn(`${where} [${lang}]: ${cl.length} chú thích cho ${shotCount} ảnh chụp — thiếu chú thích.`);
+    } else if (shotCount) warn(`${where} [${lang}]: chưa có Screenshot captions.`);
+    const sys = get(/^Additional system requirements/i);
+    if (sys) {
+      const sl = lines(sys.body);
+      if (sl.length > 11) err(`${where} [${lang}]: Additional system requirements ${sl.length} dòng, tối đa 11.`);
+      sl.filter((l) => len(l) > 200).forEach((l) => err(`${where} [${lang}]: yêu cầu hệ thống quá 200 ký tự: "${l.slice(0, 40)}…".`));
+    }
+  }
+  const full = blocks(text).find((x) => /runFullTrust/i.test(x.label));
+  if (!full) warn(`${where}: chưa có lời giải trình runFullTrust (bắt buộc với app Win32 / Tauri / Electron đóng MSIX).`);
+  else if (len(full.body.replace(/\s*\n\s*/g, " ")) > 500)
+    err(`${where}: lời giải trình runFullTrust ${len(full.body.replace(/\s*\n\s*/g, " "))} ký tự, tối đa ~500.`);
+  // Chỉ quét từ mục đầu tiên ("## …") — phần hướng dẫn đầu file có "<ngôn ngữ>" là chữ mẫu, không phải ô cần điền.
+  const body = text.slice(Math.max(0, text.indexOf("\n## ")));
+  const holes = [...new Set([...body.matchAll(/<[^<>\n]{2,80}>/g)].map((m) => m[0]))].filter((h) => !/^<\/?[a-z]+>$/i.test(h));
+  if (holes.length) warn(`${where}: còn chỗ chưa điền ${holes.slice(0, 5).join(", ")}${holes.length > 5 ? "…" : ""}.`);
+  warnHardcoded(text, where);
+}
+
 async function check(dirArg) {
   const out = path.resolve(dirArg);
   if (!fs.existsSync(out)) throw new Error(`Không có thư mục ${dirArg}`);
@@ -205,7 +282,11 @@ async function check(dirArg) {
   if (!fs.existsSync(path.join(eph, "listing.md"))) err("Thiếu ephata/listing.md (thông tin điền form admin — mẫu trong export.md).");
   const desc = path.join(eph, "description.html");
   if (!fs.existsSync(desc)) err("Thiếu ephata/description.html (mô tả chi tiết theo description.md).");
-  else if (fs.readFileSync(desc, "utf8").length > 100_000) err("description.html dài quá 100.000 ký tự.");
+  else {
+    const html = fs.readFileSync(desc, "utf8");
+    if (html.length > 100_000) err("description.html dài quá 100.000 ký tự.");
+    warnHardcoded(html.replace(/<[^>]+>/g, " "), "ephata/description.html");
+  }
 
   // Microsoft Store (loại 5, nếu có)
   const ms = path.join(out, "msstore");
@@ -239,6 +320,11 @@ async function check(dirArg) {
     }
     await expectImage(path.join(ms, "listing", "hero-1920x1080.png"), { ...SPEC.hero, png: true, label: "Hero" });
     if (!fs.readdirSync(ms).some((f) => /\.msix(bundle)?$/i.test(f))) warn("Chưa có file .msix trong msstore/ (đóng gói bằng msstore/pack.ps1).");
+    const listingMd = path.join(ms, "store-listing.md");
+    if (!fs.existsSync(listingMd)) err("Thiếu msstore/store-listing.md — mọi ô điền Partner Center (mẫu export.md mục 5).");
+    else checkStoreListing(listingMd, shots.length);
+    if (!fs.existsSync(path.join(out, "privacy-policy.md")))
+      warn("Không có privacy-policy.md — Partner Center cần URL chính sách quyền riêng tư (đăng tại /quyen-rieng-tu/<slug> trước khi nộp).");
   }
 
   // File tải lên Ephata
