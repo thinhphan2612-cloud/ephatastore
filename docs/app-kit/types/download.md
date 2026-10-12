@@ -12,6 +12,7 @@ Không phải loại này nếu: cần tương tác hay tính toán (→ Chạy 
 ## Sản phẩm giao cho Ephata
 - **Đúng 1 file** cho mỗi sản phẩm. Nhiều file → nén thành 1 `.zip` (thư mục gọn gàng + file `HUONG-DAN.txt` nếu cần).
 - **Ảnh bìa** 16:9 (vd 1600×900), PNG/JPG/WebP, tối đa 5MB.
+- **Logo vuông** + tối đa **4 ảnh / video minh họa** (ảnh ≤ 10MB, MP4/WebM ≤ 50MB hoặc link YouTube) — xem README, mục "Quy ước chung". Tài liệu: ảnh chụp vài trang mẫu là minh họa tốt nhất.
 - **Mô tả**: nội dung có gì, dành cho ai, định dạng file, số trang/số mẫu, cần phần mềm gì để mở.
 
 ## Yêu cầu kỹ thuật

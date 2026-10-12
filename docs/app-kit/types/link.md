@@ -102,7 +102,8 @@ quả cũ (`duplicate:true`), không trừ 2 lần. Báo giá trước cho ngư�
 - Có thể **kết hợp**: miễn phí vào app + trừ point theo lượt dùng (bật Ví).
 
 ## Đưa lên admin
-1. **Admin → Thêm sản phẩm → Link ngoài**: tiêu đề, slug, loại Công cụ, mô tả, danh mục, nhà phát hành, ảnh bìa, khung **Bán**,
+1. **Admin → Thêm sản phẩm → Link ngoài**: tiêu đề, slug, loại Công cụ, mô tả, danh mục, nhà phát hành, ảnh bìa, logo + tối đa 4 ảnh /
+   video minh họa (README "Quy ước chung"), khung **Bán**,
    **URL app ngoài** (bắt buộc, bắt đầu bằng `https://` — trang nhận `?ephata_token=`), tick **App trừ point qua Ví Ephata** nếu có
    thu theo lượt. Tick **Đang bán** + **Hiện trên store**. Lưu → admin tự mở trang Sửa.
 2. Trang Sửa → khung **Kết nối app ngoài** → **Tạo khóa bí mật** → lưu vào biến môi trường server của app ngay (bật Ví mà chưa có

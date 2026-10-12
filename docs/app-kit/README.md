@@ -97,6 +97,12 @@ soạn theo `description.md` (đã tự kiểm theo mục "Được dùng" / "Gi
 - **Hai người cùng sửa một sản phẩm**: người lưu sau bằng form mở từ trước bị chặn ("vừa được người khác sửa") — tải lại trang rồi sửa.
 - **Slug**: chữ thường không dấu, số, gạch ngang; không trùng; **không đổi sau khi đã bán**.
 - **Ảnh bìa**: 16:9 (vd 1600×900), PNG/JPG/WebP, có tên sản phẩm dễ đọc ở cỡ nhỏ.
+- **Logo ứng dụng** (tùy chọn, nên có): ảnh **vuông** ≥ 256px, PNG/JPG/WebP, ≤ 2MB — hiện ở card thông tin trang sản phẩm; không có thì
+  dùng icon mặc định. Logo ≠ ảnh bìa (đừng dùng ảnh bìa 16:9 làm logo).
+- **Ảnh / video minh họa** (tùy chọn, tối đa **4**): hiện sau ảnh bìa ở khung lớn + hàng thumbnail trên trang sản phẩm.
+  Ảnh chụp màn hình PNG/JPG/WebP/GIF ≤ 10MB (16:9 đẹp nhất); video **MP4/WebM ≤ 50MB, nên ≤ 1 phút** (demo ngắn, không tiếng hoặc có
+  phụ đề); video dài / hướng dẫn chi tiết → **link YouTube** (dán link vào ô, Ephata chỉ nạp video khi khách bấm). Thứ tự: thứ quan
+  trọng nhất đặt đầu. Không chèn chữ quảng cáo đè lên ảnh chụp màn hình.
 - **Mô tả**: dòng tagline ngắn (≤ 140 ký tự) + mô tả chi tiết **bằng HTML** theo `description.md`: làm được gì, cho ai,
   cần gì để dùng. Chỉ dùng thẻ trong danh sách cho phép — phần khác tự bị loại; bấm **Xem trước** trên form trước khi lưu.
   Tối đa 100.000 ký tự (quá thì form báo lỗi). Trang sản phẩm chỉ hiện ~360px đầu kèm nút "Xem thêm" → đặt thông tin chính lên đầu.

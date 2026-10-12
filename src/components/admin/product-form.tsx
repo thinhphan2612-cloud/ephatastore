@@ -10,6 +10,8 @@ import type { AdminProductDetail } from "@/data/admin";
 import { TYPE_LABEL } from "@/lib/labels";
 import { SelectWithCreate } from "@/components/admin/catalog-fields";
 import { DescriptionEditor } from "@/components/admin/description-editor";
+import { MediaFields, type MediaDraft } from "@/components/admin/media-fields";
+import { parseGallery, type GalleryItem } from "@/lib/gallery";
 import { vndToPoints } from "@/lib/points";
 import type { ProductType } from "@/lib/types";
 import { PLATFORMS, PLATFORM_LABEL, SEMVER_RE, type Platform } from "@/lib/software/version";
@@ -79,6 +81,11 @@ export function ProductForm({
 
   // File chọn ở trình duyệt — không có name nên không đi qua server action; tải thẳng lên Storage khi Lưu.
   const [cover, setCover] = useState<File | null>(null);
+  // Logo + ảnh / video minh họa (tải lên khi bấm Lưu).
+  const [logo, setLogo] = useState<File | null>(null);
+  const [logoRemove, setLogoRemove] = useState(false);
+  const [currentLogo, setCurrentLogo] = useState<string | null>(p?.logo_url ?? null);
+  const [media, setMedia] = useState<MediaDraft[]>(() => parseGallery(p?.gallery).map((item) => ({ kind: "saved", item })));
   const [download, setDownload] = useState<File | null>(null);
   const [installers, setInstallers] = useState<Partial<Record<Platform, File | null>>>({});
   const [fileKeys, setFileKeys] = useState<Record<string, number>>({});
@@ -132,6 +139,27 @@ export function ProductForm({
         fd.set("download_path", t.path);
       }
 
+      // Logo + ảnh / video minh họa: tải file mới lên trước, rồi gửi danh sách cuối cùng (gallery_json).
+      if (logo) {
+        setProgress("Đang tải logo…");
+        const t = unwrap(await createProductUpload({ purpose: "logo", fileName: logo.name }));
+        await upload(t.bucket, t.path, t.token, logo);
+        fd.set("logo_path", t.path);
+      } else if (logoRemove) fd.set("logo_remove", "1");
+      const gallery: GalleryItem[] = [];
+      for (const [i, d] of media.entries()) {
+        if (d.kind === "saved") gallery.push(d.item);
+        else if (d.kind === "youtube") gallery.push({ type: "youtube", id: d.id });
+        else {
+          setProgress(`Đang tải ${d.type === "video" ? "video" : "ảnh"} minh họa ${i + 1}/${media.length} (${mb(d.file.size)}MB)…`);
+          const t = unwrap(await createProductUpload({ purpose: "media", fileName: d.file.name }));
+          await upload(t.bucket, t.path, t.token, d.file);
+          const url = createStoreAuthBrowserClient().storage.from(t.bucket).getPublicUrl(t.path).data.publicUrl;
+          gallery.push({ type: d.type, url });
+        }
+      }
+      fd.set("gallery_json", JSON.stringify(gallery));
+
       setProgress("Đang lưu thông tin…");
       fd.set("has_installer", chosen.length ? "1" : "0");
       const res = await saveProductData(fd);
@@ -139,6 +167,11 @@ export function ProductForm({
       // Lưu được rồi → bấm lại (nếu bước sau lỗi) là cập nhật, không tạo trùng, không tải lại file đã lưu.
       setSavedId(res.id);
       if (cover) { setCover(null); resetFile("cover"); }
+      // File đã tải lên → coi như đã lưu (bấm Lưu lần nữa không tải lại).
+      setMedia(gallery.map((item) => ({ kind: "saved", item })));
+      if (logo) setLogo(null);
+      if (fd.get("logo_path")) setCurrentLogo(createStoreAuthBrowserClient().storage.from("product-covers").getPublicUrl(String(fd.get("logo_path"))).data.publicUrl);
+      if (logoRemove) { setCurrentLogo(null); setLogoRemove(false); }
       if (download) { setDownload(null); resetFile("download"); }
 
       for (const pf of chosen) {
@@ -315,6 +348,17 @@ export function ProductForm({
         />
         <Hint>PNG/JPG/WebP, tối đa 5MB. Bỏ trống nếu giữ ảnh cũ / dùng gradient.</Hint>
       </div>
+
+      <MediaFields
+        currentLogo={currentLogo}
+        logo={logo}
+        setLogo={setLogo}
+        logoRemove={logoRemove}
+        setLogoRemove={setLogoRemove}
+        items={media}
+        setItems={setMedia}
+        onError={setError}
+      />
 
       {isSoftware && (
         <div className="rounded-lg border border-border bg-surface-hover/40 p-4">

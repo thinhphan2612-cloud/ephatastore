@@ -9,7 +9,7 @@ import type { Product } from "@/lib/types";
  */
 
 const PRODUCT_SELECT =
-  "id,slug,title,tagline,description,type,price_vnd,original_price_vnd,cover_url,tags,min_plan,tier,price_month,trial,trial_days,active,giaoly_pro_free,uses_wallet,icon,app_url,giaoly_feature_key,rating,rating_count,released_at,featured,is_new,is_popular,publisher:publishers(id,slug,name,avatar_url,verified)";
+  "id,slug,title,tagline,description,type,price_vnd,original_price_vnd,cover_url,tags,min_plan,tier,price_month,trial,trial_days,active,giaoly_pro_free,uses_wallet,icon,logo_url,app_url,giaoly_feature_key,rating,rating_count,released_at,featured,is_new,is_popular,publisher:publishers(id,slug,name,avatar_url,verified)";
 
 interface Row {
   id: string;
@@ -31,6 +31,7 @@ interface Row {
   giaoly_pro_free: boolean;
   uses_wallet: boolean;
   icon: string | null;
+  logo_url: string | null;
   app_url: string | null;
   giaoly_feature_key: string | null;
   rating: number | string;
@@ -79,6 +80,7 @@ function mapRow(r: Row): Product {
     giaolyProFree: r.type !== "software" && (r.giaoly_pro_free ?? false),
     usesWallet: r.uses_wallet ?? false,
     icon: r.icon ?? undefined,
+    logoUrl: r.logo_url ?? undefined,
     appUrl: r.app_url ?? undefined,
     giaolyFeatureKey: r.giaoly_feature_key ?? undefined,
     rating: Number(r.rating),

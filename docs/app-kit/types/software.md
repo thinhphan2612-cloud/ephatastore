@@ -163,7 +163,10 @@ Cài trên máy sạch (hoặc máy ảo) → mở app → màn hình Bản quy�
 
 1. Đăng nhập bằng tài khoản admin được cấp → **Admin** → **Thêm sản phẩm** → **Phần mềm cài đặt (bán key)**.
 2. Điền: tiêu đề, **slug = `PRODUCT` trong app** (gõ tay, đừng để trống cho tự tạo; sai → mọi key báo `PRODUCT_MISMATCH`), mô tả (ghi cả hướng dẫn
-   "Open Anyway / Run anyway"), danh mục, nhà phát hành, ảnh bìa, giá key, số thiết bị/key, hạn offline.
+   "Open Anyway / Run anyway"), danh mục, nhà phát hành, ảnh bìa, **logo app** (icon vuông của app) + tối đa **4 ảnh / video minh
+   họa** (ảnh chụp app, video demo ngắn hoặc link YouTube — README "Quy ước chung"), giá key, số thiết bị/key, hạn offline.
+   Trang sản phẩm tự hiện nút tải theo hệ điều hành của khách kèm tên file + dung lượng, nên đặt tên file bộ cài rõ ràng
+   (vd `Gelo_1.2.8_x64-setup.exe`).
 3. Khung **Bộ cài & phân phối**: phiên bản `X.Y.Z`, ghi chú phát hành, file `.exe` (cột Windows), file `.dmg` (cột macOS),
    link Microsoft Store (để trống nếu chưa lên Store). Bấm **Lưu** — chờ thanh tiến trình tải xong.
 4. Bản sau: mở trang **Sửa** sản phẩm → nhập phiên bản mới + chọn file mới → Lưu. Bản cũ còn trong Lịch sử phiên bản.
