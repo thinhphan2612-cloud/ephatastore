@@ -92,9 +92,3 @@ export interface Product {
   isNew?: boolean;
   isPopular?: boolean;
 }
-
-/** phần trăm giảm giá, làm tròn; 0 nếu không giảm */
-export function discountPercent(p: Product): number {
-  if (!p.originalPrice || p.originalPrice <= p.price) return 0;
-  return Math.round((1 - p.price / p.originalPrice) * 100);
-}
