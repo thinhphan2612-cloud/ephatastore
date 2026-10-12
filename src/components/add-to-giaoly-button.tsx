@@ -23,7 +23,7 @@ export function AddToGiaolyButton({ productId }: { productId: string }) {
       <button
         type="submit"
         disabled={pending}
-        className="w-full rounded-xl border border-border-strong bg-white/5 px-4 py-3 text-sm font-bold text-text hover:border-accent/50 disabled:opacity-60"
+        className="w-full rounded-xl border border-border-strong bg-surface px-4 py-3 text-sm font-bold text-text hover:border-accent/50 disabled:opacity-60"
       >
         {pending ? "Đang thêm…" : "+ Thêm vào Giáo Lý Số"}
       </button>

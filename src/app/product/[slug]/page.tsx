@@ -202,12 +202,12 @@ export default async function ProductPage({
               </p>
             ) : null}
             {featureKey && (
-              <p className="mt-3 rounded-xl border border-border bg-white/[0.03] px-3 py-2 text-xs text-text-muted">
+              <p className="mt-3 rounded-xl border border-border bg-surface-hover/60 px-3 py-2 text-xs text-text-muted">
                 🧩 Tính năng trong Giáo Lý Số — bật cho <b className="text-text">cả giáo xứ</b> của bạn sau khi mua.
               </p>
             )}
             {product.usesWallet && (
-              <p className="mt-3 rounded-xl border border-border bg-white/[0.03] px-3 py-2 text-xs text-text-muted">
+              <p className="mt-3 rounded-xl border border-border bg-surface-hover/60 px-3 py-2 text-xs text-text-muted">
                 ◈ Một số dịch vụ trong ứng dụng tính phí theo lượt dùng — trừ point trong Ví Ephata (bạn được hỏi trước khi
                 kết nối).
               </p>
@@ -218,7 +218,7 @@ export default async function ProductPage({
             ) : isHostedTool ? (
               /* ===== CÔNG CỤ WEB host nội bộ: mở tự do, AI trừ point ===== */
               <>
-                <div className="mt-5 rounded-2xl border border-border bg-white/[0.03] p-4 text-sm">
+                <div className="mt-5 rounded-2xl border border-border bg-surface-hover/60 p-4 text-sm">
                   <div className="font-semibold text-text">Công cụ web trên Ephata Store</div>
                   <p className="mt-1 text-text-muted">
                     Mở và dùng trực tiếp trong store. Một số dịch vụ trong công cụ có thể trừ point trong Ví của bạn.
@@ -248,7 +248,7 @@ export default async function ProductPage({
             ) : isGame ? (
               /* ===== GAME: free / mua vĩnh viễn bằng point (Pro Giáo Lý Số free nếu sản phẩm gắn nhãn) ===== */
               <>
-                <div className="mt-5 rounded-2xl border border-border bg-white/[0.03] p-4 text-sm">
+                <div className="mt-5 rounded-2xl border border-border bg-surface-hover/60 p-4 text-sm">
                   <div className="font-semibold text-text">Game trên Ephata Store</div>
                   <p className="mt-1 text-text-muted">
                     {hasPro
@@ -283,7 +283,7 @@ export default async function ProductPage({
             ) : !isProTier ? (
               /* ===== SẢN PHẨM FREE ===== */
               <>
-                <div className="mt-5 rounded-2xl border border-border bg-white/[0.03] p-4 text-sm">
+                <div className="mt-5 rounded-2xl border border-border bg-surface-hover/60 p-4 text-sm">
                   <b className="text-[24px]">
                     0đ <small className="text-xs font-semibold text-text-muted">/ miễn phí</small>
                   </b>
@@ -307,7 +307,7 @@ export default async function ProductPage({
             ) : isDownloadable ? (
               /* ===== FILE TẢI VỀ: mua vĩnh viễn ===== */
               <>
-                <div className="mt-5 grid grid-cols-2 gap-3 rounded-2xl border border-border bg-white/[0.03] p-4">
+                <div className="mt-5 grid grid-cols-2 gap-3 rounded-2xl border border-border bg-surface-hover/60 p-4">
                   <div>
                     <span className="mb-1.5 block text-[11px] text-text-faint">Mua vĩnh viễn</span>
                     <b className="text-[27px]">
@@ -339,7 +339,7 @@ export default async function ProductPage({
             ) : (
               /* ===== SẢN PHẨM PRO (tool/feature — thuê bao) ===== */
               <>
-                <div className="mt-5 grid grid-cols-2 gap-3 rounded-2xl border border-border bg-white/[0.03] p-4">
+                <div className="mt-5 grid grid-cols-2 gap-3 rounded-2xl border border-border bg-surface-hover/60 p-4">
                   <div>
                     <span className="mb-1.5 block text-[11px] text-text-faint">Gói năm</span>
                     <b className="text-[27px]">
@@ -382,7 +382,7 @@ export default async function ProductPage({
                       </Link>
                       <Link
                         href={`/buy/${product.id}?kind=freedom`}
-                        className="block w-full rounded-xl border border-border-strong bg-white/5 px-4 py-3 text-center text-sm font-bold text-text hover:border-accent/50"
+                        className="block w-full rounded-xl border border-border-strong bg-surface px-4 py-3 text-center text-sm font-bold text-text hover:border-accent/50"
                       >
                         Mua lẻ {freedomDays} ngày · {freedomPoints.toLocaleString("vi-VN")} point
                       </Link>
@@ -430,7 +430,7 @@ export default async function ProductPage({
           {product.tags.length > 0 && (
             <div className="flex flex-wrap gap-2">
               {product.tags.map((t) => (
-                <span key={t} className="rounded-full border border-border bg-white/[0.03] px-3 py-1 text-sm text-text-muted">
+                <span key={t} className="rounded-full border border-border bg-surface-hover/60 px-3 py-1 text-sm text-text-muted">
                   {t}
                 </span>
               ))}
@@ -485,7 +485,7 @@ async function SoftwarePanel({
   return (
     <>
       {/* Giá key + hành động chính */}
-      <div className="mt-4 rounded-2xl border border-border bg-white/[0.03] p-3.5">
+      <div className="mt-4 rounded-2xl border border-border bg-surface-hover/60 p-3.5">
         <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
           <div className="flex items-baseline gap-1.5">
             <b className="text-[24px] leading-none tabular-nums">{points.toLocaleString("vi-VN")}</b>
@@ -530,7 +530,7 @@ async function SoftwarePanel({
             if (!rel && !store) {
               return (
                 <div key={p} className="flex items-center gap-2 rounded-xl border border-dashed border-border px-2.5 py-2 text-text-faint">
-                  <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-white/5">
+                  <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-surface-hover">
                     <OsIcon p={p} />
                   </span>
                   <span className="min-w-0">

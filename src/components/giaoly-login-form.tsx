@@ -99,7 +99,7 @@ export function GiaolyLoginForm() {
       <button
         type="submit"
         disabled={loading}
-        className="w-full rounded-md border border-border-strong bg-white/5 px-4 py-2.5 font-semibold text-text hover:border-accent/50 disabled:opacity-60"
+        className="w-full rounded-md border border-border-strong bg-surface px-4 py-2.5 font-semibold text-text hover:border-accent/50 disabled:opacity-60"
       >
         {loading ? "Đang đăng nhập…" : "Đăng nhập bằng Giáo Lý Số"}
       </button>

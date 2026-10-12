@@ -69,14 +69,14 @@ export async function SiteHeader() {
               </Link>
               <Link
                 href="/wallet"
-                className="hidden whitespace-nowrap rounded-xl border border-border-strong bg-white/5 px-3 py-2.5 text-sm font-bold text-text hover:border-accent/50 hover:bg-accent/10 sm:block"
+                className="hidden whitespace-nowrap rounded-xl border border-border-strong bg-surface px-3 py-2.5 text-sm font-bold text-text hover:border-accent/50 hover:bg-accent/10 sm:block"
                 title="Ví Point"
               >
                 ◆ {balance.toLocaleString("vi-VN")}
               </Link>
               <Link
                 href="/account"
-                className="max-w-[150px] truncate rounded-xl border border-border-strong bg-white/5 px-3.5 py-2.5 text-sm font-extrabold text-text hover:border-accent/50 hover:bg-accent/10"
+                className="max-w-[150px] truncate rounded-xl border border-border-strong bg-surface px-3.5 py-2.5 text-sm font-extrabold text-text hover:border-accent/50 hover:bg-accent/10"
                 title={user.email ?? undefined}
               >
                 ◉ {user.email}
@@ -94,7 +94,7 @@ export async function SiteHeader() {
             <>
               <Link
                 href="/login"
-                className="rounded-xl border border-border-strong bg-white/5 px-3.5 py-2.5 text-sm font-extrabold text-text hover:border-accent/50"
+                className="rounded-xl border border-border-strong bg-surface px-3.5 py-2.5 text-sm font-extrabold text-text hover:border-accent/50"
               >
                 Đăng nhập
               </Link>
