@@ -129,11 +129,6 @@ export async function getProductBySlug(slug: string): Promise<Product | undefine
   return all.find((p) => p.slug === slug);
 }
 
-export async function getProductsByCategory(categorySlug: string): Promise<Product[]> {
-  const all = await loadProducts();
-  return all.filter((p) => inCategory(p, categorySlug));
-}
-
 export async function getFeatured(): Promise<Product[]> {
   const all = await loadProducts();
   return all.filter((p) => p.featured);
