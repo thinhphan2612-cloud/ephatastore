@@ -346,7 +346,10 @@ export function ProductForm({
           accept="image/png,image/jpeg,image/webp,image/gif"
           onChange={setCover}
         />
-        <Hint>PNG/JPG/WebP, tối đa 5MB. Bỏ trống nếu giữ ảnh cũ / dùng gradient.</Hint>
+        <Hint>
+          Chuẩn 1600×900 (16:9), JPG / WebP / PNG, tối đa 5MB (nên ≤ 1MB). Đặt hình và chữ chính ở giữa — thẻ sản phẩm hiện ảnh nhỏ
+          (~300px ngang). Ảnh khác tỉ lệ sẽ bị cắt. Bỏ trống nếu giữ ảnh cũ / dùng gradient.
+        </Hint>
       </div>
 
       <MediaFields

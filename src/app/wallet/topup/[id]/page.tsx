@@ -94,7 +94,6 @@ export default async function TopupPage({
           <div className="mx-auto w-fit rounded-lg bg-white p-3">
             <div
               className="h-56 w-56"
-              // eslint-disable-next-line react/no-danger
               dangerouslySetInnerHTML={{ __html: qrSvg }}
             />
           </div>

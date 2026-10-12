@@ -1,19 +1,20 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
+
+// Theme thật nằm ở <html data-theme> (script đầu trang đặt trước khi vẽ) → đọc thẳng từ DOM, không chép sang state.
+function subscribe(onChange: () => void) {
+  const mo = new MutationObserver(onChange);
+  mo.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+  return () => mo.disconnect();
+}
+const readTheme = () => (document.documentElement.dataset.theme === "light" ? "light" : "dark");
 
 export function ThemeToggle() {
-  const [theme, setTheme] = useState<"dark" | "light">("dark");
-
-  useEffect(() => {
-    setTheme(
-      document.documentElement.dataset.theme === "light" ? "light" : "dark"
-    );
-  }, []);
+  const theme = useSyncExternalStore(subscribe, readTheme, () => "dark" as const);
 
   function toggle() {
     const next = theme === "light" ? "dark" : "light";
-    setTheme(next);
     const root = document.documentElement;
     if (next === "light") {
       root.dataset.theme = "light";

@@ -3,7 +3,8 @@
 #
 # -Source : file .exe (app 1 file, vd Tauri) HOẶC thư mục chứa exe + file kèm (vd Nuitka/PyInstaller --onedir).
 # -Exe    : tên file exe trong gói (vd myapp.exe).
-# -Logos  : thư mục chứa StoreLogo.png (50x50), Square44x44Logo.png, Square150x150Logo.png.
+# -Logos  : thư mục chứa StoreLogo.png (50x50), Square44x44Logo.png (44x44), Square150x150Logo.png (150x150)
+#           — vd release/<slug>-<version>/msstore/package-logos do export/make-images.mjs sinh.
 # -Version: X.Y.Z (script tự thành X.Y.Z.0 — Store bắt buộc số cuối = 0).
 #
 # Ví dụ (Tauri):
