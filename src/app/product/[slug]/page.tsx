@@ -137,9 +137,10 @@ export default async function ProductPage({
         </div>
 
         <aside className="min-w-0 space-y-4">
-          <div className="rounded-3xl border border-border bg-surface p-6">
-            <div className="mb-4 flex items-start justify-between gap-4">
-              <div className="grid h-14 w-14 place-items-center overflow-hidden rounded-2xl border border-accent/30 bg-accent/10 text-[25px] text-accent">
+          <div className="rounded-3xl border border-border bg-surface p-5">
+            {/* Logo ngang hàng tên — gọn để card cân với khung ảnh bên trái. */}
+            <div className="flex items-start gap-3.5">
+              <div className="grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-2xl border border-accent/30 bg-accent/10 text-[22px] text-accent">
                 {product.logoUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={product.logoUrl} alt={`Logo ${product.title}`} className="h-full w-full object-cover" />
@@ -147,21 +148,24 @@ export default async function ProductPage({
                   (product.icon ?? "✦")
                 )}
               </div>
-              <span
-                className={`rounded-full border px-2.5 py-1.5 text-[9px] font-black tracking-[0.14em] ${
-                  isProTier ? "border-accent text-accent" : "border-success text-success"
-                }`}
-              >
-                {isSoftware ? "PHẦN MỀM" : isHostedTool ? "CÔNG CỤ" : isGame ? "GAME" : isProTier ? "PRO" : "FREE"}
-              </span>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-[11px] uppercase tracking-[0.13em] text-text-faint">{TYPE_LABEL[product.type]}</span>
+                  <span
+                    className={`shrink-0 rounded-full border px-2 py-1 text-[9px] font-black tracking-[0.14em] ${
+                      isProTier ? "border-accent text-accent" : "border-success text-success"
+                    }`}
+                  >
+                    {/* Nhãn loại đã ở dòng trên → huy hiệu chỉ báo có phí / miễn phí. */}
+                    {isProTier ? "PRO" : "FREE"}
+                  </span>
+                </div>
+                <h1 className="font-display text-[24px] font-bold leading-tight">{product.title}</h1>
+              </div>
             </div>
-            <div className="mb-1 text-xs uppercase tracking-[0.13em] text-text-faint">
-              {TYPE_LABEL[product.type]}
-            </div>
-            <h1 className="font-display text-[26px] font-bold">{product.title}</h1>
-            <p className="mt-1 text-text-muted">{product.tagline}</p>
+            <p className="mt-2.5 text-sm text-text-muted">{product.tagline}</p>
             {product.publisher.slug && (
-              <p className="mt-2 text-sm text-text-faint">
+              <p className="mt-1 text-xs text-text-faint">
                 Phát hành bởi <span className="font-medium text-text">{product.publisher.name}</span>
                 {product.publisher.verified && (
                   <span className="ml-1 text-accent" title="Nhà phát hành đã xác minh">
@@ -481,42 +485,36 @@ async function SoftwarePanel({
   return (
     <>
       {/* Giá key + hành động chính */}
-      <div className="mt-5 rounded-2xl border border-border bg-white/[0.03] p-4">
-        <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-2">
-          <div>
-            <div className="whitespace-nowrap text-[11px] font-semibold uppercase tracking-[0.12em] text-text-faint">Key bản quyền vĩnh viễn</div>
-            <div className="mt-1 flex items-baseline gap-1.5">
-              <b className="text-[28px] leading-none tabular-nums">{points.toLocaleString("vi-VN")}</b>
-              <span className="text-xs font-semibold text-text-muted">point</span>
-            </div>
+      <div className="mt-4 rounded-2xl border border-border bg-white/[0.03] p-3.5">
+        <div className="flex items-baseline justify-between gap-3">
+          <div className="flex items-baseline gap-1.5">
+            <b className="text-[24px] leading-none tabular-nums">{points.toLocaleString("vi-VN")}</b>
+            <span className="text-xs font-semibold text-text-muted">point</span>
           </div>
-          <div className="text-xs leading-5 text-text-muted sm:text-right">
-            <span className="block whitespace-nowrap">≈ {formatPrice(priceVnd)} · mua 1 lần</span>
-            <span className="block whitespace-nowrap">Dùng trên {deviceLimit} thiết bị</span>
-          </div>
+          <span className="truncate text-[11px] text-text-faint">
+            Key vĩnh viễn · ≈ {formatPrice(priceVnd)} · {deviceLimit} thiết bị
+          </span>
         </div>
-        <div className="mt-4">
-          {key ? (
-            <Link
-              href="/library"
-              className="flex w-full items-center justify-center gap-2 rounded-xl bg-accent px-4 py-3 font-extrabold text-accent-contrast hover:bg-accent-hover"
-            >
-              <span aria-hidden>✓</span> Đã sở hữu — xem key
-            </Link>
-          ) : (
-            <Link
-              href={`/buy/${productId}?kind=software`}
-              className="block w-full rounded-xl bg-accent px-4 py-3 text-center font-extrabold text-accent-contrast hover:bg-accent-hover"
-            >
-              Mua key · {points.toLocaleString("vi-VN")} point
-            </Link>
-          )}
-        </div>
+        {key ? (
+          <Link
+            href="/library"
+            className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-accent px-4 py-2.5 font-extrabold text-accent-contrast hover:bg-accent-hover"
+          >
+            <span aria-hidden>✓</span> Đã sở hữu — xem key
+          </Link>
+        ) : (
+          <Link
+            href={`/buy/${productId}?kind=software`}
+            className="mt-3 block w-full rounded-xl bg-accent px-4 py-2.5 text-center font-extrabold text-accent-contrast hover:bg-accent-hover"
+          >
+            Mua key · {points.toLocaleString("vi-VN")} point
+          </Link>
+        )}
       </div>
 
-      {/* Tải về miễn phí */}
-      <div className="mt-4 rounded-2xl border border-border p-4">
-        <div className="flex items-baseline justify-between gap-2">
+      {/* Tải về miễn phí: nút chính theo hệ điều hành của khách; nền tảng còn lại một dòng nhỏ. */}
+      <div className="mt-3 rounded-2xl border border-border p-3.5">
+        <div className="mb-2.5 flex items-baseline justify-between gap-2">
           <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-text-faint">Tải về miễn phí</span>
           {newest && (
             <span className="text-[11px] tabular-nums text-text-faint">
@@ -524,65 +522,70 @@ async function SoftwarePanel({
             </span>
           )}
         </div>
-        <div className="mt-3 space-y-2">
-          {order.map((p, idx) => {
-            const rel = releases[p];
-            const primary = idx === 0;
-            const store = p === "windows" && sw?.ms_store_url;
-            if (!rel && !store) {
+        {order.map((p, idx) => {
+          const rel = releases[p];
+          const store = p === "windows" && sw?.ms_store_url;
+          if (idx > 0) {
+            // Nền tảng phụ: một dòng gọn.
+            if (!rel && !store)
               return (
-                <div key={p} className="flex items-center gap-3 rounded-xl border border-dashed border-border px-3 py-2.5 text-sm text-text-faint">
-                  <OsIcon p={p} />
-                  {PLATFORM_LABEL[p]} · sắp có
-                </div>
+                <p key={p} className="mt-2 flex items-center gap-1.5 text-xs text-text-faint">
+                  <OsIcon p={p} /> {PLATFORM_LABEL[p]} · sắp có
+                </p>
               );
-            }
-            const href = store ? sw!.ms_store_url! : `/dl/${slug}/${p}`;
             return (
-              <div key={p}>
-                <a
-                  href={href}
-                  {...(store ? { target: "_blank", rel: "noopener noreferrer" } : {})}
-                  className={`flex items-center gap-3 rounded-xl px-3.5 transition ${
-                    primary
-                      ? "border border-accent/50 bg-accent/10 py-3 hover:bg-accent/15"
-                      : "border border-border py-2.5 hover:border-accent/40"
-                  }`}
-                >
-                  <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-lg ${primary ? "bg-accent text-accent-contrast" : "bg-white/5 text-text-muted"}`}>
-                    <OsIcon p={p} />
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className={`block text-sm font-bold ${primary ? "text-text" : "text-text-muted"}`}>
-                      {store ? "Tải từ Microsoft Store" : `Tải cho ${PLATFORM_LABEL[p]}`}
-                    </span>
-                    <span className="block truncate text-[11px] text-text-faint">
-                      {store ? "Tự cập nhật qua Store" : `${rel!.file_name}${rel!.size_bytes ? ` · ${size(rel!.size_bytes)}` : ""}`}
-                    </span>
-                  </span>
-                  <span className={`shrink-0 text-lg ${primary ? "text-accent" : "text-text-faint"}`} aria-hidden>
-                    {store ? "↗" : "↓"}
-                  </span>
-                </a>
-                {store && rel && (
-                  <a href={`/dl/${slug}/windows`} className="mt-1 block text-center text-[11px] text-text-faint hover:text-text">
-                    Không dùng được Store? Tải .exe (v{rel.version}{rel.size_bytes ? ` · ${size(rel.size_bytes)}` : ""})
-                  </a>
-                )}
+              <a
+                key={p}
+                href={store ? sw!.ms_store_url! : `/dl/${slug}/${p}`}
+                {...(store ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+                className="mt-2 flex items-center gap-1.5 text-xs text-text-muted hover:text-text"
+              >
+                <OsIcon p={p} />
+                <span className="truncate">
+                  Tải cho {PLATFORM_LABEL[p]}
+                  {store ? " · Microsoft Store ↗" : ` · .${p === "windows" ? "exe" : "dmg"}${rel!.size_bytes ? ` · ${size(rel!.size_bytes)}` : ""}`}
+                </span>
+              </a>
+            );
+          }
+          if (!rel && !store) {
+            return (
+              <div key={p} className="flex items-center gap-2.5 rounded-xl border border-dashed border-border px-3 py-2 text-sm text-text-faint">
+                <OsIcon p={p} /> {PLATFORM_LABEL[p]} · sắp có
               </div>
             );
-          })}
-        </div>
-        <ol className="mt-4 grid gap-1.5 border-t border-border pt-3 text-xs text-text-muted">
-          {["Tải và cài app", "Mở mục Bản quyền trong app", key ? "Dán key (ở Thư viện) → Kích hoạt" : "Mua key → dán key → Kích hoạt"].map((t, n) => (
-            <li key={t} className="flex items-center gap-2">
-              <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full border border-border text-[10px] font-bold text-text-faint">
-                {n + 1}
-              </span>
-              {t}
-            </li>
-          ))}
-        </ol>
+          }
+          return (
+            <div key={p}>
+              <a
+                href={store ? sw!.ms_store_url! : `/dl/${slug}/${p}`}
+                {...(store ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+                className="flex items-center gap-2.5 rounded-xl border border-accent/50 bg-accent/10 px-3 py-2 transition hover:bg-accent/15"
+              >
+                <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-accent text-accent-contrast">
+                  <OsIcon p={p} />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-sm font-bold text-text">{store ? "Tải từ Microsoft Store" : `Tải cho ${PLATFORM_LABEL[p]}`}</span>
+                  <span className="block truncate text-[11px] text-text-faint">
+                    {store ? "Tự cập nhật qua Store" : `${rel!.file_name}${rel!.size_bytes ? ` · ${size(rel!.size_bytes)}` : ""}`}
+                  </span>
+                </span>
+                <span className="shrink-0 text-accent" aria-hidden>
+                  {store ? "↗" : "↓"}
+                </span>
+              </a>
+              {store && rel && (
+                <a href={`/dl/${slug}/windows`} className="mt-1 block text-center text-[11px] text-text-faint hover:text-text">
+                  Không dùng được Store? Tải .exe{rel.size_bytes ? ` · ${size(rel.size_bytes)}` : ""}
+                </a>
+              )}
+            </div>
+          );
+        })}
+        <p className="mt-3 border-t border-border pt-2.5 text-[11px] text-text-faint">
+          Cài app → mục <b className="font-semibold text-text-muted">Bản quyền</b> → dán key{key ? " (ở Thư viện)" : " sau khi mua"} → Kích hoạt
+        </p>
       </div>
     </>
   );
