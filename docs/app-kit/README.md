@@ -1,6 +1,6 @@
 # Ephata App Kit — tạo sản phẩm cho Ephata Store
 
-**Kit v12 · cập nhật 12/10/2026** — số phiên bản ở dòng này; thay đổi từng bản xem mục "Phiên bản kit" cuối file.
+**Kit v13 · cập nhật 12/10/2026** — số phiên bản ở dòng này; thay đổi từng bản xem mục "Phiên bản kit" cuối file.
 
 Bộ chuẩn để làm **bất kỳ sản phẩm nào** bán trên Ephata Store (chợ sản phẩm số Công giáo, ephatastore.com).
 Mở một phiên code mới với AI → đưa kit này vào → AI hỏi ý tưởng, xác định sản phẩm thuộc loại nào trong 5 loại,
@@ -130,6 +130,9 @@ soạn theo `description.md` (đã tự kiểm theo mục "Được dùng" / "Gi
 
 ## Phiên bản kit
 
+- **v13 (12/10/2026)** — ảnh Microsoft Store theo đúng màn hình Partner Center: thêm **Poster art 720×1080** + **Box art 1080×1080**
+  (Store logos) và **150×150 / 71×71** (Store display images, cùng 300×300); tất cả là PNG. `make-images.mjs` sinh + kiểm các ảnh này
+  (`--poster` / `--box` cho ảnh thiết kế riêng). Dự án loại 5 đã xuất bộ bàn giao: chạy lại `build --msstore` rồi `check`.
 - **v12 (12/10/2026)** — thêm số phiên bản + **Bước 0** (AI tự kiểm và tải lại kit mới); mục "Nổi bật / Mới"; sửa hướng dẫn
   nút giao diện (menu Theo máy / Sáng / Tối) trong `description.md`; bỏ ghi chú "store đang Coming Soon" (store đã mở).
 - **v11 (12/10/2026)** — thêm `export.md` + `export/make-images.mjs`: xuất bộ bàn giao `release/<slug>-<version>/`, chuẩn kích thước
