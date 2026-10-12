@@ -32,6 +32,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html
       lang="vi"
       className={`${beVietnam.variable} ${lora.variable} h-full antialiased`}
+      // Script theme bên dưới đặt data-theme / color-scheme trước khi React chạy → bỏ qua lệch thuộc tính của riêng thẻ này.
+      suppressHydrationWarning
     >
       <body className="min-h-full flex flex-col">
         <script

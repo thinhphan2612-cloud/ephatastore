@@ -9,6 +9,8 @@ app-kit/
 ├── README.md            ← BẮT ĐẦU Ở ĐÂY (phỏng vấn ý tưởng + chọn loại)
 ├── PROMPT.md            ← đoạn dán cho AI để bắt đầu
 ├── description.md       ← mô tả chi tiết sản phẩm bằng HTML (mọi loại)
+├── export.md            ← xuất bộ bàn giao khi chốt: ảnh đúng kích thước + file / bộ cài (mọi loại)
+├── export/make-images.mjs ← script sinh bộ ảnh chuẩn + kiểm thư mục bàn giao
 ├── types/
 │   ├── download.md      ← Loại 1: Tải về
 │   ├── hosted.md        ← Loại 2: Chạy trên store (game / công cụ web)
@@ -59,7 +61,9 @@ Chờ người tạo đồng ý rồi mới làm.
 Đọc toàn bộ `types/<loại>.md` và làm theo. Nêu plan ngắn + cách kiểm từng bước trước khi code.
 Không commit / push / tạo tag khi chưa hỏi. Báo kết quả kiểm thật, không đoán.
 
-### Bước 5 — Bàn giao
+### Bước 5 — Xuất bộ bàn giao + bàn giao
+Làm theo **`export.md`**: xuất thư mục `release/<slug>-<version>/` (ảnh đúng kích thước Ephata + Microsoft Store,
+`description.html`, `listing.md`, file / bộ cài) và chạy `make-images.mjs check` đến khi ra **✓ hợp lệ**.
 Kết thúc bằng **checklist đưa lên admin** của loại đó (mục "Đưa lên admin" + "Kiểm sau khi lên"), điền sẵn giá trị cụ thể
 của sản phẩm này (tiêu đề, slug gợi ý, mô tả ngắn, danh mục gợi ý, giá, file cần upload) và **mã HTML mô tả chi tiết**
 soạn theo `description.md` (đã tự kiểm theo mục "Được dùng" / "Giữ trang không vỡ").
@@ -84,7 +88,7 @@ soạn theo `description.md` (đã tự kiểm theo mục "Được dùng" / "Gi
 ## Quy ước chung mọi loại
 
 - **Admin**: `https://www.ephatastore.com/login` → đăng nhập tài khoản admin → **Admin → Thêm sản phẩm** → chọn đúng thẻ loại.
-  (Store đang ở chế độ "Sắp ra mắt": khách chỉ thấy trang chờ, tài khoản admin thấy toàn bộ.)
+  (Store đã mở cho khách — sản phẩm bật **Đang bán** + **Hiện trên store** là khách thấy và mua được ngay.)
 - **Tiền**: giá nhập bằng VND ở khung **Bán** của form (Miễn phí / Mua vĩnh viễn / Thuê bao tùy loại), người mua trả bằng
   **point** (100đ = 1 point), nạp point bằng chuyển khoản ở trang Ví. Ô **"Miễn phí cho Pro Giáo Lý Số"** quyết định tài khoản
   Pro có được dùng free không — không tick thì Pro vẫn phải mua. "Free cho Pro" chỉ **trong thời gian gói Pro của giáo xứ còn hạn**
@@ -96,11 +100,12 @@ soạn theo `description.md` (đã tự kiểm theo mục "Được dùng" / "Gi
 - **Đã có người dùng thì khóa**: slug, **loại sản phẩm** và **feature key** không đổi được (muốn bán loại khác → tạo sản phẩm mới).
 - **Hai người cùng sửa một sản phẩm**: người lưu sau bằng form mở từ trước bị chặn ("vừa được người khác sửa") — tải lại trang rồi sửa.
 - **Slug**: chữ thường không dấu, số, gạch ngang; không trùng; **không đổi sau khi đã bán**.
-- **Ảnh bìa**: 16:9 (vd 1600×900), PNG/JPG/WebP, có tên sản phẩm dễ đọc ở cỡ nhỏ.
-- **Logo ứng dụng** (tùy chọn, nên có): ảnh **vuông** ≥ 256px, PNG/JPG/WebP, ≤ 2MB — hiện ở card thông tin trang sản phẩm; không có thì
+- **Ảnh bìa**: **1600×900** (16:9), JPG/WebP/PNG ≤ 5MB (nên ≤ 1MB). Hiện ở thẻ sản phẩm (~300px ngang) và đầu trang sản phẩm —
+  hình + chữ chính đặt ở giữa, chữ đủ to để đọc ở cỡ nhỏ. Ảnh khác tỉ lệ sẽ bị cắt.
+- **Logo ứng dụng** (tùy chọn, nên có): ảnh **vuông 512×512** (tối thiểu 256), PNG/JPG/WebP, ≤ 2MB — hiện ở card thông tin trang sản phẩm; không có thì
   dùng icon mặc định. Logo ≠ ảnh bìa (đừng dùng ảnh bìa 16:9 làm logo).
 - **Ảnh / video minh họa** (tùy chọn, tối đa **4**): hiện sau ảnh bìa ở khung lớn + hàng thumbnail trên trang sản phẩm.
-  Ảnh chụp màn hình PNG/JPG/WebP/GIF ≤ 10MB (16:9 đẹp nhất); video **MP4/WebM ≤ 50MB, nên ≤ 1 phút** (demo ngắn, không tiếng hoặc có
+  Ảnh chụp màn hình **1920×1080** (16:9) PNG/JPG/WebP/GIF ≤ 10MB; video **MP4/WebM ≤ 50MB, nên ≤ 1 phút** (demo ngắn, không tiếng hoặc có
   phụ đề); video dài / hướng dẫn chi tiết → **link YouTube** (dán link vào ô, Ephata chỉ nạp video khi khách bấm). Thứ tự: thứ quan
   trọng nhất đặt đầu. Không chèn chữ quảng cáo đè lên ảnh chụp màn hình.
 - **Mô tả**: dòng tagline ngắn (≤ 140 ký tự) + mô tả chi tiết **bằng HTML** theo `description.md`: làm được gì, cho ai,

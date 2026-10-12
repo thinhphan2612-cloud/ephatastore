@@ -41,8 +41,9 @@ Loại này **code trong repo Giáo Lý Số** (repo và database riêng, không
 - **Feature key** (bắt buộc): **3–50 ký tự a–z, 0–9, gạch dưới** (vd `lich_phung_vu`, `diem_danh_qr`) — phải **giống hệt** khóa code
   dùng ở `useFeature(...)` bên Giáo Lý Số. **Đã có giáo xứ mua thì không đổi được key** (admin khóa ô) — chọn kỹ từ đầu.
 - Mô tả: tính năng làm gì trong Giáo Lý Số, ai dùng (quản trị giáo xứ / giáo lý viên). Nói rõ "áp dụng cho cả giáo xứ".
-- Ảnh bìa 16:9 (nên là ảnh chụp màn hình tính năng trong Giáo Lý Số).
+- Ảnh bìa 1600×900 (16:9) (nên là ảnh chụp màn hình tính năng trong Giáo Lý Số).
 - **Logo vuông** + tối đa **4 ảnh / video minh họa** (ảnh ≤ 10MB, MP4/WebM ≤ 50MB hoặc link YouTube) — xem README, mục "Quy ước chung". Nên có ảnh chụp tính năng ngay trong app Giáo Lý Số.
+- **Kích thước chuẩn + bộ bàn giao**: theo **`export.md`** — ảnh bìa 1600×900, logo 512×512, minh họa 1920×1080; script `export/make-images.mjs` sinh và kiểm.
 
 ## Giá & quyền
 - Khung **Bán**: Miễn phí, hoặc **Thuê bao** (giá/tháng: gói năm = ×12, mua lẻ N ngày, dùng thử N ngày — dùng thử 1 lần / giáo xứ).

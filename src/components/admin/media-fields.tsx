@@ -124,7 +124,9 @@ export function MediaFields({
             Xóa
           </button>
         )}
-        <p className="mt-1 text-[11px] leading-4 text-text-faint">Ảnh vuông ≥ 256px, PNG / JPG / WebP, ≤ 2MB. Không có logo → icon mặc định.</p>
+        <p className="mt-1 text-[11px] leading-4 text-text-faint">
+          Chuẩn: <b className="text-text-muted">512×512</b> vuông (tối thiểu 256), PNG / JPG / WebP, ≤ 2MB. Không có logo → icon mặc định.
+        </p>
       </div>
 
       <div className="min-w-0">
@@ -187,8 +189,9 @@ export function MediaFields({
           </div>
         )}
         <p className="mt-2 text-[11px] leading-4 text-text-faint">
-          Hiện sau ảnh bìa trên trang sản phẩm (khung lớn + hàng thumbnail). Ảnh ≤ 10MB; video MP4 / WebM ≤ 50MB, nên ngắn (≤ 1 phút) —
-          video dài dùng link YouTube. Mũi tên ← → để đổi thứ tự.
+          Hiện sau ảnh bìa trên trang sản phẩm (khung 16:9 + hàng thumbnail). Chuẩn: ảnh chụp <b className="text-text-muted">1920×1080</b>{" "}
+          (16:9), ≤ 10MB; video MP4 / WebM 1920×1080 hoặc 1280×720, ≤ 50MB, nên ≤ 1 phút — video dài dùng link YouTube. Mũi tên ← → để đổi
+          thứ tự.
         </p>
       </div>
     </div>

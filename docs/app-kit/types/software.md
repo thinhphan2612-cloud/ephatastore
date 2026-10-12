@@ -161,6 +161,9 @@ Cài trên máy sạch (hoặc máy ảo) → mở app → màn hình Bản quy�
 
 ## 4. Upload lên Ephata
 
+Chuẩn bị trước bằng **`export.md`**: thư mục `release/<slug>-<version>/` có ảnh đúng kích thước, `installers/`
+(.exe + .dmg ≤ 50MB), `msstore/` (nếu lên Store) — chạy `make-images.mjs check` ra ✓ rồi mới upload.
+
 1. Đăng nhập bằng tài khoản admin được cấp → **Admin** → **Thêm sản phẩm** → **Phần mềm cài đặt (bán key)**.
 2. Điền: tiêu đề, **slug = `PRODUCT` trong app** (gõ tay, đừng để trống cho tự tạo; sai → mọi key báo `PRODUCT_MISMATCH`), mô tả (ghi cả hướng dẫn
    "Open Anyway / Run anyway"), danh mục, nhà phát hành, ảnh bìa, **logo app** (icon vuông của app) + tối đa **4 ảnh / video minh
@@ -186,7 +189,9 @@ Cài trên máy sạch (hoặc máy ảo) → mở app → màn hình Bản quy�
 2. **Reserve tên app** → **Product management → Product identity** lấy 3 giá trị (khớp từng ký tự):
    `Package/Identity/Name`, `Package/Identity/Publisher` (`CN=…`), `Package/Properties/PublisherDisplayName`.
 3. Store **tự ký lại gói** khi duyệt → không cần mua chứng thư.
-4. Chuẩn bị: URL chính sách quyền riêng tư (app gọi mạng để kích hoạt), ảnh chụp màn hình, mô tả, phân loại tuổi.
+4. Chuẩn bị: URL chính sách quyền riêng tư (app gọi mạng để kích hoạt), mô tả, phân loại tuổi; ảnh theo **`export.md`**
+   (`msstore/listing/`: app tile 300×300, 1–10 ảnh chụp 1920×1080 PNG kèm chú thích, hero 1920×1080 tùy chọn — không chữ,
+   tránh biểu tượng tôn giáo theo hướng dẫn của Microsoft).
 5. Thanh toán: app không phải game được dùng thanh toán bên thứ ba (key mua trên Ephata) theo Store policy 10.8.x —
    **kiểm lại bản hiện hành trước khi nộp**. Đặt giá trên Store là Free.
 
@@ -210,7 +215,8 @@ build `npx tauri build --features msstore --no-bundle`. Electron → biến môi
 ./tools/app-kit/msstore/pack.ps1 -Source src-tauri/target/release/myapp.exe -Exe myapp.exe -Logos src-tauri/icons -Version 1.0.0 -DisplayName 'My App' -Description 'Mô tả ngắn' -IdentityName '<Package/Identity/Name>' -Publisher '<CN=...>' -PublisherDisplayName '<Tên NPH>' -Out MyApp.msix
 ```
 `-Source` nhận file exe (Tauri) hoặc thư mục (Nuitka/PyInstaller `--onedir`). `-Logos` là thư mục có
-`StoreLogo.png`, `Square44x44Logo.png`, `Square150x150Logo.png` (Tauri có sẵn trong `src-tauri/icons`).
+`StoreLogo.png` (50×50), `Square44x44Logo.png` (44×44), `Square150x150Logo.png` (150×150) — Tauri có sẵn trong
+`src-tauri/icons`; hoặc dùng `release/<slug>-<version>/msstore/package-logos` do `make-images.mjs build --msstore` sinh.
 Hoặc để CI làm: job `msstore` trong `ci/tauri-release.yml` (đặt 3 Repository variables `MSSTORE_*`; sửa `myapp.exe` cho đúng tên exe;
 đường dẫn script mặc định `./tools/app-kit/msstore/pack.ps1` — đổi nếu đặt kit chỗ khác).
 
@@ -240,6 +246,7 @@ sản phẩm trên admin → Lưu. Nút Windows trên Ephata tự chuyển sang 
 - [ ] Version tăng ở mọi file + tag `vX.Y.Z` trùng.
 - [ ] Bản thường bật kiểm bản mới; bản Store tắt.
 - [ ] `.exe` và `.dmg` ≤ 50MB, đã cài thử trên máy sạch.
+- [ ] Bộ bàn giao `release/<slug>-<version>/` theo `export.md`; `make-images.mjs check` ra ✓.
 - [ ] Upload lên Ephata đúng version; `curl …/latest` ra version mới cho cả windows và macos.
 - [ ] Mua key thật → kích hoạt → tắt mạng mở lại app vẫn Pro → Hủy kích hoạt → máy khác kích hoạt được.
 - [ ] Bản Store: thử `Add-AppxPackage -Register` trước khi nộp.

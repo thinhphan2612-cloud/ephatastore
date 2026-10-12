@@ -102,6 +102,8 @@ quả cũ (`duplicate:true`), không trừ 2 lần. Báo giá trước cho ngư�
 - Có thể **kết hợp**: miễn phí vào app + trừ point theo lượt dùng (bật Ví).
 
 ## Đưa lên admin
+Ảnh + mô tả + thông tin điền form lấy từ bộ bàn giao **`export.md`** (ảnh bìa 1600×900, logo 512×512, minh họa 1920×1080).
+
 1. **Admin → Thêm sản phẩm → Link ngoài**: tiêu đề, slug, loại Công cụ, mô tả, danh mục, nhà phát hành, ảnh bìa, logo + tối đa 4 ảnh /
    video minh họa (README "Quy ước chung"), khung **Bán**,
    **URL app ngoài** (bắt buộc, bắt đầu bằng `https://` — trang nhận `?ephata_token=`), tick **App trừ point qua Ví Ephata** nếu có
