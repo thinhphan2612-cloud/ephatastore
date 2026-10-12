@@ -225,3 +225,42 @@ export async function getMyLicenses(userId: string): Promise<Map<string, MyLicen
   }
   return out;
 }
+
+export interface GiftKey {
+  id: string;
+  key: string;
+  note: string;
+  status: "active" | "revoked";
+  deviceLimit: number;
+  devicesUsed: number;
+  /** Email tài khoản được tặng; null = key rời (vd cho người duyệt Microsoft Store). */
+  ownerEmail: string | null;
+  createdAt: string;
+}
+
+/** Key tặng / key thử của một phần mềm (admin tạo — luôn có `note`; key mua thì note null). */
+export async function adminListGiftKeys(productId: string): Promise<GiftKey[]> {
+  const supabase = createStoreAdminClient();
+  const { data } = await supabase
+    .from("licenses")
+    .select("id,key,note,status,device_limit,store_user_id,created_at,license_devices(id)")
+    .eq("product_id", productId)
+    .not("note", "is", null)
+    .order("created_at", { ascending: false });
+  const rows = data ?? [];
+  const userIds = [...new Set(rows.map((r) => r.store_user_id).filter(Boolean))] as string[];
+  const { data: profs } = userIds.length
+    ? await supabase.from("profiles").select("id,email").in("id", userIds)
+    : { data: [] as { id: string; email: string | null }[] };
+  const email = new Map((profs ?? []).map((p) => [p.id, p.email]));
+  return rows.map((r) => ({
+    id: r.id,
+    key: r.key,
+    note: r.note ?? "",
+    status: r.status as GiftKey["status"],
+    deviceLimit: r.device_limit,
+    devicesUsed: (r.license_devices ?? []).length,
+    ownerEmail: r.store_user_id ? (email.get(r.store_user_id) ?? "(tài khoản đã xóa)") : null,
+    createdAt: r.created_at,
+  }));
+}
