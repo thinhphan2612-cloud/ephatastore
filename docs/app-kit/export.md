@@ -15,6 +15,8 @@ release/<slug>-<version>/            vd release/gelo-1.2.8/
 │   │   └── youtube.txt              (tùy chọn) mỗi dòng 1 link YouTube
 │   ├── description.html             mô tả chi tiết (theo description.md)
 │   └── listing.md                   thông tin điền form admin (mẫu ở mục 4)
+├── privacy-policy.md                ← loại 5 (và app gửi dữ liệu qua mạng): chính sách quyền riêng tư → đăng tại
+│                                       https://www.ephatastore.com/quyen-rieng-tu/<slug> trước khi nộp Store
 ├── deliverable/                     ← loại 1–4: thứ giao cho Ephata
 │   └── …                            loại 1: file tải về · loại 2: build.zip · loại 3: url.txt · loại 4: feature-key.txt
 ├── installers/                      ← loại 5: bộ cài tải về
@@ -22,6 +24,7 @@ release/<slug>-<version>/            vd release/gelo-1.2.8/
 │   └── <App>_<ver>_universal.dmg
 └── msstore/                         ← loại 5, chỉ khi lên Microsoft Store
     ├── <App>_<ver>.msix
+    ├── store-listing.md             mọi ô điền Partner Center (mẫu ở mục 5)
     ├── package-logos/               3 logo nằm TRONG gói .msix (đưa cho pack.ps1 -Logos)
     │   ├── StoreLogo.png            50×50
     │   ├── Square44x44Logo.png      44×44
@@ -124,10 +127,140 @@ mỗi file tải lên Ephata ≤ 50MB, có `listing.md` + `description.html`. C�
 - Ảnh: ephata/cover.jpg · ephata/logo.png · ephata/media/01..0N (+ youtube.txt)
 - Mô tả chi tiết: dán ephata/description.html → bấm Xem trước
 - Giao hàng: deliverable/… | installers/<file .exe> + <file .dmg>, phiên bản X.Y.Z, ghi chú phát hành: …
-- Microsoft Store (loại 5): msstore/<file .msix>; chú thích ảnh chụp: 01 …, 02 …
+- Loại 5: Số thiết bị / key: <chọn trên admin> · Hạn dùng offline: <số ngày | vĩnh viễn> — CHỈ ghi ở đây, không ghi vào mô tả
+- Microsoft Store (loại 5): msstore/<file .msix> — mọi ô Partner Center ở msstore/store-listing.md
 ```
 
-## 5. Bàn giao
+## 5. Mẫu `msstore/store-listing.md` (loại 5, khi lên Microsoft Store)
+
+Một file gom **mọi ô phải điền trên Partner Center**, người nộp chỉ việc chép. Ví dụ thật đã nộp:
+`examples/store-listing-ephata-ebooks.md`. Giữ đúng tiêu đề và nhãn `**…**` + khối ``` bên dưới — `make-images.mjs check`
+đọc file theo các nhãn này để kiểm giới hạn ký tự.
+
+- **Mỗi ngôn ngữ gói `.msix` khai báo = một mục `## <Tên> (xx-XX)`** (vd `vi-VN`, `en-US`) — Partner Center bắt điền listing
+  cho từng ngôn ngữ đó. Ảnh dùng chung, chú thích ảnh viết theo từng ngôn ngữ.
+- **Không ghi số thiết bị / số ngày offline / giá** — viết "số máy theo khung giá trên trang sản phẩm" (trang tự hiện).
+- Không HTML, không link trong Description (link để ở ô Website / Support / Privacy).
+
+~~~markdown
+# Microsoft Store listing — <Tên app> <version>
+
+Chép từng ô vào Partner Center → <Tên app> → Submission → Store listings → <ngôn ngữ>.
+Gói `.msix` khai <các ngôn ngữ> → điền đủ các mục ngôn ngữ bên dưới.
+
+Ảnh (giống nhau mọi ngôn ngữ, tất cả .png):
+- Screenshots (Desktop): `listing/screenshots/01.png … 0N.png`
+- Store logos: `listing/poster-720x1080.png` · `listing/box-art-1080.png`
+- Store display images: `listing/app-tile-300.png` · `listing/tile-150.png` · `listing/tile-71.png`
+- 16:9 Super hero art (tùy chọn): `listing/hero-1920x1080.png`
+
+---
+
+## Tiếng Việt (vi-VN)
+
+**Product name:** <tên đã reserve>
+
+**Description** (≤ 10.000 ký tự, chữ thường — không HTML, không link)
+```
+<Đoạn mở 1–2 câu: là gì, cho ai.>
+
+<Nhóm tính năng miễn phí — mỗi ý một dòng bắt đầu bằng •>
+
+<Nhóm tính năng Pro (nếu có) + cách mua key trên Ephata Store và nhập key trong app; số máy theo khung giá trên trang sản phẩm.>
+```
+
+**What's new in this version** (≤ 1.500 ký tự — để trống ở lần nộp đầu)
+```
+<thay đổi của phiên bản>
+```
+
+**Product features** (tối đa 20 dòng, mỗi dòng ≤ 200 ký tự, không tự thêm dấu gạch đầu dòng)
+```
+<tính năng 1>
+<tính năng 2>
+```
+
+**Short description** (≤ 1.000 ký tự, nên < 270; viết khác câu đầu của Description)
+```
+<1–2 câu>
+```
+
+**Search terms** (tối đa 7 cụm, mỗi cụm ≤ 30 ký tự — nếu Partner Center còn ô này)
+```
+<cụm 1>
+<cụm 2>
+```
+
+**Screenshot captions** (mỗi chú thích ≤ 200 ký tự; số đầu dòng = số file ảnh)
+```
+01 <chú thích ảnh 01>
+02 <chú thích ảnh 02>
+```
+
+**Additional system requirements** (Minimum — tối đa 11 dòng, mỗi dòng ≤ 200 ký tự)
+```
+Windows 10 phiên bản 1809 trở lên (64-bit)
+Kết nối mạng khi kích hoạt key
+```
+
+---
+
+## English (en-US)
+
+<lặp lại đủ các nhãn như mục tiếng Việt, viết tiếng Anh>
+
+---
+
+## Ô dùng chung (không theo ngôn ngữ)
+
+| Ô | Giá trị |
+|---|---|
+| Copyright and trademark info (≤ 200) | © <năm> ONETWENTYSIX VERSE |
+| Developed by (≤ 255) | ONETWENTYSIX VERSE |
+| Website | https://www.ephatastore.com/product/<slug> (phải mở được trước khi nộp) |
+| Support contact info | https://www.ephatastore.com/lien-he |
+| Privacy policy URL | https://www.ephatastore.com/quyen-rieng-tu/<slug> (đăng từ `privacy-policy.md` trước khi nộp) |
+| Additional license terms | Để trống (dùng điều khoản mặc định của Microsoft) |
+| Pricing | Free — key Pro bán trên Ephata (Store policy 10.8.x cho app không phải game; kiểm bản hiện hành trước khi nộp) |
+| Category | <danh mục chính → phụ> |
+| Age rating | Bảng hỏi IARC: <không bạo lực / không nội dung người lớn / không chat / dữ liệu cá nhân gì / mua ngoài app (key)> |
+
+---
+
+## Submission options (Partner Center → Submission → Submission options)
+
+Viết tiếng Anh — người duyệt của Microsoft đọc, khách không thấy.
+
+**Publishing hold options:** lần nộp đầu chọn "Don't publish this submission until I select Publish now" — duyệt xong kiểm
+trang Store, dán link Store vào trang Sửa sản phẩm trên Ephata, rồi mới bấm Publish.
+
+**Restricted capabilities → Why do you need the runFullTrust capability, and how will it be used in your product?** (≤ 500 ký tự, một đoạn)
+```
+<App> is a Win32 desktop app (<Tauri/Rust + WebView2 | Electron | Python>) packaged as MSIX with entry point
+Windows.FullTrustApplication, so runFullTrust is needed for it to run. It is used only to <việc app làm với file / mạng>,
+keep its data in its AppData folder and call www.ephatastore.com over HTTPS to activate a license.
+No elevation, services, drivers or startup tasks.
+```
+
+**Notes for certification** (nên điền)
+```
+<Phần miễn phí thử thế nào, không cần tài khoản.>
+Pro features require a license key sold on Ephata Store (www.ephatastore.com), a non-game app using third-party payment
+as allowed by policy 10.8. To test Pro: <menu → License → paste key → Activate>. An internet connection is required for activation.
+Test key: <KEY THỬ — tạo riêng cho người duyệt>
+The user interface is in Vietnamese.
+```
+> Key thử: tạo / mua 1 key riêng cho người duyệt (đừng dùng key của khách), đủ suất thiết bị; duyệt xong thu hồi ở
+> Admin → Người dùng. Không đưa key thì người duyệt chỉ thử được phần miễn phí và có thể từ chối.
+~~~
+
+`check` báo **lỗi** khi vượt giới hạn ký tự / số dòng, thiếu Description ở một ngôn ngữ, số chú thích nhiều hơn số ảnh, hoặc
+lời giải trình runFullTrust quá 500 ký tự; **cảnh báo** khi còn chỗ `<…>` chưa điền, Short description dài hơn 270 ký tự,
+thấy số thiết bị / số ngày offline viết cứng, hoặc thiếu `privacy-policy.md`.
+
+## 6. Bàn giao
 
 Gửi người đưa lên admin cả thư mục `release/<slug>-<version>/` (nén zip nếu gửi qua mạng) kèm kết quả lệnh `check`.
+Thứ tự với loại 5 lên Microsoft Store: **đưa lên Ephata trước** (Đang bán + Hiện) → đăng trang chính sách `…/quyen-rieng-tu/<slug>`
+→ tạo key thử → mới nộp Partner Center (người duyệt mở link Website / Privacy và cần key để thử bản Pro).
 Sau khi lên: làm mục "Kiểm sau khi lên" của loại sản phẩm (`types/<loại>.md`).

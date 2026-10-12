@@ -11,6 +11,7 @@ tải **nguyên văn** (không viết lại), từ:
 https://github.com/thinhphan2612-cloud/ephatastore/tree/dev/docs/app-kit
 File thô: `https://raw.githubusercontent.com/thinhphan2612-cloud/ephatastore/dev/docs/app-kit/<đường dẫn>` — gồm
 `README.md`, `PROMPT.md`, `description.md`, `export.md`, `export/make-images.mjs`, `examples/mo-ta-ai-la-trieu-phu.html`,
+`examples/store-listing-ephata-ebooks.md`,
 `types/download.md`, `types/hosted.md`, `types/link.md`, `types/feature.md`, `types/software.md`,
 `license/rust/ephata_license.rs`, `license/node/ephata-license.js`, `license/python/ephata_license.py`,
 `ci/tauri-release.yml`, `ci/electron-release.yml`,

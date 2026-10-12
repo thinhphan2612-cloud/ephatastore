@@ -16,6 +16,10 @@ layout trang trên điện thoại**.
 4. **Cần gì để dùng**: trình duyệt / hệ điều hành / tài khoản Giáo Lý Số…
 5. (Tùy chọn) Ảnh chụp màn hình, video YouTube hướng dẫn, bảng so sánh gói, câu hỏi thường gặp.
 
+**Đừng ghi những gì trang sản phẩm đã tự hiện theo cấu hình admin**: giá / số point, **số thiết bị mỗi key**, **hạn dùng
+offline**, số ngày dùng thử. Viết cứng thì sai ngay khi admin đổi cấu hình (đã xảy ra: mô tả ghi "2 máy" trong khi admin để 1).
+Cần nhắc thì viết chung: "số máy theo khung giá".
+
 Tiêu đề trong mô tả bắt đầu từ **`<h2>`** — trang đã có `<h1>` là tên sản phẩm (`<h1>` tự đổi thành `<h2>`).
 Dòng **tagline** (≤ 140 ký tự) là ô riêng, không lặp lại trong mô tả.
 

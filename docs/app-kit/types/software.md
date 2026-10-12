@@ -24,9 +24,12 @@ Bạn đăng nhập admin Ephata bằng tài khoản admin được cấp và t�
    **hai nơi phải giống hệt nhau** và **không đổi sau khi đã bán key** (đổi là mọi key đã bán hỏng).
    Key sinh ra có tiền tố = 4 ký tự đầu slug viết hoa (`LICH-XXXX-XXXX-XXXX`) — chọn slug có 4 chữ đầu dễ nhận.
 2. **Giá key** (VND, 100đ = 1 point; mua 1 lần dùng vĩnh viễn; **không bao giờ** miễn phí cho Pro Giáo Lý Số / Full Topping),
-   **số thiết bị / key** (thường 2 — đổi sau chỉ áp cho key bán sau đó; khách tự gỡ máy cũ ở Thư viện 1 lần / 30 ngày / key),
-   **hạn dùng offline** (thường 30 ngày — app không có mạng quá số ngày này thì phải bật mạng để xác minh lại;
+   **số thiết bị / key** (chọn theo từng sản phẩm — đổi sau chỉ áp cho key bán sau đó; khách tự gỡ máy cũ ở Thư viện
+   1 lần / 30 ngày / key — đây là quy tắc chung của hệ thống),
+   **hạn dùng offline** (chọn số ngày theo từng sản phẩm — app không có mạng quá số ngày này thì phải bật mạng để xác minh lại;
    hoặc tick **Vĩnh viễn**: kích hoạt 1 lần dùng mãi, nhưng thu hồi key / gỡ thiết bị chỉ có hiệu lực khi app có mạng lại).
+   **Không ghi số thiết bị / số ngày offline vào mô tả, listing hay Store listing** — trang sản phẩm tự hiện "N thiết bị" theo
+   cấu hình admin; viết cứng thì sai ngay khi admin đổi cấu hình. Cần nhắc thì viết "số máy theo khung giá".
 3. **Tài khoản Microsoft Partner Center** dùng để nộp Store (nếu app lên Store): hỏi Felix dùng tài khoản chung nào.
 
 Thu hồi: admin bấm **Thu hồi** quyền phần mềm của một khách (Admin → Người dùng) → key bị **khóa** (`LICENSE_REVOKED`), app về
@@ -189,7 +192,10 @@ Chuẩn bị trước bằng **`export.md`**: thư mục `release/<slug>-<versio
 2. **Reserve tên app** → **Product management → Product identity** lấy 3 giá trị (khớp từng ký tự):
    `Package/Identity/Name`, `Package/Identity/Publisher` (`CN=…`), `Package/Properties/PublisherDisplayName`.
 3. Store **tự ký lại gói** khi duyệt → không cần mua chứng thư.
-4. Chuẩn bị: URL chính sách quyền riêng tư (app gọi mạng để kích hoạt), mô tả, phân loại tuổi; ảnh theo **`export.md`**
+4. Chuẩn bị **`msstore/store-listing.md`** (mẫu ở `export.md` mục 5, ví dụ thật `examples/store-listing-ephata-ebooks.md`):
+   mô tả từng ngôn ngữ, từ khóa, chú thích ảnh, ô dùng chung, lời giải trình runFullTrust, ghi chú cho người duyệt + key thử.
+   **Chính sách quyền riêng tư** (`privacy-policy.md` ở gốc bộ bàn giao) phải được đăng thành URL công khai
+   `https://www.ephatastore.com/quyen-rieng-tu/<slug>` **trước khi nộp** — gửi file cho Felix để đăng. Ảnh theo **`export.md`**
    (`msstore/listing/`, **tất cả .png**: 1–10 ảnh chụp 1920×1080 kèm chú thích; Store logos: Poster art 720×1080 + Box art
    1080×1080; Store display images: 300×300 / 150×150 / 71×71; hero 1920×1080 tùy chọn — không chữ,
    tránh biểu tượng tôn giáo theo hướng dẫn của Microsoft).
@@ -234,7 +240,12 @@ Kiểm: mở app, kích hoạt key, (nếu có) bật tự khởi động rồi 
 Gỡ: `Get-AppxPackage *<Tên>* | Remove-AppxPackage`.
 
 ### 5.5 Nộp & nối về Ephata
-Partner Center → app → **Submission → Packages**: upload `.msix` → listing, giá Free, quyền riêng tư → Submit.
+**Trước khi nộp** (người duyệt của Microsoft sẽ mở các link): sản phẩm đã **live trên Ephata** (Đang bán + Hiện,
+`https://www.ephatastore.com/product/<slug>` mở được) và trang chính sách `…/quyen-rieng-tu/<slug>` mở được; có **key thử**
+riêng cho người duyệt (tạo bằng tài khoản admin, đủ suất thiết bị; duyệt xong thu hồi ở Admin → Người dùng).
+
+Partner Center → app → **Submission**: Packages (upload `.msix`) → Properties → Age ratings → Store listings (chép từ
+`store-listing.md`) → Submission options (giữ, chưa phát hành ở lần đầu + runFullTrust + Notes for certification) → Submit.
 Duyệt xong có link `https://apps.microsoft.com/detail/<StoreID>` → dán vào ô **Link Microsoft Store** ở trang Sửa
 sản phẩm trên admin → Lưu. Nút Windows trên Ephata tự chuyển sang mở Store, `.exe` thành link dự phòng.
 
