@@ -27,7 +27,7 @@ export async function SiteHeader() {
 
         {/* Menu giữa từ lg (1024px): ở 768px menu + nút tài khoản tràn ngang thanh đầu trang. */}
         <div className="hidden items-center gap-6 text-sm text-text-muted lg:flex">
-          <Link href="/#categories" className="hover:text-text">
+          <Link href="/#catalog" className="hover:text-text">
             Danh mục
           </Link>
           <Link href="/category/game-store" className="hover:text-text">
