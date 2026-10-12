@@ -15,10 +15,10 @@ export default async function AdminLayout({
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8">
-      <div className="mb-6 flex items-center justify-between border-b border-border pb-4">
-        <div className="flex items-center gap-4">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3 border-b border-border pb-4">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
           <h1 className="text-xl font-bold">Quản trị</h1>
-          <nav className="flex items-center gap-3 text-sm">
+          <nav className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
             <Link href="/admin" className="text-brand hover:text-brand-hover">
               Sản phẩm
             </Link>
@@ -48,7 +48,7 @@ export default async function AdminLayout({
             </Link>
           </nav>
         </div>
-        <span className="text-sm text-text-faint">{user.email}</span>
+        <span className="min-w-0 truncate text-sm text-text-faint">{user.email}</span>
       </div>
       {children}
     </div>

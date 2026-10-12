@@ -607,40 +607,93 @@ export async function refundSpend(formData: FormData) {
   );
 }
 
-// ---- Cấu hình nhanh sản phẩm (tier / giá / trial / active) ----
-export async function updateProductConfig(formData: FormData) {
-  const admin = await assertAdmin();
-  const id = String(formData.get("id") ?? "").trim();
-  if (!id) return;
+// ---- Cấu hình nhanh sản phẩm (bảng Admin → Sản phẩm, nút "Lưu tất cả") ----
 
-  const supabase = createStoreAdminClient();
-  const { data: cur } = await supabase.from("products").select("type,game_url").eq("id", id).maybeSingle();
-  if (!cur) return;
-  const notice = (m: string): never => redirect(`/admin?notice=${encodeURIComponent(m)}`);
-  const tier = formData.get("tier") === "pro" ? "pro" : "free";
-  if (tier === "pro" && cur.type === "tool" && cur.game_url)
-    notice("Công cụ chạy trên store luôn miễn phí (thu tiền theo lượt qua Ví Ephata) — không đặt PRO.");
-  // Giá: số nguyên 0 – 100 triệu (trước đây giá âm làm DB từ chối → trang lỗi).
-  const priceMonth = tier === "pro" ? Math.min(100_000_000, Math.max(0, Math.floor(Number(formData.get("price_month") ?? 0) || 0))) : 0;
-  const patch = {
-    tier,
-    min_plan: tier,
-    price_month: priceMonth,
-    price_vnd: priceMonth,
-    // Dùng thử chỉ cho loại thuê bao (công cụ / tính năng); loại mua vĩnh viễn không có dùng thử.
-    trial: tier === "pro" && !PERPETUAL_TYPES.includes(cur.type) && formData.get("trial") === "on",
-    trial_days: Math.min(60, Math.max(1, Math.floor(Number(formData.get("trial_days") ?? 7) || 7))),
-    active: formData.get("active") === "on",
-    giaoly_pro_free: tier === "pro" && formData.get("giaoly_pro_free") === "on",
-    updated_at: new Date().toISOString(),
-  };
-  if (tier === "pro" && priceMonth <= 0) notice("Sản phẩm PRO cần giá lớn hơn 0 — hoặc chọn FREE.");
+export interface ProductConfigChange {
+  id: string;
+  /** updated_at lúc tải bảng — dòng đã bị người khác sửa sau mốc này thì từ chối (không ghi đè). */
+  updated_at: string;
+  tier: "free" | "pro";
+  price_month: number;
+  trial: boolean;
+  trial_days: number;
+  giaoly_pro_free: boolean;
+  active: boolean;
+}
 
-  const { error } = await supabase.from("products").update(patch).eq("id", id);
-  if (error) throw new Error(error.message);
-  await logAdmin(admin, "product.config", { type: "product", id }, patch);
+/**
+ * Lưu nhiều dòng cấu hình cùng lúc. Kiểm TỪNG dòng theo quy tắc của loại sản phẩm; dòng lỗi báo riêng, dòng hợp lệ vẫn lưu.
+ * Trả: saved = id đã lưu → updated_at mới, errors = id → lý do (sai quy tắc), stale = id vừa bị người khác sửa (không ghi đè).
+ */
+export async function saveProductConfigs(
+  changes: ProductConfigChange[]
+): Promise<ActionResult<{ saved: Record<string, string>; errors: Record<string, string>; stale: string[] }>> {
+  return attempt(async () => {
+    const admin = await assertAdmin();
+    if (!Array.isArray(changes) || changes.length > 200) throw new Error("Dữ liệu không hợp lệ.");
+    const supabase = createStoreAdminClient();
+    const ids = changes.map((c) => String(c.id));
+    const { data: rows } = await supabase.from("products").select("id,type,game_url,updated_at").in("id", ids);
+    const cur = new Map((rows ?? []).map((r) => [r.id, r]));
+    const saved: Record<string, string> = {};
+    const errors: Record<string, string> = {};
+    const stale: string[] = []; // dòng vừa bị người khác sửa — bảng bỏ chỉnh sửa của dòng đó, hiện giá trị mới
 
-  revalidatePath("/admin");
+    for (const c of changes) {
+      const p = cur.get(c.id);
+      if (!p) {
+        errors[c.id] = "Sản phẩm không còn tồn tại.";
+        continue;
+      }
+      if (p.updated_at !== c.updated_at) {
+        stale.push(c.id);
+        continue;
+      }
+      const tier = c.tier === "pro" ? "pro" : "free";
+      const price = tier === "pro" ? Math.min(MAX_PRICE_VND, Math.max(0, Math.floor(Number(c.price_month) || 0))) : 0;
+      if (tier === "pro" && p.type === "tool" && p.game_url) {
+        errors[c.id] = "Công cụ chạy trên store luôn FREE (thu tiền theo lượt qua Ví Ephata).";
+        continue;
+      }
+      if (tier === "pro" && price <= 0) {
+        errors[c.id] = "PRO cần giá lớn hơn 0 — hoặc chọn FREE.";
+        continue;
+      }
+      const subscription = !PERPETUAL_TYPES.includes(p.type);
+      const patch = {
+        tier,
+        min_plan: tier,
+        price_month: price,
+        price_vnd: price,
+        // Dùng thử chỉ cho loại thuê bao; phần mềm không bao giờ miễn phí theo Pro.
+        trial: tier === "pro" && subscription && !!c.trial,
+        trial_days: Math.min(60, Math.max(1, Math.floor(Number(c.trial_days) || 7))),
+        giaoly_pro_free: tier === "pro" && p.type !== "software" && !!c.giaoly_pro_free,
+        active: !!c.active,
+        updated_at: new Date().toISOString(),
+      };
+      // Điều kiện updated_at trong câu update → 2 admin lưu cùng lúc không ghi đè nhau.
+      const { data: upd, error } = await supabase
+        .from("products")
+        .update(patch)
+        .eq("id", c.id)
+        .eq("updated_at", p.updated_at)
+        .select("updated_at")
+        .maybeSingle();
+      if (error) {
+        errors[c.id] = "Không lưu được: " + error.message;
+        continue;
+      }
+      if (!upd) {
+        stale.push(c.id);
+        continue;
+      }
+      saved[c.id] = upd.updated_at;
+      await logAdmin(admin, "product.config", { type: "product", id: c.id }, patch);
+    }
+    revalidatePath("/admin");
+    return { saved, errors, stale };
+  });
 }
 
 // ---- Coupon ----
