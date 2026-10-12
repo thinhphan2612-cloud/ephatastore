@@ -27,7 +27,7 @@ export function ProductRow({
       {/* cuộn ngang trên mọi kích thước, thẻ giữ chiều rộng cố định */}
       <div className="scrollbar-thin -mx-1 flex gap-4 overflow-x-auto px-1 pb-2">
         {products.map((p) => (
-          <div key={p.id} className="w-64 shrink-0">
+          <div key={p.id} className="w-64 shrink-0 [&>a]:h-full">
             <ProductCard product={p} />
           </div>
         ))}

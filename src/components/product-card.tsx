@@ -33,7 +33,7 @@ export function ProductCard({ product }: { product: Product }) {
   return (
     <Link
       href={`/product/${product.slug}`}
-      className="group flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-surface shadow-card transition hover:-translate-y-0.5 hover:border-accent/50 hover:shadow-[0_12px_32px_rgba(0,0,0,0.25)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
+      className="group flex flex-col overflow-hidden rounded-2xl border border-border bg-surface shadow-card transition hover:-translate-y-0.5 hover:border-accent/50 hover:shadow-[0_12px_32px_rgba(0,0,0,0.25)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
     >
       {/* Khung ảnh: chỉ có ảnh, không đè chữ */}
       <div className="relative aspect-video overflow-hidden border-b border-border">
