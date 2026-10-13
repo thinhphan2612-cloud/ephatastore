@@ -138,13 +138,13 @@ export interface MyConnection {
   id: string;
   created_at: string;
   last_used_at: string | null;
-  product: { id: string; slug: string; title: string; icon: string | null; uses_wallet: boolean } | null;
+  product: { id: string; slug: string; title: string; icon: string | null; logo_url: string | null; uses_wallet: boolean } | null;
 }
 
 export async function listMyConnections(userId: string): Promise<MyConnection[]> {
   const { data } = await createStoreAdminClient()
     .from("app_connections")
-    .select("id,created_at,last_used_at,product:products(id,slug,title,icon,uses_wallet)")
+    .select("id,created_at,last_used_at,product:products(id,slug,title,icon,logo_url,uses_wallet)")
     .eq("store_user_id", userId)
     .is("revoked_at", null)
     .order("created_at", { ascending: false });

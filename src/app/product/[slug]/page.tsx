@@ -547,9 +547,19 @@ async function SoftwarePanel({
           })}
         </div>
         {sw?.ms_store_url && releases.windows && (
-          <a href={`/dl/${slug}/windows`} className="mt-1.5 block text-center text-[11px] text-text-faint hover:text-text">
-            Không dùng được Store? Tải .exe{releases.windows.size_bytes ? ` · ${size(releases.windows.size_bytes)}` : ""}
-          </a>
+          <div className="mt-2 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-[11px] text-text-faint">
+            <span>Không dùng được Store?</span>
+            <a
+              href={`/dl/${slug}/windows`}
+              className="inline-flex items-center gap-1 whitespace-nowrap rounded-md border border-border bg-surface px-2 py-0.5 font-semibold text-text-muted transition hover:border-accent/50 hover:text-text"
+            >
+              <svg viewBox="0 0 16 16" width="12" height="12" aria-hidden fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M8 2.5v7.5M4.75 7 8 10.25 11.25 7M3 13.25h10" />
+              </svg>
+              Tải .exe
+              {releases.windows.size_bytes ? <span className="font-normal tabular-nums text-text-faint">· {size(releases.windows.size_bytes)}</span> : null}
+            </a>
+          </div>
         )}
       </div>
 
