@@ -117,7 +117,13 @@ export default async function LibraryPage({ searchParams }: { searchParams: Prom
               <li key={it.product.id} className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 text-sm">
                 <div className="min-w-0">
                   <Link href={`/product/${it.product.slug}`} className="font-medium text-text hover:text-accent">
-                    {it.product.icon ?? "✦"} {it.product.title}
+                    {it.product.logoUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={it.product.logoUrl} alt="" className="mr-1.5 inline-block h-5 w-5 rounded object-cover align-[-5px]" />
+                    ) : (
+                      <>{it.product.icon ?? "✦"} </>
+                    )}
+                    {it.product.title}
                   </Link>
                   <div className="text-xs text-text-faint">
                     {it.source === "trial" ? "Dùng thử đã kết thúc" : "Hết hạn"} ngày {formatDate(it.expiresAt!)}

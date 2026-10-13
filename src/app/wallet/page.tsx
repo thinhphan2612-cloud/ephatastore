@@ -126,7 +126,13 @@ export default async function WalletPage({ searchParams }: { searchParams: Promi
               <li key={c.id} className="flex items-center justify-between gap-4 px-4 py-3 text-sm">
                 <div>
                   <div className="font-medium">
-                    {c.product?.icon ?? "✦"} {c.product?.title}
+                    {c.product?.logo_url ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={c.product.logo_url} alt="" className="mr-1.5 inline-block h-5 w-5 rounded object-cover align-[-5px]" />
+                    ) : (
+                      <>{c.product?.icon ?? "✦"} </>
+                    )}
+                    {c.product?.title}
                   </div>
                   <div className="text-xs text-text-faint">
                     Kết nối {formatDate(c.created_at)}

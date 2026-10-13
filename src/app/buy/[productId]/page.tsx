@@ -49,6 +49,8 @@ export default async function BuyPage({
     productId: string;
     title: string;
     icon: string;
+    /** Logo ứng dụng (ảnh vuông) — có thì hiện thay icon. */
+    logoUrl?: string | null;
     note: string;
     points: number;
     isPro: boolean;
@@ -76,7 +78,7 @@ export default async function BuyPage({
     const supabase = createStoreAdminClient();
     const { data: product } = await supabase
       .from("products")
-      .select("id,slug,title,tagline,icon,type,price_month,giaoly_pro_free,giaoly_feature_key,published,active")
+      .select("id,slug,title,tagline,icon,logo_url,type,price_month,giaoly_pro_free,giaoly_feature_key,published,active")
       .eq("id", productId)
       .maybeSingle();
     if (!product || !product.published || !product.active) notFound();
@@ -111,6 +113,7 @@ export default async function BuyPage({
       productId: product.id,
       title: product.title,
       icon: product.icon ?? "✦",
+      logoUrl: product.logo_url,
       note: isPro
         ? `Miễn phí theo gói Pro Giáo Lý Số — dùng đến ${proUntil ? formatDate(proUntil) : "hết 365 ngày"}`
         : renewNote
@@ -141,8 +144,13 @@ export default async function BuyPage({
 
       <div className="mt-6 rounded-2xl border border-border bg-surface p-6">
         <div className="flex items-center gap-3">
-          <div className="grid h-12 w-12 place-items-center rounded-xl border border-accent/30 bg-accent/10 text-2xl text-accent">
-            {item.icon}
+          <div className="grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-xl border border-accent/30 bg-accent/10 text-2xl text-accent">
+            {item.logoUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={item.logoUrl} alt="" className="h-full w-full object-cover" />
+            ) : (
+              item.icon
+            )}
           </div>
           <div>
             <div className="font-semibold text-text">{item.title}</div>
