@@ -4,7 +4,6 @@ import { getCurrentUser } from "@/lib/auth";
 import { getBalance } from "@/data/wallet";
 import { hasActiveTopping } from "@/data/store-user";
 import { vndToPoints } from "@/lib/points";
-import { formatPrice } from "@/lib/format";
 
 export const metadata = { title: "Full Topping" };
 
@@ -45,9 +44,6 @@ export default async function ToppingPage() {
             {toppingPoints.toLocaleString("vi-VN")}
           </span>
           <span className="pb-2 text-text-muted">point / năm</span>
-        </div>
-        <div className="mt-1 text-sm text-text-faint">
-          ≈ {formatPrice(annual)} · 100đ = 1 point
         </div>
 
         <ul className="mt-6 space-y-2.5">

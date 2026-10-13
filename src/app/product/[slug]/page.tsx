@@ -13,7 +13,7 @@ import { getEntitlement, getParishEntitlement, getToppingUntil } from "@/data/st
 import { getSettings } from "@/data/settings";
 import { claimProduct, startTrial } from "@/lib/actions/store";
 import { vndToPoints } from "@/lib/points";
-import { formatDate, formatPrice } from "@/lib/format";
+import { formatDate } from "@/lib/format";
 import { TYPE_LABEL } from "@/lib/labels";
 import { OwnedActions } from "@/components/owned-actions";
 import { AddToGiaolyButton } from "@/components/add-to-giaoly-button";
@@ -319,7 +319,7 @@ export default async function ProductPage({
                     {hasPro ? (
                       <strong className="text-accent">Miễn phí với Pro Giáo Lý Số</strong>
                     ) : (
-                      <>≈ {formatPrice(product.priceMonth)} · tải về dùng mãi</>
+                      <>Mua 1 lần · tải về dùng mãi</>
                     )}
                   </div>
                 </div>
@@ -351,7 +351,7 @@ export default async function ProductPage({
                     {hasPro ? (
                       <strong className="text-accent">Miễn phí với Pro Giáo Lý Số</strong>
                     ) : (
-                      <>≈ {formatPrice(annual)} · 100đ = 1 point</>
+                      <>Thuê bao 1 năm</>
                     )}
                   </div>
                 </div>
@@ -572,7 +572,7 @@ async function SoftwarePanel({
             <span className="text-xs font-semibold text-text-muted">point</span>
           </div>
           <span className="text-[11px] text-text-faint">
-            Key vĩnh viễn · ≈ {formatPrice(priceVnd)} · {deviceLimit} thiết bị
+            Pro vĩnh viễn · {deviceLimit} thiết bị
           </span>
         </div>
         {key ? (
@@ -590,10 +590,20 @@ async function SoftwarePanel({
             Mua key Pro · {points.toLocaleString("vi-VN")} point
           </Link>
         )}
-        <p className="mt-3 border-t border-border pt-2.5 text-[11px] text-text-faint">
-          Bản miễn phí không cần key. Có key: cài app → mục <b className="font-semibold text-text-muted">Bản quyền</b> → dán key
-          {key ? " (ở Thư viện)" : " sau khi mua"} → Kích hoạt
-        </p>
+        <div className="mt-3 border-t border-border pt-2.5 text-[11px] leading-relaxed text-text-faint">
+          <p>
+            <b className="font-semibold text-text-muted">Bản miễn phí không cần key.</b> Muốn nâng lên bản Pro:
+          </p>
+          <ol className="mt-1 list-decimal space-y-0.5 pl-4 marker:text-text-faint">
+            <li>{key ? "Lấy key đã mua ở Thư viện" : "Mua key Pro ở nút trên — key nằm trong Thư viện"}</li>
+            <li>
+              Mở app → mục <b className="font-semibold text-text-muted">Bản quyền</b> → dán key
+            </li>
+            <li>
+              Bấm <b className="font-semibold text-text-muted">Kích hoạt</b> — dùng Pro vĩnh viễn
+            </li>
+          </ol>
+        </div>
       </div>
     </>
   );
