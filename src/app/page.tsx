@@ -5,7 +5,7 @@ import { getAllProducts } from "@/data/products";
 import { Catalog } from "@/components/catalog";
 import { ContactDialog } from "@/components/contact-dialog";
 import { getCurrentUser } from "@/lib/auth";
-import { readQuery } from "@/lib/catalog";
+import { hasFreeVersion, readQuery } from "@/lib/catalog";
 import { COMPANY } from "@/lib/company";
 
 const STATS = [
@@ -81,7 +81,7 @@ export default async function HomePage({
 }) {
   const [categories, products, user, sp] = await Promise.all([getCategories(), getAllProducts(), getCurrentUser(), searchParams]);
   const query = readQuery(sp);
-  const freeCount = products.filter((p) => p.tier === "free").length;
+  const freeCount = products.filter(hasFreeVersion).length; // gồm phần mềm (có bản miễn phí)
 
   return (
     <div>

@@ -35,14 +35,24 @@ export function readQuery(sp: Params): CatalogQuery {
   };
 }
 
+/** Có bản miễn phí: sản phẩm FREE, hoặc phần mềm (mọi phần mềm tải về dùng free, key chỉ mở bản Pro). */
+export function hasFreeVersion(p: Product): boolean {
+  return p.tier === "free" || p.type === "software";
+}
+
+/** Có phần trả phí: sản phẩm PRO (phần mềm có key Pro thì vừa "miễn phí" vừa "có phí"). */
+export function hasPaidOption(p: Product): boolean {
+  return p.tier !== "free";
+}
+
 /** Lọc theo mọi điều kiện, trừ nhóm `skip` (để đếm số cho từng lựa chọn của nhóm đó). */
 export function filterProducts(list: Product[], q: CatalogQuery, skip?: "cat" | "price" | "type"): Product[] {
   const k = fold(q.q);
   return list.filter((p) => {
     if (k && !fold(p.title).includes(k) && !fold(p.tagline).includes(k) && !p.tags.some((t) => fold(t).includes(k))) return false;
     if (skip !== "cat" && q.cat && p.categoryId !== q.cat && !p.categorySlugs.includes(q.cat)) return false;
-    if (skip !== "price" && q.price === "free" && p.tier !== "free") return false;
-    if (skip !== "price" && q.price === "paid" && p.tier === "free") return false;
+    if (skip !== "price" && q.price === "free" && !hasFreeVersion(p)) return false;
+    if (skip !== "price" && q.price === "paid" && !hasPaidOption(p)) return false;
     if (skip !== "type" && q.type && p.type !== q.type) return false;
     return true;
   });

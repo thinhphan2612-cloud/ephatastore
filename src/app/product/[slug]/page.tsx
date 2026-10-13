@@ -156,8 +156,8 @@ export default async function ProductPage({
                       isProTier ? "border-accent text-accent" : "border-success text-success"
                     }`}
                   >
-                    {/* Nhãn loại đã ở dòng trên → huy hiệu chỉ báo có phí / miễn phí. */}
-                    {isProTier ? "PRO" : "FREE"}
+                    {/* Nhãn loại đã ở dòng trên → huy hiệu chỉ báo có phí / miễn phí. Phần mềm: luôn có bản miễn phí + key Pro. */}
+                    {isSoftware ? "FREE + PRO" : isProTier ? "PRO" : "FREE"}
                   </span>
                 </div>
                 <h1 className="font-display text-[24px] font-bold leading-tight">{product.title}</h1>
@@ -484,38 +484,15 @@ async function SoftwarePanel({
 
   return (
     <>
-      {/* Giá key + hành động chính */}
-      <div className="mt-4 rounded-2xl border border-border bg-surface-hover/60 p-3.5">
-        <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-          <div className="flex items-baseline gap-1.5">
-            <b className="text-[24px] leading-none tabular-nums">{points.toLocaleString("vi-VN")}</b>
-            <span className="text-xs font-semibold text-text-muted">point</span>
-          </div>
-          <span className="text-[11px] text-text-faint">
-            Key vĩnh viễn · ≈ {formatPrice(priceVnd)} · {deviceLimit} thiết bị
+      {/* Mọi phần mềm đều dùng miễn phí được — tải về đặt trước, key Pro là phần tùy chọn bên dưới. */}
+      <div className="mt-4 rounded-2xl border border-success/30 bg-success/5 p-3.5">
+        <div className="mb-2.5 flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
+          <span className="flex items-center gap-2 whitespace-nowrap">
+            <span className="rounded-md bg-success/15 px-2 py-0.5 text-[11px] font-bold uppercase tracking-[0.08em] text-success">
+              Bản miễn phí
+            </span>
+            <span className="text-[13px] font-semibold text-text">Tải về dùng ngay</span>
           </span>
-        </div>
-        {key ? (
-          <Link
-            href="/library"
-            className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-accent px-4 py-2.5 font-extrabold text-accent-contrast hover:bg-accent-hover"
-          >
-            <span aria-hidden>✓</span> Đã sở hữu — xem key
-          </Link>
-        ) : (
-          <Link
-            href={`/buy/${productId}?kind=software`}
-            className="mt-3 block w-full rounded-xl bg-accent px-4 py-2.5 text-center font-extrabold text-accent-contrast hover:bg-accent-hover"
-          >
-            Mua key · {points.toLocaleString("vi-VN")} point
-          </Link>
-        )}
-      </div>
-
-      {/* Tải về miễn phí: nút chính theo hệ điều hành của khách; nền tảng còn lại một dòng nhỏ. */}
-      <div className="mt-3 rounded-2xl border border-border p-3.5">
-        <div className="mb-2.5 flex items-baseline justify-between gap-2">
-          <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-text-faint">Tải về miễn phí</span>
           {newest && (
             <span className="text-[11px] tabular-nums text-text-faint">
               v{newest.version} · {formatDate(newest.created_at)}
@@ -574,8 +551,38 @@ async function SoftwarePanel({
             Không dùng được Store? Tải .exe{releases.windows.size_bytes ? ` · ${size(releases.windows.size_bytes)}` : ""}
           </a>
         )}
+      </div>
+
+      {/* Key Pro: mua một lần, dùng vĩnh viễn — không bắt buộc */}
+      <div className="mt-3 rounded-2xl border border-border bg-surface-hover/60 p-3.5">
+        <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-text-faint">Nâng cấp Pro · tùy chọn</div>
+        <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+          <div className="flex items-baseline gap-1.5">
+            <b className="text-[22px] leading-none tabular-nums">{points.toLocaleString("vi-VN")}</b>
+            <span className="text-xs font-semibold text-text-muted">point</span>
+          </div>
+          <span className="text-[11px] text-text-faint">
+            Key vĩnh viễn · ≈ {formatPrice(priceVnd)} · {deviceLimit} thiết bị
+          </span>
+        </div>
+        {key ? (
+          <Link
+            href="/library"
+            className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-accent px-4 py-2.5 font-extrabold text-accent-contrast hover:bg-accent-hover"
+          >
+            <span aria-hidden>✓</span> Đã sở hữu key Pro — xem key
+          </Link>
+        ) : (
+          <Link
+            href={`/buy/${productId}?kind=software`}
+            className="mt-3 block w-full rounded-xl bg-accent px-4 py-2.5 text-center font-extrabold text-accent-contrast hover:bg-accent-hover"
+          >
+            Mua key Pro · {points.toLocaleString("vi-VN")} point
+          </Link>
+        )}
         <p className="mt-3 border-t border-border pt-2.5 text-[11px] text-text-faint">
-          Cài app → mục <b className="font-semibold text-text-muted">Bản quyền</b> → dán key{key ? " (ở Thư viện)" : " sau khi mua"} → Kích hoạt
+          Bản miễn phí không cần key. Có key: cài app → mục <b className="font-semibold text-text-muted">Bản quyền</b> → dán key
+          {key ? " (ở Thư viện)" : " sau khi mua"} → Kích hoạt
         </p>
       </div>
     </>

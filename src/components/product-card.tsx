@@ -86,7 +86,17 @@ export function ProductCard({ product }: { product: Product }) {
         </div>
 
         <div className="mt-auto flex items-end justify-between gap-3 border-t border-border pt-3">
-          {isPro ? (
+          {kind === "software" ? (
+            // Phần mềm luôn có bản miễn phí; key chỉ để mở bản Pro → nhãn miễn phí đứng trước, giá key là dòng phụ.
+            <div className="min-w-0">
+              <span className="inline-block rounded-md bg-success/15 px-2.5 py-1 text-[13px] font-bold text-success">Bản miễn phí</span>
+              {isPro && points > 0 && (
+                <div className="mt-1.5 whitespace-nowrap text-xs text-text-muted">
+                  Key Pro vĩnh viễn · <b className="tabular-nums text-text">{points.toLocaleString("vi-VN")}</b> point
+                </div>
+              )}
+            </div>
+          ) : isPro ? (
             <div className="min-w-0">
               <div className="whitespace-nowrap">
                 <b className="text-[17px] tabular-nums text-text">{points.toLocaleString("vi-VN")}</b>{" "}
