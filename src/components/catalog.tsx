@@ -2,7 +2,7 @@ import Link from "next/link";
 import { ProductCard } from "@/components/product-card";
 import { SortSelect } from "@/components/sort-select";
 import { TYPE_LABEL } from "@/lib/labels";
-import { SORTS, catalogHref, filterProducts, sortProducts, type CatalogQuery } from "@/lib/catalog";
+import { SORTS, catalogHref, filterProducts, hasFreeVersion, hasPaidOption, sortProducts, type CatalogQuery } from "@/lib/catalog";
 import type { Category, Product, ProductType } from "@/lib/types";
 
 const TYPES: ProductType[] = ["tool", "game", "asset", "image", "feature", "software"];
@@ -56,8 +56,9 @@ export function Catalog({
       title: "Giá",
       items: [
         { label: "Tất cả", count: byPrice.length, active: !query.price, href: href({ price: "" }) },
-        { label: "Miễn phí", count: byPrice.filter((p) => p.tier === "free").length, active: query.price === "free", href: href({ price: "free" }) },
-        { label: "Có phí", count: byPrice.filter((p) => p.tier !== "free").length, active: query.price === "paid", href: href({ price: "paid" }) },
+        // Phần mềm có bản free + key Pro → đếm ở cả hai.
+        { label: "Miễn phí / có bản free", count: byPrice.filter(hasFreeVersion).length, active: query.price === "free", href: href({ price: "free" }) },
+        { label: "Có phí", count: byPrice.filter(hasPaidOption).length, active: query.price === "paid", href: href({ price: "paid" }) },
       ],
     },
     {
@@ -73,7 +74,7 @@ export function Catalog({
   const chips = [
     query.q && { label: `“${query.q}”`, href: href({ q: "" }) },
     query.cat && !lockedCat && { label: categories.find((c) => c.slug === query.cat)?.name ?? query.cat, href: href({ cat: "" }) },
-    query.price && { label: query.price === "free" ? "Miễn phí" : "Có phí", href: href({ price: "" }) },
+    query.price && { label: query.price === "free" ? "Miễn phí / có bản free" : "Có phí", href: href({ price: "" }) },
     query.type && { label: TYPES.includes(query.type as ProductType) ? typeLabel(query.type as ProductType) : query.type, href: href({ type: "" }) },
   ].filter(Boolean) as { label: string; href: string }[];
 
