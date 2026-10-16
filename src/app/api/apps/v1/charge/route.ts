@@ -4,6 +4,7 @@ import { handle, ok, readJson, resolveCaller } from "@/lib/apps-api";
 /**
  * Trừ point cho một lần dùng dịch vụ: { amount, reason, idempotencyKey }.
  * Gửi lại cùng idempotencyKey → trả kết quả cũ (duplicate: true), không trừ lần 2.
+ * Riêng lần trừ đã hoàn hết: gửi lại khóa đó là trừ mới (0027).
  */
 export async function POST(request: Request) {
   try {

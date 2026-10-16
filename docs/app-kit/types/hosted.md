@@ -25,7 +25,7 @@ cần cài đặt/truy cập máy tính (→ Phần mềm bán key).
 | Đường dẫn | **Tương đối** (`./assets/x.png`), không bắt đầu bằng `/`. App chạy dưới `/g/<id>/<mã truy cập>/` — đường dẫn tương đối tự mang theo mã. Vite: `base: './'` · Angular: `ng build --base-href ./` · CRA: `"homepage": "."`. Next.js export tĩnh khó làm đường dẫn tương đối — ưu tiên Vite. |
 | Điều hướng | **Hash routing** (`#/trang`). Không có rewrite phía server → tải lại một route dạng `/g/.../trang` sẽ 404. |
 | Bí mật | Không đặt API key/secret trong code — ai cũng xem được. Cần thu tiền → dùng Ví Ephata (dưới). |
-| Lưu dữ liệu | Chỉ `localStorage` / `IndexedDB` (theo trình duyệt). App chạy trên domain **`play.ephatastore.com`** (tách khỏi store), dùng chung với các app host khác → **đặt tiền tố khóa theo slug** (vd `quiz-giao-ly:diem`), đừng `localStorage.clear()`. |
+| Lưu dữ liệu | Chỉ `localStorage` / `IndexedDB` (theo trình duyệt). App chạy trên domain **`play.ephatastore.com`** (tách khỏi store), dùng chung với các app host khác → **đặt tiền tố khóa theo slug** (vd `quiz-giao-ly:diem`), đừng `localStorage.clear()`. Thứ liên quan tới tiền (vd lượt miễn phí trong ngày) → lưu phía server bằng `ephata("state")` (mục Ví bên dưới) — `localStorage` mất khi mở tab ẩn danh / xóa dữ liệu. |
 | Liên kết | Link tới trang store phải là URL tuyệt đối `https://www.ephatastore.com/...` kèm `target="_top"` (app chạy trên domain khác, trong khung). |
 | Loại file | Lưu đúng content-type theo đuôi file: html, js, css, json, wasm, ảnh (png/jpg/webp/avif/gif/svg/ico), âm thanh (mp3/m4a/aac/wav/ogg/flac), video (mp4/webm), font (woff/woff2/ttf/otf), glb/gltf. Đuôi khác lưu `application/octet-stream`. |
 | Engine game | Phaser, PixiJS, Three.js, JS thuần: ổn. Unity/Godot (`.wasm`): wasm phục vụ đúng `application/wasm`; **tắt nén khi build** (không dùng `.br/.gz`). Chưa thử engine thật — kiểm kỹ lần đầu. |
@@ -70,8 +70,19 @@ if (r.ok) {
 Mã lỗi: `INSUFFICIENT_POINTS` (kèm `needed`, `balance`, `topupUrl`) · `CONNECTION_REVOKED` (người dùng đã ngắt kết nối, **hoặc
 ô Ví chưa bật trên admin**, hoặc người dùng mở từ Giáo Lý Số mà chưa từng cho phép trên Ephata — mời mở từ trang sản phẩm trên
 Ephata) · `TOKEN_INVALID` (phiên chơi hết hạn sau 12 giờ — mời mở lại từ Ephata) · `PRODUCT_NOT_FOUND` (phiên đang mở trên bản
-build vừa bị thay — mời tải lại trang) · `IDEMPOTENCY_CONFLICT` · `BAD_REQUEST` · `NOT_SIGNED_IN` (chỉ gặp khi chạy local / preview).
-Nên **báo trước giá** cho người dùng và trừ khi họ bấm xác nhận.
+build vừa bị thay — mời tải lại trang) · `WALLET_DISABLED` (ô Ví chưa bật trên admin) · `IDEMPOTENCY_CONFLICT` · `BAD_REQUEST` ·
+`NOT_SIGNED_IN` (chỉ gặp khi chạy local / preview).
+Nên **báo trước giá** cho người dùng và trừ khi họ bấm xác nhận. Gửi lại khóa của một lần trừ **đã hoàn hết** là **trừ mới**
+(không còn tính là đã trả); hoàn một phần vẫn tính là đã trả.
+
+**Dữ liệu theo người dùng phía server** (`state`): mỗi app có một JSON object ≤ 16KB cho từng người dùng, theo họ sang máy khác /
+tab ẩn danh. Dùng cho lượt miễn phí, tiến độ… — **không** dùng cho dữ liệu lớn hay bí mật (người dùng tự sửa được qua DevTools).
+```js
+const { state } = await ephata("state");                     // null = chưa có
+await ephata("state", { value: { date: "2026-10-16", used: 1 } });  // ghi đè cả object
+```
+Nhận biết đang chạy trên Ephata bằng **đường dẫn** (`/^\/g\/[0-9a-f-]{36}\/[\w-]+\.[\w-]+\//.test(location.pathname)`),
+đừng bằng tên miền — preview / local chạy cùng origin với store, tên miền có thể đổi.
 
 ## Giá & quyền
 - **Công cụ web**: **luôn miễn phí** cho người đã đăng nhập (admin chặn đặt PRO); doanh thu qua Ví Ephata (nếu bật).
