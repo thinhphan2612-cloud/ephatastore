@@ -8,6 +8,8 @@ import { createStoreAdminClient } from "@/lib/supabase/store-admin";
 import { slugify } from "@/lib/slug";
 import { htmlToText, sanitizeDescription } from "@/lib/rich-text";
 import { removeStorageFolder } from "@/lib/storage-folder";
+import { parseGameUrl } from "@/lib/hosted-access";
+import { assertBuildUploaded } from "@/lib/hosted-build";
 import { retryProvisionJob, syncParishFeature } from "@/lib/giaoly-provision";
 import { attempt, type ActionResult } from "@/lib/action-result";
 import { IMAGE_EXT, VIDEO_EXT, MAX_GALLERY, youtubeId, type GalleryItem } from "@/lib/gallery";
@@ -255,6 +257,17 @@ async function persistProduct(formData: FormData): Promise<SaveState & { id?: st
     return { error: "Link ngoài cần URL app bắt đầu bằng https:// (vd https://app.example.com)." };
   if (row.type === "tool" && hostedApp && payload.tier === "pro")
     return { error: "Công cụ chạy trên store luôn miễn phí (thu tiền theo lượt qua Ví Ephata) — chọn Miễn phí." };
+  // Tạo mới "Chạy trên store" (form gửi hosted_new): game_url phải trỏ vào bản build vừa tải lên, có index.html.
+  if (!id && formData.get("hosted_new") === "1") {
+    const build = parseGameUrl(String(merged.game_url ?? ""));
+    if (!build || build.entry !== "index.html" || (row.type !== "game" && row.type !== "tool"))
+      return { error: "Chưa có bản build (.zip) hợp lệ." };
+    try {
+      await assertBuildUploaded(build.gameId);
+    } catch (e) {
+      return { error: e instanceof Error ? e.message : "Bản build chưa tải lên đủ." };
+    }
+  }
   // Ô "App trừ point qua Ví Ephata" chỉ có ở form của loại app (đánh dấu bằng uses_wallet_field).
   if (formData.has("uses_wallet_field")) payload.uses_wallet = formData.get("uses_wallet") === "on";
 

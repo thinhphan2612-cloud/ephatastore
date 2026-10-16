@@ -95,11 +95,11 @@ export async function adminGetProduct(id: string): Promise<AdminProductDetail | 
   return { ...(rest as unknown as Omit<AdminProductDetail, "has_app_secret">), has_app_secret: !!app_secret_hash };
 }
 
-export async function adminListCategories(): Promise<{ id: string; name: string }[]> {
+export async function adminListCategories(): Promise<{ id: string; slug: string; name: string }[]> {
   const supabase = createStoreAdminClient();
   const { data, error } = await supabase
     .from("categories")
-    .select("id,name")
+    .select("id,slug,name")
     .order("sort_order");
   if (error) throw new Error(error.message);
   return data ?? [];
@@ -126,11 +126,11 @@ export async function adminListCoupons(): Promise<AdminCoupon[]> {
   return (data ?? []) as AdminCoupon[];
 }
 
-export async function adminListPublishers(): Promise<{ id: string; name: string }[]> {
+export async function adminListPublishers(): Promise<{ id: string; slug: string; name: string }[]> {
   const supabase = createStoreAdminClient();
   const { data, error } = await supabase
     .from("publishers")
-    .select("id,name")
+    .select("id,slug,name")
     .order("name");
   if (error) throw new Error(error.message);
   return data ?? [];
