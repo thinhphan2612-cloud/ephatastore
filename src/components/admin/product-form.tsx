@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { createProductUpload, saveProductData } from "@/lib/actions/admin";
 import { createReleaseUpload, saveRelease } from "@/lib/actions/software";
 import { createStoreAuthBrowserClient } from "@/lib/supabase/store-auth-browser";
+import { uploadHostedBuild } from "@/lib/hosted-upload";
 import type { AdminProductDetail } from "@/data/admin";
 import { TYPE_LABEL } from "@/lib/labels";
 import { SelectWithCreate } from "@/components/admin/catalog-fields";
@@ -41,6 +42,8 @@ const PRESET_TYPES: Record<ProductPreset, ProductType[]> = {
 };
 
 const mb = (n: number) => (n / 1048576).toFixed(1);
+/** Hôm nay theo giờ Việt Nam (YYYY-MM-DD) — cùng kết quả ở server và trình duyệt. */
+const todayVN = () => new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Ho_Chi_Minh" });
 
 export function ProductForm({
   categories,
@@ -49,6 +52,8 @@ export function ProductForm({
   preset = "full",
   currentReleases = {},
   slugLockedReason = null,
+  defaultCategoryId,
+  defaultPublisherId,
 }: {
   categories: { id: string; name: string }[];
   publishers: { id: string; name: string }[];
@@ -58,12 +63,17 @@ export function ProductForm({
   currentReleases?: Partial<Record<Platform, { version: string; file_name: string }>>;
   /** Slug không đổi được (sản phẩm đã có người dùng / đã phát hành) — lý do hiển thị dưới ô. */
   slugLockedReason?: string | null;
+  /** Chọn sẵn khi tạo mới (vd Chạy trên store → Game Store; nhà phát hành Ephata Team). */
+  defaultCategoryId?: string;
+  defaultPublisherId?: string;
 }) {
   const router = useRouter();
   const p = product;
   const types = PRESET_TYPES[preset];
   const isSoftware = preset === "software";
   const isHosted = preset === "hosted";
+  // Tạo mới game / công cụ web: tải bản build .zip ngay trong form (khi sửa thì thay ở khung "Bản build" riêng).
+  const isNewHosted = isHosted && !p;
   const showDownload = preset === "download" || preset === "full";
   // Ô giao hàng theo loại đang chọn (form 'full' đổi loại thì ô đổi theo).
   const showLinkBase = preset === "link" || preset === "full";
@@ -87,6 +97,9 @@ export function ProductForm({
   const [currentLogo, setCurrentLogo] = useState<string | null>(p?.logo_url ?? null);
   const [media, setMedia] = useState<MediaDraft[]>(() => parseGallery(p?.gallery).map((item) => ({ kind: "saved", item })));
   const [download, setDownload] = useState<File | null>(null);
+  const [build, setBuild] = useState<File | null>(null);
+  // Bản build đã tải lên trong phiên này — lưu lại lỗi ở bước sau thì bấm Lưu lần nữa không tải lại.
+  const [buildUrl, setBuildUrl] = useState<string | null>(null);
   const [installers, setInstallers] = useState<Partial<Record<Platform, File | null>>>({});
   const [fileKeys, setFileKeys] = useState<Record<string, number>>({});
   const [version, setVersion] = useState("");
@@ -119,6 +132,7 @@ export function ProductForm({
     if (cover && cover.size > MAX_COVER_BYTES) return setError(`Ảnh bìa ${mb(cover.size)}MB — tối đa 5MB.`);
     if (download && download.size > MAX_FILE_BYTES) return setError(`File tải về ${mb(download.size)}MB — tối đa 50MB.`);
     if (chosen.length && !SEMVER_RE.test(v)) return setError("Nhập phiên bản dạng semver (vd 1.2.8) cho bộ cài.");
+    if (isNewHosted && !build && !buildUrl) return setError("Chọn file .zip bản build (chứa index.html).");
     for (const pf of chosen)
       if (installers[pf]!.size > MAX_FILE_BYTES)
         return setError(`Bộ cài ${PLATFORM_LABEL[pf]} vượt 50MB (giới hạn Supabase gói Free).`);
@@ -126,6 +140,16 @@ export function ProductForm({
     setBusy(true);
     try {
       const fd = new FormData(form);
+      if (isNewHosted) {
+        let url = buildUrl;
+        if (!url) {
+          const { gameId } = await uploadHostedBuild(build!, setProgress);
+          url = `/g/${gameId}/index.html`;
+          setBuildUrl(url);
+        }
+        fd.set("game_url", url);
+        fd.set("hosted_new", "1");
+      }
       if (cover) {
         setProgress(`Đang tải ảnh bìa (${mb(cover.size)}MB)…`);
         const t = unwrap(await createProductUpload({ purpose: "cover", fileName: cover.name }));
@@ -246,11 +270,11 @@ export function ProductForm({
         {/* div thay vì Field (label): khung "+ Thêm mới" nằm bên trong, label sẽ cướp focus. */}
         <div>
           <span className="mb-1 block text-sm text-text-muted">Danh mục *</span>
-          <SelectWithCreate kind="category" name="category_id" options={categories} defaultValue={p?.category_id} />
+          <SelectWithCreate kind="category" name="category_id" options={categories} defaultValue={p?.category_id ?? defaultCategoryId} />
         </div>
         <div>
           <span className="mb-1 block text-sm text-text-muted">Nhà phát hành *</span>
-          <SelectWithCreate kind="publisher" name="publisher_id" options={publishers} defaultValue={p?.publisher_id} />
+          <SelectWithCreate kind="publisher" name="publisher_id" options={publishers} defaultValue={p?.publisher_id ?? defaultPublisherId} />
         </div>
       </div>
 
@@ -328,7 +352,7 @@ export function ProductForm({
           <input name="tags" defaultValue={p?.tags?.join(", ")} className={input} placeholder="giáo lý, quản lý" />
         </Field>
         <Field label="Ngày phát hành">
-          <input type="date" name="released_at" defaultValue={p?.released_at ?? ""} className={input} />
+          <input type="date" name="released_at" defaultValue={p ? (p.released_at ?? "") : todayVN()} className={input} />
         </Field>
       </div>
 
@@ -444,6 +468,24 @@ export function ProductForm({
         </div>
       )}
 
+      {isNewHosted && (
+        <div className="rounded-lg border border-border bg-surface-hover/40 p-4">
+          <div className="mb-3 text-sm font-semibold text-text">Bản build</div>
+          <span className="mb-1 block text-sm text-text-muted">File .zip — chứa index.html + tài nguyên *</span>
+          <FileInput
+            accept=".zip,application/zip"
+            onChange={(f) => {
+              setBuild(f);
+              setBuildUrl(null);
+            }}
+          />
+          <Hint>
+            Hệ thống tự giải nén, host và chạy thẳng trên store. Dùng đường dẫn tương đối, mỗi file tối đa 50MB. Thay bản build
+            sau này ở trang Sửa (giữ được bản trước để quay lại).
+          </Hint>
+        </div>
+      )}
+
       {!isSoftware && !isHosted && (
         <div className="rounded-lg border border-border bg-surface-hover/40 p-4">
           <div className="mb-3 text-sm font-semibold text-text">Giao hàng</div>
@@ -528,7 +570,7 @@ export function ProductForm({
         <input type="hidden" name="active_field" value="1" />
         <Check name="active" label="Hiện trên store" defaultChecked={p ? p.active : true} />
         <Check name="featured" label="Nổi bật" defaultChecked={p?.featured} />
-        <Check name="is_new" label="Mới" defaultChecked={p?.is_new} />
+        <Check name="is_new" label="Mới" defaultChecked={p ? p.is_new : true} />
         <Check name="is_popular" label="Phổ biến" defaultChecked={p?.is_popular} />
       </div>
 

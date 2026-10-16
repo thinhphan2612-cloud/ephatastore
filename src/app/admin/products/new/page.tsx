@@ -7,6 +7,10 @@ const PRESETS: Record<string, { title: string; hint: string }> = {
     title: "Tải về",
     hint: "File PDF / DOCX / ảnh / bộ thiết kế (.zip). Người mua tải qua link ký có hạn.",
   },
+  hosted: {
+    title: "Chạy trên store",
+    hint: "Game hoặc công cụ web (.zip build tĩnh có index.html). Hệ thống tự giải nén, host và chạy thẳng trên store.",
+  },
   link: {
     title: "Link ngoài",
     hint: "App đã host nơi khác (có backend riêng). Mở tab khi người dùng đã sở hữu.",
@@ -29,7 +33,7 @@ const CARDS = [
     desc: "File PDF, DOCX, ảnh, bộ thiết kế (.zip). Nút Tải về sau khi mua.",
   },
   {
-    href: "/admin/games/new",
+    href: "/admin/products/new?kind=hosted",
     icon: "▶",
     title: "Chạy trên store",
     desc: "Game hoặc web app (.zip build tĩnh). Chạy thẳng trong store như game.",
@@ -118,6 +122,8 @@ export default async function NewProductPage({
         categories={categories}
         publishers={publishers}
         preset={kind as ProductPreset}
+        defaultCategoryId={kind === "hosted" ? categories.find((c) => c.slug === "game-store")?.id : undefined}
+        defaultPublisherId={publishers.find((p) => p.slug === "ephata")?.id}
       />
     </div>
   );
