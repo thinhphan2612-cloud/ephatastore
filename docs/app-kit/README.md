@@ -1,6 +1,6 @@
 # Ephata App Kit — tạo sản phẩm cho Ephata Store
 
-**Kit v15 · cập nhật 12/10/2026** — số phiên bản ở dòng này; thay đổi từng bản xem mục "Phiên bản kit" cuối file.
+**Kit v16 · cập nhật 16/10/2026** — số phiên bản ở dòng này; thay đổi từng bản xem mục "Phiên bản kit" cuối file.
 
 Bộ chuẩn để làm **bất kỳ sản phẩm nào** bán trên Ephata Store (chợ sản phẩm số Công giáo, ephatastore.com).
 Mở một phiên code mới với AI → đưa kit này vào → AI hỏi ý tưởng, xác định sản phẩm thuộc loại nào trong 5 loại,
@@ -131,6 +131,10 @@ soạn theo `description.md` (đã tự kiểm theo mục "Được dùng" / "Gi
 
 ## Phiên bản kit
 
+- **v16 (16/10/2026)** — Ví Ephata: API **`state`** (JSON ≤ 16KB theo người dùng, lưu phía server) cho lượt miễn phí / tiến độ —
+  đừng đếm lượt miễn phí bằng `localStorage` (tab ẩn danh là lách được); gửi lại khóa của lần trừ **đã hoàn hết** = trừ mới;
+  thêm mã lỗi `WALLET_DISABLED` cho app host; nhận biết đang chạy trên Ephata bằng đường dẫn `/g/<id>/<mã>/`, không bằng tên miền.
+  Dự án loại 2 / 3 có lượt miễn phí: chuyển phần đếm sang `state`.
 - **v15 (12/10/2026)** — key thử cho người duyệt Microsoft Store: tạo ở **Admin → Sửa phần mềm → "Key tặng / key thử"** (key rời,
   không trừ point, Khóa / Gỡ thiết bị sau khi duyệt); cùng khung dùng để tặng key cho thành viên theo email.
 - **v14 (12/10/2026)** — mẫu **`msstore/store-listing.md`** (mọi ô Partner Center theo từng ngôn ngữ, ô dùng chung, runFullTrust,

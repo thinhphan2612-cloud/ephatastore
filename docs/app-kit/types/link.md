@@ -45,6 +45,7 @@ token có thể dùng lại trong 5 phút đó — app nên bỏ token khỏi UR
 | `POST /verify` | `{ product, connection }` | `{ ok, user:{id}, access:{active,until} }` — quyền **hiện tại** |
 | `POST /balance` | `{ product, connection }` | `{ ok, balance }` |
 | `POST /charge` | `{ product, connection, amount, reason, idempotencyKey }` | `{ ok, chargeId, balance, duplicate }` |
+| `POST /state` | `{ product, connection, value? }` | `{ ok, state }` — dữ liệu nhỏ của app theo người dùng (JSON object ≤ 16KB); có `value` = ghi đè |
 | `POST /refund` | `{ product, connection, chargeId, amount? }` | `{ ok, refunded, balance }` |
 
 Lỗi: HTTP 200 `{ ok:false, error }` cho lỗi nghiệp vụ, 400 body sai, 401 khóa sai. Mã: `APP_UNAUTHORIZED`, `TOKEN_INVALID`,
@@ -93,7 +94,8 @@ async function chargeForService(userId, amount, reason) {
 Python: cùng các lời gọi HTTP trên (`requests.post(f"{BASE}/charge", json={...}, headers={"authorization": f"Bearer {SECRET}"})`).
 
 **Quy tắc**: `idempotencyKey` sinh **một lần cho mỗi lần dùng dịch vụ** và giữ nguyên khi gửi lại (mạng lỗi) — Ephata trả kết
-quả cũ (`duplicate:true`), không trừ 2 lần. Báo giá trước cho người dùng; trừ khi họ xác nhận.
+quả cũ (`duplicate:true`), không trừ 2 lần. Riêng lần trừ **đã hoàn hết**: gửi lại khóa đó là trừ mới. Báo giá trước cho người
+dùng; trừ khi họ xác nhận.
 
 ## Giá & quyền
 - **Miễn phí** hoặc **Thuê bao** (giá/tháng: gói năm = ×12, mua lẻ N ngày, dùng thử N ngày) — đặt trong khung **Bán** của form.

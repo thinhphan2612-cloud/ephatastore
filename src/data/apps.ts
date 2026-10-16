@@ -314,6 +314,32 @@ export async function refundPoints(c: Caller, chargeId: unknown, amount: unknown
   return { refunded: d.refunded, balance: d.balance };
 }
 
+// ---------- Dữ liệu nhỏ của app theo người dùng (0027) ----------
+
+const STATE_MAX_BYTES = 16 * 1024;
+
+/** Đọc (value bỏ trống) hoặc ghi đè dữ liệu của app cho người dùng này. Trả giá trị hiện tại (null = chưa có). */
+export async function appState(c: Caller, value: unknown) {
+  const db = createStoreAdminClient();
+  if (value === undefined) {
+    const { data, error } = await db
+      .from("app_user_state")
+      .select("value")
+      .eq("product_id", c.product.id)
+      .eq("store_user_id", c.userId)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    return { state: data?.value ?? null };
+  }
+  if (value === null || typeof value !== "object" || Buffer.byteLength(JSON.stringify(value)) > STATE_MAX_BYTES)
+    throw new AppError("BAD_REQUEST", 400);
+  const { error } = await db
+    .from("app_user_state")
+    .upsert({ product_id: c.product.id, store_user_id: c.userId, value, updated_at: new Date().toISOString() });
+  if (error) throw new Error(error.message);
+  return { state: value };
+}
+
 // ---------- Khóa bí mật server của app ngoài ----------
 
 /** Tạo khóa mới (khóa cũ hết hiệu lực ngay). Trả khóa dạng rõ — chỉ hiển thị một lần. */
