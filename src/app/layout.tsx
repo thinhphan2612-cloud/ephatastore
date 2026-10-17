@@ -25,6 +25,8 @@ export const metadata: Metadata = {
   },
   description:
     "Kho công cụ số Công giáo: web app, biểu mẫu, thiết kế, tài liệu và game giáo lý — cho giáo xứ, giáo lý viên và cộng đoàn.",
+  // iPhone "Thêm vào MH chính": tên dưới icon + mở toàn màn hình như app (icon lấy từ app/apple-icon.png).
+  appleWebApp: { capable: true, title: "Ephata" },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
