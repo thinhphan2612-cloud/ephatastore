@@ -305,6 +305,9 @@ export function ProductForm({
                 label={perpetual ? "Có phí — mua 1 lần, dùng vĩnh viễn" : "Có phí — thuê bao"}
               />
             </div>
+            {sale === "free" && (
+              <Hint>Ai đăng nhập cũng dùng được — ưu đãi Pro Giáo Lý Số chỉ áp cho sản phẩm có phí.</Hint>
+            )}
             {sale === "paid" && (
               <>
                 <div className="grid gap-5 sm:grid-cols-2">
