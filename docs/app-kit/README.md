@@ -1,6 +1,6 @@
 # Ephata App Kit — tạo sản phẩm cho Ephata Store
 
-**Kit v16 · cập nhật 16/10/2026** — số phiên bản ở dòng này; thay đổi từng bản xem mục "Phiên bản kit" cuối file.
+**Kit v17 · cập nhật 16/10/2026** — số phiên bản ở dòng này; thay đổi từng bản xem mục "Phiên bản kit" cuối file.
 
 Bộ chuẩn để làm **bất kỳ sản phẩm nào** bán trên Ephata Store (chợ sản phẩm số Công giáo, ephatastore.com).
 Mở một phiên code mới với AI → đưa kit này vào → AI hỏi ý tưởng, xác định sản phẩm thuộc loại nào trong 5 loại,
@@ -100,7 +100,8 @@ soạn theo `description.md` (đã tự kiểm theo mục "Được dùng" / "Gi
 - **Admin**: `https://www.ephatastore.com/login` → đăng nhập tài khoản admin → **Admin → Thêm sản phẩm** → chọn đúng thẻ loại.
   (Store đã mở cho khách — sản phẩm bật **Đang bán** + **Hiện trên store** là khách thấy và mua được ngay.)
 - **Tiền**: giá nhập bằng VND ở khung **Bán** của form (Miễn phí / Mua vĩnh viễn / Thuê bao tùy loại), người mua trả bằng
-  **point** (100đ = 1 point), nạp point bằng chuyển khoản ở trang Ví. Ô **"Miễn phí cho Pro Giáo Lý Số"** quyết định tài khoản
+  **point** (100đ = 1 point), nạp point bằng chuyển khoản ở trang Ví. **Khách chỉ thấy giá bằng point** — store không quy ra đ
+  (trừ trang Ví nạp tiền); mô tả / listing cũng **đừng ghi giá**, nhất là giá đ. Ô **"Miễn phí cho Pro Giáo Lý Số"** quyết định tài khoản
   Pro có được dùng free không — không tick thì Pro vẫn phải mua. "Free cho Pro" chỉ **trong thời gian gói Pro của giáo xứ còn hạn**
   (không phải vĩnh viễn). **Full Topping** (thuê bao 365 ngày của khách) mở mọi sản phẩm có phí **trừ** phần mềm bán key và tính năng
   Giáo Lý Số — viết mô tả cho đúng điều này.
@@ -110,7 +111,10 @@ soạn theo `description.md` (đã tự kiểm theo mục "Được dùng" / "Gi
 - **Đã có người dùng thì khóa**: slug, **loại sản phẩm** và **feature key** không đổi được (muốn bán loại khác → tạo sản phẩm mới).
 - **Hai người cùng sửa một sản phẩm**: người lưu sau bằng form mở từ trước bị chặn ("vừa được người khác sửa") — tải lại trang rồi sửa.
 - **Slug**: chữ thường không dấu, số, gạch ngang; không trùng; **không đổi sau khi đã bán**.
-- **Nổi bật / Mới**: admin bật ở trang **Sửa** sản phẩm. Sản phẩm Nổi bật có nhãn **★ Nổi bật** trên thẻ và đứng đầu khi khách
+- **Form tạo mới — mặc định**: tick sẵn **Mới**, **Ngày phát hành** = hôm nay, **Nhà phát hành** = Ephata Team (loại Chạy trên
+  store chọn sẵn danh mục Game Store) — đổi nếu không đúng. Mọi loại có cùng phần chung (mô tả HTML, ảnh bìa, logo, minh họa, cờ),
+  chỉ khác khung giao hàng.
+- **Nổi bật / Mới**: tick ở cuối form (tạo mới hoặc **Sửa**). Sản phẩm Nổi bật có nhãn **★ Nổi bật** trên thẻ và đứng đầu khi khách
   sắp xếp "Nổi bật" (mặc định ở trang chủ / danh mục); kế đến là sản phẩm Mới, rồi theo ngày phát hành.
 - **Ảnh bìa**: **1600×900** (16:9), JPG/WebP/PNG ≤ 5MB (nên ≤ 1MB). Hiện ở thẻ sản phẩm (~300px ngang) và đầu trang sản phẩm —
   hình + chữ chính đặt ở giữa, chữ đủ to để đọc ở cỡ nhỏ. Ảnh khác tỉ lệ sẽ bị cắt.
@@ -131,6 +135,12 @@ soạn theo `description.md` (đã tự kiểm theo mục "Được dùng" / "Gi
 
 ## Phiên bản kit
 
+- **v17 (16/10/2026)** — **Chạy trên store** dùng form chung như các loại khác: mô tả HTML, logo, ảnh / video minh họa, tags, ngày
+  phát hành nhập **ngay khi tạo** cùng file `.zip` (khung **Bản build**); slug tự tạo từ tiêu đề (không còn thêm ký tự ngẫu nhiên);
+  lưu xong về danh sách sản phẩm. Form tạo mới mọi loại: tick sẵn Mới, ngày phát hành hôm nay, NPH Ephata Team. Khách **chỉ thấy giá
+  bằng point** (không quy ra đ). Phần mềm: thẻ hiện nhãn **"Bản miễn phí"** + **"Bản Pro"**, giá key + hướng dẫn kích hoạt chỉ ở
+  trang sản phẩm → bản không key phải dùng được, màn hình trong app tên đúng **"Bản quyền"**. Dự án loại 2 đang chờ đăng: soạn
+  checklist theo mục "Đưa lên admin" mới.
 - **v16 (16/10/2026)** — Ví Ephata: API **`state`** (JSON ≤ 16KB theo người dùng, lưu phía server) cho lượt miễn phí / tiến độ —
   đừng đếm lượt miễn phí bằng `localStorage` (tab ẩn danh là lách được); gửi lại khóa của lần trừ **đã hoàn hết** = trừ mới;
   thêm mã lỗi `WALLET_DISABLED` cho app host; nhận biết đang chạy trên Ephata bằng đường dẫn `/g/<id>/<mã>/`, không bằng tên miền.

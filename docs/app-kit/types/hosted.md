@@ -15,7 +15,7 @@ cần cài đặt/truy cập máy tính (→ Phần mềm bán key).
 - **1 file `.zip`** chứa bản build: `index.html` (**đúng chữ thường**) ở gốc (hoặc trong 1 thư mục con — Ephata tự bóc lớp thư mục
   ngoài cùng). Tên file / thư mục **không dấu**: a–z, 0–9, `. _ -` (Ephata từ chối tên có dấu / ký tự đặc biệt trước khi tải lên).
 - **Ảnh bìa** 1600×900 (16:9), tối đa 5MB.
-- **Logo vuông** + tối đa **4 ảnh / video minh họa** (ảnh ≤ 10MB, MP4/WebM ≤ 50MB hoặc link YouTube) — xem README, mục "Quy ước chung". Game / công cụ: 1 video gameplay ngắn + 2–3 ảnh màn hình. Form tải lên chỉ có ảnh bìa → thêm logo / minh họa ở trang **Sửa**.
+- **Logo vuông** + tối đa **4 ảnh / video minh họa** (ảnh ≤ 10MB, MP4/WebM ≤ 50MB hoặc link YouTube) — xem README, mục "Quy ước chung". Game / công cụ: 1 video gameplay ngắn + 2–3 ảnh màn hình. Logo + minh họa nhập ngay ở form tạo mới (cùng file `.zip`).
 - **Kích thước chuẩn + bộ bàn giao**: theo **`export.md`** — ảnh bìa 1600×900, logo 512×512, minh họa 1920×1080; script `export/make-images.mjs` sinh và kiểm.
 - Tên, mô tả ngắn, danh mục; game có phí: giá mua vĩnh viễn.
 
@@ -93,12 +93,15 @@ Nhận biết đang chạy trên Ephata bằng **đường dẫn** (`/^\/g\/[0-9
   mỗi lần mở cấp mã chơi 12 giờ và **kiểm lại quyền** — hết quyền thì link báo hết quyền). Thay bản build không làm gãy link này.
 
 ## Đưa lên admin
-1. **Admin → Thêm sản phẩm → Chạy trên store**.
-2. Chọn **Game** hoặc **Công cụ web**, nhập tên, danh mục, (game) Tier + Giá mua vĩnh viễn + ô Pro, ô **trừ point qua Ví Ephata**
-   (chỉ tick khi app có gọi `/charge`), mô tả ngắn, ảnh bìa, file `.zip`.
-3. Bấm tải lên → Ephata kiểm file (tên, dung lượng) → tải từng file → chuyển sang trang sản phẩm. Slug tự tạo = tên + 6 ký tự ngẫu
-   nhiên. **Sản phẩm hiện trên store ngay** sau khi tải lên.
-4. Mở **Sửa** sản phẩm → dán **Mô tả chi tiết (HTML)** (xem `description.md`) → Lưu. Form tạo mới chỉ có mô tả ngắn.
+1. **Admin → Thêm sản phẩm → Chạy trên store** (form chung như các loại khác).
+2. Tiêu đề, slug (để trống = tự tạo từ tiêu đề), loại **Game** hoặc **Công cụ**, mô tả ngắn, **mô tả chi tiết HTML** (theo
+   `description.md`, bấm **Xem trước**), danh mục (chọn sẵn Game Store), nhà phát hành (chọn sẵn Ephata Team).
+3. Khung **Bán**: game — Miễn phí / Có phí (giá mua vĩnh viễn, giá gốc, ô Pro Giáo Lý Số); công cụ — luôn miễn phí. Tags, ngày
+   phát hành (sẵn hôm nay), ảnh bìa, **logo**, ảnh / video minh họa.
+4. Khung **Bản build** → chọn file `.zip` (bắt buộc khi tạo mới). Ô **trừ point qua Ví Ephata** (chỉ tick khi app có gọi `/charge`).
+   Cờ **Đang bán** + **Hiện trên store** (bật sẵn), **Mới** (tick sẵn), Nổi bật / Phổ biến tùy chọn.
+5. Bấm **Lưu** → Ephata kiểm file (tên, dung lượng) → tải bản build + ảnh → lưu → quay về danh sách sản phẩm. Bật đủ 2 cờ thì
+   **hiện trên store ngay**.
 
 **Phát hành bản mới**: mở **Sửa** sản phẩm → khung **Bản build** → chọn `.zip` mới → **Tải bản build mới**. Thay tại chỗ:
 cùng sản phẩm, cùng slug, người đã mua giữ quyền, link Giáo Lý Số không gãy. Bản đang chạy được **giữ làm "bản trước"** — lỗi thì

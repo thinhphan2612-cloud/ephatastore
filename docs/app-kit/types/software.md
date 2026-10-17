@@ -1,6 +1,8 @@
 # Loại 5 — Phần mềm cài đặt (bán key)
 
 App desktop Windows / macOS: khách **tải miễn phí**, **mua key** bằng point trên Ephata để mở bản Pro.
+Store luôn ghi phần mềm là **"Bản miễn phí"** (+ nhãn **"Bản Pro"** khi có bán key) → **bản không key phải dùng được thật**
+(chức năng cơ bản), key chỉ mở thêm phần Pro, mua 1 lần dùng vĩnh viễn.
 Có thể phát hành thêm qua **Microsoft Store**. Đường dẫn file trong tài liệu này tính từ thư mục kit
 (`tools/app-kit/` khi đã đặt vào repo app).
 
@@ -57,7 +59,8 @@ Mỗi file có hướng dẫn cài phụ thuộc + cách dùng ở đầu file. 
 1. **Chặn chức năng Pro ở lớp lõi**: Rust `require_pro()`, Node `isPro()` ở main process, Python `is_pro()` trong logic.
    UI chỉ hiển thị. Ẩn nút ở UI không phải là chặn.
 2. **Mở app**: đọc `current()` (chạy offline), rồi gọi `refresh()` **ngầm 1 lần / phiên** (không chặn UI, lỗi mạng thì bỏ qua).
-3. **Màn hình Bản quyền** trong app có: trạng thái Free/Pro, ô nhập key + nút Kích hoạt, key đã che (`••••-ABCD`),
+3. **Màn hình Bản quyền** trong app (đặt **đúng tên "Bản quyền"** — trang sản phẩm hướng dẫn khách "mở app → mục Bản quyền →
+   dán key → Kích hoạt") có: trạng thái Free/Pro, ô nhập key + nút Kích hoạt, key đã che (`••••-ABCD`),
    hạn offline, nút **Hủy kích hoạt** (để khách chuyển máy), nút **Mua key** → mở `store_page_url` trong trình duyệt.
 4. **Dịch mã lỗi** ra câu dễ hiểu:
 
