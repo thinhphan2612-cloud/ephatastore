@@ -113,10 +113,11 @@ h1{font-family:var(--font-heading);font-size:clamp(1.9rem,5.5vw,3.2rem);line-hei
 }
 
 // api/software + dl: app desktop gọi kích hoạt/tải bộ cài; api/apps: server app ngoài gọi Ví Ephata;
+// api/public: danh mục công khai cho app đối tác (Giáo Lý Số), không cần session;
 // g: file game/công cụ host (đã bảo vệ bằng mã ký,
 // nhúng được ở domain khác) — phải chạy cả khi COMING_SOON, không cần session.
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|api/software/|api/apps/|dl/|g/|e/|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|api/software/|api/apps/|api/public/|dl/|g/|e/|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
   ],
 };
