@@ -290,7 +290,7 @@ export function ProductForm({
             <input type="number" name="price" min={0} step={1000} value={price} onChange={(e) => setPrice(e.target.value)} className={input} />
             <Hint>
               = {pricePoints.toLocaleString("vi-VN")} point (100đ = 1 point). Phần mềm luôn trả point — không miễn phí cho
-              Pro Giáo Lý Số / Full Topping.
+              Pro Giáo Lý Số / Full Topping. Để 0 = phần mềm miễn phí hoàn toàn: không bán key, trang sản phẩm chỉ có nút tải.
             </Hint>
           </Field>
         ) : (

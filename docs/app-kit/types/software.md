@@ -2,7 +2,8 @@
 
 App desktop Windows / macOS: khách **tải miễn phí**, **mua key** bằng point trên Ephata để mở bản Pro.
 Store luôn ghi phần mềm là **"Bản miễn phí"** (+ nhãn **"Bản Pro"** khi có bán key) → **bản không key phải dùng được thật**
-(chức năng cơ bản), key chỉ mở thêm phần Pro, mua 1 lần dùng vĩnh viễn.
+(chức năng cơ bản), key chỉ mở thêm phần Pro, mua 1 lần dùng vĩnh viễn. Phần mềm **miễn phí hoàn toàn** (không bán key)
+cũng đăng ở loại này — xem mục "Phần mềm miễn phí hoàn toàn" ngay dưới.
 Có thể phát hành thêm qua **Microsoft Store**. Đường dẫn file trong tài liệu này tính từ thư mục kit
 (`tools/app-kit/` khi đã đặt vào repo app).
 
@@ -14,6 +15,18 @@ File dùng cho loại này: `license/` (module kích hoạt), `ci/` (workflow bu
 - `ci/tauri-release.yml` (job release): đã build thật ra `.exe` + `.dmg` cho Gelo 1.2.8.
 - `msstore/pack.ps1`: đã đóng gói thật ra `.msix`. Chưa nộp Store lần nào.
 - `ci/electron-release.yml`, job `msstore` trong workflow, phần Python build: **chưa chạy thật** — lần đầu theo dõi kỹ.
+
+### Phần mềm miễn phí hoàn toàn (không bán key)
+
+- Admin: **Giá key = 0**. Store hiện "Bản miễn phí", trang sản phẩm chỉ có nút tải (không có khung "Nâng cấp Pro"),
+  `/buy` không phát key. Số thiết bị / hạn offline không dùng đến.
+- App: **bỏ** mục 1.1–1.2 (module license, `require_pro`, màn hình Bản quyền, bảng mã lỗi). **Vẫn làm** kiểm bản mới (mục 1.2 ý 6):
+  chép riêng `check_update` + `is_newer` + `store_page_url` từ module của stack vào app, đặt `PRODUCT` = slug. Gọi từ **Rust /
+  main process / Python** — API `latest` không trả header CORS nên `fetch` từ webview bị chặn; đừng nới CSP để thử.
+- **Không dùng updater của Tauri / electron-updater** (endpoint GitHub tự dựng, khóa ký riêng — mất khóa là máy đã cài không
+  cập nhật được). Bản mới = upload bộ cài phiên bản mới ở trang Sửa sản phẩm; app thấy bản mới qua `latest` và mở trang tải.
+- Mô tả / `privacy-policy.md`: ghi đúng "phần mềm hỏi Ephata Store số phiên bản mới nhất", không hứa "cập nhật một nút bấm".
+- Vẫn làm mục 0.1 (slug — `latest` tra theo slug), mục 2–4, 6 (bỏ các dòng về key).
 
 ---
 

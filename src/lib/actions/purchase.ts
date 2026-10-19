@@ -133,6 +133,8 @@ async function purchaseSoftware(
     .eq("id", productId)
     .maybeSingle();
   if (!product || !product.published || !product.active || product.type !== "software") redirect("/library");
+  // Giá key 0 = phần mềm miễn phí hoàn toàn, không phát key (RPC sẽ tạo key 0 point nếu để lọt).
+  if (vndToPoints(product.price_month ?? 0) <= 0) redirect(`/product/${product.slug}`);
 
   for (let attempt = 1; ; attempt++) {
     const { error } = await supabase.rpc("purchase_software", {

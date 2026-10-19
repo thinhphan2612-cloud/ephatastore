@@ -10,6 +10,7 @@ import { purchasePricePoints, confirmPurchase } from "@/lib/actions/purchase";
 import { kindsFor, type PurchaseKind } from "@/lib/purchase-kinds";
 import { quoteCoupon, type CouponQuote } from "@/lib/coupons";
 import { getMyLicenseKey } from "@/data/software";
+import { vndToPoints } from "@/lib/points";
 import { getToppingUntil, isOwned } from "@/data/store-user";
 import { formatDate } from "@/lib/format";
 import { PendingSubmit } from "@/components/pending-submit";
@@ -89,6 +90,8 @@ export default async function BuyPage({
     if (product.giaoly_feature_key && !(await isParishAdmin())) redirect(`/product/${product.slug}?notice=feature_parish_admin`);
     // Mỗi tài khoản 1 key/sản phẩm — đã có thì về Thư viện xem key.
     if (kind === "software" && (await getMyLicenseKey(user.id, product.id))) redirect("/library");
+    // Phần mềm miễn phí hoàn toàn (giá key 0) không bán key → về trang sản phẩm tải bản miễn phí.
+    if (kind === "software" && vndToPoints(product.price_month ?? 0) <= 0) redirect(`/product/${product.slug}`);
 
     // Chỉ sản phẩm gắn nhãn "Miễn phí cho Pro Giáo Lý Số" mới free cho Pro (phần mềm không bao giờ có nhãn này).
     const isPro = kind !== "software" && product.giaoly_pro_free && (await getCurrentUserPlan()) === "pro";
