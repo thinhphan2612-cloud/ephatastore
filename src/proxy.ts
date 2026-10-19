@@ -62,6 +62,7 @@ const GATE_OPEN = new Set([
   "/dieu-khoan",
   "/quyen-rieng-tu",
   "/quyen-rieng-tu/ephata-ebooks", // URL khai ở Microsoft Partner Center — phải mở được kể cả khi COMING_SOON
+  "/quyen-rieng-tu/trinh-chieu-thanh-le", // URL khai ở Microsoft Partner Center — như trên
 ]);
 
 /** Cùng quy tắc với lib/auth isAdminUser (proxy không import server-only module): admin theo ID tài khoản. */
