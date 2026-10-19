@@ -1,6 +1,6 @@
 # Ephata App Kit — tạo sản phẩm cho Ephata Store
 
-**Kit v18 · cập nhật 19/10/2026** — số phiên bản ở dòng này; thay đổi từng bản xem mục "Phiên bản kit" cuối file.
+**Kit v19 · cập nhật 19/10/2026** — số phiên bản ở dòng này; thay đổi từng bản xem mục "Phiên bản kit" cuối file.
 
 Bộ chuẩn để làm **bất kỳ sản phẩm nào** bán trên Ephata Store (chợ sản phẩm số Công giáo, ephatastore.com).
 Mở một phiên code mới với AI → đưa kit này vào → AI hỏi ý tưởng, xác định sản phẩm thuộc loại nào trong 5 loại,
@@ -135,6 +135,10 @@ soạn theo `description.md` (đã tự kiểm theo mục "Được dùng" / "Gi
 
 ## Phiên bản kit
 
+- **v19 (19/10/2026)** — form admin phần mềm có lựa chọn rõ ràng ở khung **Bán**: **"Miễn phí hoàn toàn — không cần key"**
+  (mặc định khi tạo mới) / **"Có bản Pro — bán key"** (hiện ô giá + khung Cấp phép). Miễn phí hoàn toàn: trang Sửa ẩn "Key tặng /
+  key thử", cấu hình cho app chỉ `PRODUCT` + `API_BASE`; trang sản phẩm ghi nhãn **FREE** (không còn "FREE + PRO"). Đổi phần mềm đã
+  bán key về miễn phí: khách đã mua giữ key + bản Pro. Cập nhật bước "Upload lên Ephata" trong `types/software.md`.
 - **v18 (19/10/2026)** — **Phần mềm miễn phí hoàn toàn** (loại 5 không bán key): để **Giá key = 0** trên admin → thẻ chỉ có nhãn
   "Bản miễn phí", trang sản phẩm chỉ còn nút tải (ẩn khung "Nâng cấp Pro"), `/buy` không phát key. App không cần module license
   và màn hình Bản quyền, nhưng **vẫn kiểm bản mới qua `GET …/products/<slug>/latest`** (gọi từ Rust / main process — API không
