@@ -156,8 +156,9 @@ export default async function ProductPage({
                       isProTier ? "border-accent text-accent" : "border-success text-success"
                     }`}
                   >
-                    {/* Nhãn loại đã ở dòng trên → huy hiệu chỉ báo có phí / miễn phí. Phần mềm: luôn có bản miễn phí + key Pro. */}
-                    {isSoftware ? "FREE + PRO" : isProTier ? "PRO" : "FREE"}
+                    {/* Nhãn loại đã ở dòng trên → huy hiệu chỉ báo có phí / miễn phí. Phần mềm bán key: bản miễn phí + key Pro;
+                        giá key 0 = miễn phí hoàn toàn. */}
+                    {isSoftware && isProTier ? "FREE + PRO" : isProTier ? "PRO" : "FREE"}
                   </span>
                 </div>
                 <h1 className="font-display text-[24px] font-bold leading-tight">{product.title}</h1>
@@ -563,48 +564,51 @@ async function SoftwarePanel({
         )}
       </div>
 
-      {/* Key Pro: mua một lần, dùng vĩnh viễn — không bắt buộc */}
-      <div className="mt-3 rounded-2xl border border-border bg-surface-hover/60 p-3.5">
-        <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-text-faint">Nâng cấp Pro · tùy chọn</div>
-        <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-          <div className="flex items-baseline gap-1.5">
-            <b className="text-[22px] leading-none tabular-nums">{points.toLocaleString("vi-VN")}</b>
-            <span className="text-xs font-semibold text-text-muted">point</span>
+      {/* Key Pro: mua một lần, dùng vĩnh viễn — không bắt buộc. Phần mềm miễn phí hoàn toàn (giá key 0) không bán key:
+          ẩn cả khung, trừ khi khách đã có key từ trước (sản phẩm từng có giá). */}
+      {(points > 0 || key) && (
+        <div className="mt-3 rounded-2xl border border-border bg-surface-hover/60 p-3.5">
+          <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-text-faint">Nâng cấp Pro · tùy chọn</div>
+          <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+            <div className="flex items-baseline gap-1.5">
+              <b className="text-[22px] leading-none tabular-nums">{points.toLocaleString("vi-VN")}</b>
+              <span className="text-xs font-semibold text-text-muted">point</span>
+            </div>
+            <span className="text-[11px] text-text-faint">
+              Pro vĩnh viễn · {deviceLimit} thiết bị
+            </span>
           </div>
-          <span className="text-[11px] text-text-faint">
-            Pro vĩnh viễn · {deviceLimit} thiết bị
-          </span>
+          {key ? (
+            <Link
+              href="/library"
+              className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-accent px-4 py-2.5 font-extrabold text-accent-contrast hover:bg-accent-hover"
+            >
+              <span aria-hidden>✓</span> Đã sở hữu key Pro — xem key
+            </Link>
+          ) : (
+            <Link
+              href={`/buy/${productId}?kind=software`}
+              className="mt-3 block w-full rounded-xl bg-accent px-4 py-2.5 text-center font-extrabold text-accent-contrast hover:bg-accent-hover"
+            >
+              Mua key Pro · {points.toLocaleString("vi-VN")} point
+            </Link>
+          )}
+          <div className="mt-3 border-t border-border pt-2.5 text-[11px] leading-relaxed text-text-faint">
+            <p>
+              <b className="font-semibold text-text-muted">Bản miễn phí không cần key.</b> Muốn nâng lên bản Pro:
+            </p>
+            <ol className="mt-1 list-decimal space-y-0.5 pl-4 marker:text-text-faint">
+              <li>{key ? "Lấy key đã mua ở Thư viện" : "Mua key Pro ở nút trên — key nằm trong Thư viện"}</li>
+              <li>
+                Mở app → mục <b className="font-semibold text-text-muted">Bản quyền</b> → dán key
+              </li>
+              <li>
+                Bấm <b className="font-semibold text-text-muted">Kích hoạt</b> — dùng Pro vĩnh viễn
+              </li>
+            </ol>
+          </div>
         </div>
-        {key ? (
-          <Link
-            href="/library"
-            className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-accent px-4 py-2.5 font-extrabold text-accent-contrast hover:bg-accent-hover"
-          >
-            <span aria-hidden>✓</span> Đã sở hữu key Pro — xem key
-          </Link>
-        ) : (
-          <Link
-            href={`/buy/${productId}?kind=software`}
-            className="mt-3 block w-full rounded-xl bg-accent px-4 py-2.5 text-center font-extrabold text-accent-contrast hover:bg-accent-hover"
-          >
-            Mua key Pro · {points.toLocaleString("vi-VN")} point
-          </Link>
-        )}
-        <div className="mt-3 border-t border-border pt-2.5 text-[11px] leading-relaxed text-text-faint">
-          <p>
-            <b className="font-semibold text-text-muted">Bản miễn phí không cần key.</b> Muốn nâng lên bản Pro:
-          </p>
-          <ol className="mt-1 list-decimal space-y-0.5 pl-4 marker:text-text-faint">
-            <li>{key ? "Lấy key đã mua ở Thư viện" : "Mua key Pro ở nút trên — key nằm trong Thư viện"}</li>
-            <li>
-              Mở app → mục <b className="font-semibold text-text-muted">Bản quyền</b> → dán key
-            </li>
-            <li>
-              Bấm <b className="font-semibold text-text-muted">Kích hoạt</b> — dùng Pro vĩnh viễn
-            </li>
-          </ol>
-        </div>
-      </div>
+      )}
     </>
   );
 }

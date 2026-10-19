@@ -9,9 +9,12 @@ import { ConfirmSubmit } from "@/components/admin/confirm-submit";
 export function SoftwareReleases({
   slug,
   releases,
+  sellsKeys,
 }: {
   slug: string;
   releases: SoftwareRelease[];
+  /** false = miễn phí hoàn toàn: app không cần module license, chỉ cần PRODUCT + API_BASE để kiểm bản mới. */
+  sellsKeys: boolean;
 }) {
   const latestIds = new Set(
     (["windows", "macos"] as const)
@@ -101,11 +104,16 @@ export function SoftwareReleases({
       </div>
 
       <div className="rounded-lg border border-border bg-surface p-4 text-sm">
-        <div className="mb-2 font-semibold text-text">Cấu hình cho app (dán vào module license)</div>
+        <div className="mb-2 font-semibold text-text">
+          {sellsKeys ? "Cấu hình cho app (dán vào module license)" : "Cấu hình cho app (kiểm bản mới — không cần module license)"}
+        </div>
         <pre className="overflow-x-auto rounded-md bg-bg-elevated p-3 text-xs text-text">
-{`PRODUCT    = "${slug}"
+{sellsKeys
+  ? `PRODUCT    = "${slug}"
 API_BASE   = "${site}/api/software/v1"
-PUBLIC_KEY = "${publicKey}"`}
+PUBLIC_KEY = "${publicKey}"`
+  : `PRODUCT  = "${slug}"
+API_BASE = "${site}/api/software/v1"`}
         </pre>
         <p className="mt-2 text-xs text-text-faint">
           Trang mua / tải bản mới: {site}/product/{slug}

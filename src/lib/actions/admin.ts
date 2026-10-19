@@ -301,15 +301,17 @@ async function persistProduct(formData: FormData): Promise<SaveState & { id?: st
     const msStoreUrl = String(formData.get("ms_store_url") ?? "").trim();
     if (msStoreUrl && !/^https:\/\//.test(msStoreUrl))
       return { error: "Link Microsoft Store phải bắt đầu bằng https://" };
-    Object.assign(payload, {
-      license_device_limit: Math.max(1, Number(formData.get("license_device_limit")) || 2),
-      // 0 = vĩnh viễn (không cần xác minh lại online).
-      license_offline_days:
-        formData.get("license_offline_forever") === "on"
-          ? 0
-          : Math.max(1, Number(formData.get("license_offline_days")) || 30),
-      ms_store_url: msStoreUrl || null,
-    });
+    payload.ms_store_url = msStoreUrl || null;
+    // Ô cấp phép chỉ có khi bán key — miễn phí hoàn toàn thì form không gửi → giữ nguyên giá trị cũ.
+    if (formData.has("license_device_limit"))
+      Object.assign(payload, {
+        license_device_limit: Math.max(1, Number(formData.get("license_device_limit")) || 2),
+        // 0 = vĩnh viễn (không cần xác minh lại online).
+        license_offline_days:
+          formData.get("license_offline_forever") === "on"
+            ? 0
+            : Math.max(1, Number(formData.get("license_offline_days")) || 30),
+      });
   }
 
   // Đang bán mà chưa có thứ để giao → chặn.

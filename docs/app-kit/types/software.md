@@ -2,7 +2,8 @@
 
 App desktop Windows / macOS: khách **tải miễn phí**, **mua key** bằng point trên Ephata để mở bản Pro.
 Store luôn ghi phần mềm là **"Bản miễn phí"** (+ nhãn **"Bản Pro"** khi có bán key) → **bản không key phải dùng được thật**
-(chức năng cơ bản), key chỉ mở thêm phần Pro, mua 1 lần dùng vĩnh viễn.
+(chức năng cơ bản), key chỉ mở thêm phần Pro, mua 1 lần dùng vĩnh viễn. Phần mềm **miễn phí hoàn toàn** (không bán key)
+cũng đăng ở loại này — xem mục "Phần mềm miễn phí hoàn toàn" ngay dưới.
 Có thể phát hành thêm qua **Microsoft Store**. Đường dẫn file trong tài liệu này tính từ thư mục kit
 (`tools/app-kit/` khi đã đặt vào repo app).
 
@@ -14,6 +15,19 @@ File dùng cho loại này: `license/` (module kích hoạt), `ci/` (workflow bu
 - `ci/tauri-release.yml` (job release): đã build thật ra `.exe` + `.dmg` cho Gelo 1.2.8.
 - `msstore/pack.ps1`: đã đóng gói thật ra `.msix`. Chưa nộp Store lần nào.
 - `ci/electron-release.yml`, job `msstore` trong workflow, phần Python build: **chưa chạy thật** — lần đầu theo dõi kỹ.
+
+### Phần mềm miễn phí hoàn toàn (không bán key)
+
+- Admin: khung **Bán** chọn **"Miễn phí hoàn toàn — không cần key"** (mặc định khi tạo mới; lưu là giá key = 0). Form ẩn ô giá
+  và khung Cấp phép; trang Sửa không có khung "Key tặng / key thử", khung cấu hình cho app chỉ còn `PRODUCT` + `API_BASE`.
+  Store hiện nhãn **FREE** + "Bản miễn phí", trang sản phẩm chỉ có nút tải (không có khung "Nâng cấp Pro"), `/buy` không phát key.
+- App: **bỏ** mục 1.1–1.2 (module license, `require_pro`, màn hình Bản quyền, bảng mã lỗi). **Vẫn làm** kiểm bản mới (mục 1.2 ý 6):
+  chép riêng `check_update` + `is_newer` + `store_page_url` từ module của stack vào app, đặt `PRODUCT` = slug. Gọi từ **Rust /
+  main process / Python** — API `latest` không trả header CORS nên `fetch` từ webview bị chặn; đừng nới CSP để thử.
+- **Không dùng updater của Tauri / electron-updater** (endpoint GitHub tự dựng, khóa ký riêng — mất khóa là máy đã cài không
+  cập nhật được). Bản mới = upload bộ cài phiên bản mới ở trang Sửa sản phẩm; app thấy bản mới qua `latest` và mở trang tải.
+- Mô tả / `privacy-policy.md`: ghi đúng "phần mềm hỏi Ephata Store số phiên bản mới nhất", không hứa "cập nhật một nút bấm".
+- Vẫn làm mục 0.1 (slug — `latest` tra theo slug), mục 2–4, 6 (bỏ các dòng về key).
 
 ---
 
@@ -170,10 +184,12 @@ Cài trên máy sạch (hoặc máy ảo) → mở app → màn hình Bản quy�
 Chuẩn bị trước bằng **`export.md`**: thư mục `release/<slug>-<version>/` có ảnh đúng kích thước, `installers/`
 (.exe + .dmg ≤ 50MB), `msstore/` (nếu lên Store) — chạy `make-images.mjs check` ra ✓ rồi mới upload.
 
-1. Đăng nhập bằng tài khoản admin được cấp → **Admin** → **Thêm sản phẩm** → **Phần mềm cài đặt (bán key)**.
+1. Đăng nhập bằng tài khoản admin được cấp → **Admin** → **Thêm sản phẩm** → **Phần mềm cài đặt (bán key)** (cả phần mềm miễn phí
+   hoàn toàn cũng đăng ở đây).
 2. Điền: tiêu đề, **slug = `PRODUCT` trong app** (gõ tay, đừng để trống cho tự tạo; sai → mọi key báo `PRODUCT_MISMATCH`), mô tả (ghi cả hướng dẫn
    "Open Anyway / Run anyway"), danh mục, nhà phát hành, ảnh bìa, **logo app** (icon vuông của app) + tối đa **4 ảnh / video minh
-   họa** (ảnh chụp app, video demo ngắn hoặc link YouTube — README "Quy ước chung"), giá key, số thiết bị/key, hạn offline.
+   họa** (ảnh chụp app, video demo ngắn hoặc link YouTube — README "Quy ước chung"). Khung **Bán**: **Miễn phí hoàn toàn**
+   (mặc định — xong) hoặc **Có bản Pro — bán key** → nhập giá key, rồi số thiết bị/key + hạn offline ở khung Cấp phép.
    Trang sản phẩm tự hiện nút tải theo hệ điều hành của khách kèm tên file + dung lượng, nên đặt tên file bộ cài rõ ràng
    (vd `Gelo_1.2.8_x64-setup.exe`).
 3. Khung **Bộ cài & phân phối**: phiên bản `X.Y.Z`, ghi chú phát hành, file `.exe` (cột Windows), file `.dmg` (cột macOS),
