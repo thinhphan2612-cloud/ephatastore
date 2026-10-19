@@ -286,13 +286,28 @@ export function ProductForm({
             Công cụ web mở tự do cho người đã đăng nhập. Thu tiền theo lượt dùng qua <b>Ví Ephata</b> (trừ point trong công cụ).
           </p>
         ) : isSoftware ? (
-          <Field label="Giá key (VND) — mua 1 lần, dùng vĩnh viễn">
-            <input type="number" name="price" min={0} step={1000} value={price} onChange={(e) => setPrice(e.target.value)} className={input} />
-            <Hint>
-              = {pricePoints.toLocaleString("vi-VN")} point (100đ = 1 point). Phần mềm luôn trả point — không miễn phí cho
-              Pro Giáo Lý Số / Full Topping. Để 0 = phần mềm miễn phí hoàn toàn: không bán key, trang sản phẩm chỉ có nút tải.
-            </Hint>
-          </Field>
+          <div className="space-y-4">
+            {/* Giá key 0 = miễn phí hoàn toàn (tier free) — không bán key, không cần module license. */}
+            <div className="flex flex-wrap gap-5">
+              <Radio name="sale" value="free" checked={sale === "free"} onChange={() => setSale("free")} label="Miễn phí hoàn toàn — không cần key" />
+              <Radio name="sale" value="paid" checked={sale === "paid"} onChange={() => setSale("paid")} label="Có bản Pro — bán key vĩnh viễn" />
+            </div>
+            {sale === "free" ? (
+              <Hint>
+                Khách tải về là dùng đủ, không mua key. Trang sản phẩm chỉ có nút tải; app không cần module license (vẫn nên kiểm bản
+                mới — xem App Kit).
+                {p?.tier === "pro" && " Khách đã mua key trước đây vẫn giữ key và bản Pro; từ giờ không bán thêm key."}
+              </Hint>
+            ) : (
+              <Field label="Giá key (VND) — mua 1 lần, dùng vĩnh viễn *">
+                <input type="number" name="price" min={1000} step={1000} required value={price} onChange={(e) => setPrice(e.target.value)} className={input} />
+                <Hint>
+                  = {pricePoints.toLocaleString("vi-VN")} point (100đ = 1 point). Bản không key vẫn tải miễn phí; key mở bản Pro. Không
+                  miễn phí cho Pro Giáo Lý Số / Full Topping.
+                </Hint>
+              </Field>
+            )}
+          </div>
         ) : (
           <div className="space-y-4">
             <div className="flex flex-wrap gap-5">
@@ -433,6 +448,9 @@ export function ProductForm({
             </div>
           </div>
 
+          {/* Cấp phép chỉ áp cho key — miễn phí hoàn toàn thì ẩn (server giữ nguyên giá trị cũ). */}
+          {sale === "paid" && (
+          <>
           <div className="mb-3 mt-5 text-sm font-semibold text-text">Cấp phép</div>
           <div className="grid gap-5 sm:grid-cols-2">
             <Field label="Số thiết bị / key">
@@ -468,6 +486,8 @@ export function ProductForm({
               </Hint>
             </div>
           </div>
+          </>
+          )}
         </div>
       )}
 

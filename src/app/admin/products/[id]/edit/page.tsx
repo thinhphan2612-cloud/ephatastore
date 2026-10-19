@@ -31,6 +31,8 @@ export default async function EditProductPage({
   if (!product) notFound();
 
   const isSoftware = product.type === "software";
+  // Phần mềm miễn phí hoàn toàn (giá 0) không có key — trừ khi đã từng phát key (vẫn cần quản lý).
+  const sellsKeys = isSoftware && (product.tier === "pro" || usage.licenses > 0);
   const hosted = parseGameUrl(product.game_url);
   const [releases, giftKeys] = isSoftware ? await Promise.all([listReleases(id), adminListGiftKeys(id)]) : [[], []];
   // App ngoài (Link ngoài): khóa bí mật server để gọi /api/apps/v1. Tính năng Giáo Lý Số không dùng.
@@ -77,8 +79,8 @@ export default async function EditProductPage({
         currentReleases={currentReleases}
         slugLockedReason={slugLockReason(usage)}
       />
-      {isSoftware && <SoftwareReleases slug={product.slug} releases={releases} />}
-      {isSoftware && <GiftKeys productId={product.id} defaultDevices={product.license_device_limit} keys={giftKeys} />}
+      {isSoftware && <SoftwareReleases slug={product.slug} releases={releases} sellsKeys={sellsKeys} />}
+      {sellsKeys && <GiftKeys productId={product.id} defaultDevices={product.license_device_limit} keys={giftKeys} />}
       {isExternalApp && product.uses_wallet && !product.has_app_secret && (
         <p className="rounded-md border border-warn/40 bg-warn/10 px-3 py-2 text-sm text-warn">
           Đã bật “App trừ point qua Ví Ephata” nhưng chưa có khóa bí mật — app chưa gọi được API Ví. Tạo khóa ở khung dưới.

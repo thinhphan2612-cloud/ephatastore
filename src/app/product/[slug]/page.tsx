@@ -156,8 +156,9 @@ export default async function ProductPage({
                       isProTier ? "border-accent text-accent" : "border-success text-success"
                     }`}
                   >
-                    {/* Nhãn loại đã ở dòng trên → huy hiệu chỉ báo có phí / miễn phí. Phần mềm: luôn có bản miễn phí + key Pro. */}
-                    {isSoftware ? "FREE + PRO" : isProTier ? "PRO" : "FREE"}
+                    {/* Nhãn loại đã ở dòng trên → huy hiệu chỉ báo có phí / miễn phí. Phần mềm bán key: bản miễn phí + key Pro;
+                        giá key 0 = miễn phí hoàn toàn. */}
+                    {isSoftware && isProTier ? "FREE + PRO" : isProTier ? "PRO" : "FREE"}
                   </span>
                 </div>
                 <h1 className="font-display text-[24px] font-bold leading-tight">{product.title}</h1>
