@@ -1,7 +1,7 @@
 import { type NextRequest } from "next/server";
 import { getAllProducts } from "@/data/products";
 import { displayPrice, hasFreeVersion, sortProducts } from "@/lib/catalog";
-import { formatPrice } from "@/lib/format";
+import { vndToPoints } from "@/lib/points";
 import { TYPE_LABEL } from "@/lib/labels";
 import { kindsFor } from "@/lib/purchase-kinds";
 
@@ -35,6 +35,8 @@ export async function GET(request: NextRequest) {
         free: all.filter(hasFreeVersion).length,
         products: picked.map((p) => {
           const annual = kindsFor(p.type)[0] === "annual";
+          // Khách chỉ thấy giá bằng point (không quy ra đ). Phần mềm bán key vẫn có bản miễn phí.
+          const points = vndToPoints(displayPrice(p));
           return {
             slug: p.slug,
             title: p.title,
@@ -44,7 +46,13 @@ export async function GET(request: NextRequest) {
             tier: p.tier,
             hasFree: hasFreeVersion(p), // phần mềm PRO vẫn có bản miễn phí
             price: displayPrice(p),
-            priceLabel: p.tier === "free" ? "Miễn phí" : `${formatPrice(displayPrice(p))}${annual ? "/năm" : ""}`,
+            points,
+            priceLabel:
+              p.tier === "free"
+                ? "Miễn phí"
+                : p.type === "software"
+                  ? `Miễn phí · Pro ${points.toLocaleString("vi-VN")} point`
+                  : `${points.toLocaleString("vi-VN")} point${annual ? "/năm" : ""}`,
             giaolyProFree: p.giaolyProFree,
             coverUrl: p.coverUrl || null,
             logoUrl: p.logoUrl ?? null,
