@@ -33,7 +33,7 @@ export async function addGameToGiaoly(
   const supabase = createStoreAdminClient();
   const { data: product } = await supabase
     .from("products")
-    .select("id,slug,title,type,tier,price_month,giaoly_pro_free,icon,game_url,published")
+    .select("id,slug,title,type,tier,price_month,giaoly_pro_free,icon,logo_url,game_url,published")
     .eq("id", productId)
     .maybeSingle();
   if (!product || !product.published) return { error: "Sản phẩm không tồn tại." };
@@ -75,6 +75,8 @@ export async function addGameToGiaoly(
           title: product.title,
           play_url: playUrl,
           icon: product.icon ?? "◈",
+          // Logo vuông của sản phẩm — trang Games của GLS hiện ảnh khi có thumb_url, không có thì dùng icon.
+          thumb_url: product.logo_url ?? null,
         },
       }),
     });
