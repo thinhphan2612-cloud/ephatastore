@@ -2,6 +2,9 @@
 
 > **Ví dụ thật** (EPHATA ebooks 2.9.0, nộp 10/2026) — mẫu trống ở `export.md` mục 5. Số máy mỗi key không ghi cứng: lấy theo
 > cấu hình admin, trang sản phẩm tự hiện. Dòng "Test key" để trống có chủ đích — key thử không bao giờ đưa vào repo.
+> **Sửa 21/10/2026 (kit v20):** bỏ các chữ "miễn phí trọn đời" / "Free forever" / "for free" — Microsoft coi là pricing claim
+> (10.1.4.3, Trình chiếu Thánh lễ bị trả về 19/10/2026). Listing thật của EPHATA ebooks trên Partner Center nếu còn các chữ này
+> thì sửa theo bản dưới ở lần nộp kế tiếp.
 
 Chép từng ô vào **Partner Center → EPHATA ebooks → Submission → Store listings → <ngôn ngữ>**.
 Gói `.msix` khai 2 ngôn ngữ (`vi-VN`, `en-US`) → điền cả hai listing bên dưới.
@@ -23,7 +26,7 @@ Giới hạn ký tự ghi trong ngoặc là theo Microsoft Learn "Create app Sto
 ```
 EPHATA ebooks là trình đọc sách điện tử tiếng Việt cho máy tính: gọn nhẹ, chạy không cần mạng, giữ sách và ghi chú của bạn ngay trên máy.
 
-Đọc miễn phí trọn đời
+Đọc sách (không cần key)
 • Mở sách EPUB, MOBI, AZW3, FB2 — thư viện có ảnh bìa, tiến độ đọc, lọc và sắp xếp; tìm sách không cần gõ dấu.
 • Tô sáng, ghi chú, dấu trang; xem lại tất cả trong thanh bên cùng mục lục.
 • Tìm trong sách, nhảy nhanh đến trang muốn đọc, bấm lề để lật trang.
@@ -57,7 +60,7 @@ Pro: sao lưu và chuyển thư viện sang máy khác
 
 **Short description** (tùy chọn, ≤ 1.000 ký tự)
 ```
-Trình đọc sách điện tử tiếng Việt cho máy tính: đọc EPUB, MOBI, AZW3, FB2 miễn phí, tô sáng và ghi chú ngay trên trang.
+Trình đọc sách điện tử tiếng Việt cho máy tính: đọc EPUB, MOBI, AZW3, FB2, tô sáng và ghi chú ngay trên trang.
 ```
 
 **Search terms** (tối đa 7 cụm, mỗi cụm ≤ 30 ký tự)
@@ -98,7 +101,7 @@ Kết nối mạng khi kích hoạt key Pro
 ```
 EPHATA ebooks is a lightweight e-book reader for your PC. It works offline and keeps your books and notes on your own device.
 
-Free forever
+Reading (no key needed)
 • Read EPUB, MOBI, AZW3 and FB2 books — a library with covers, reading progress, filters and sorting.
 • Highlight, take notes and bookmark; review everything in the sidebar next to the table of contents.
 • Search inside a book, jump to any page, tap the margins to turn pages.
@@ -132,7 +135,7 @@ Pro: back up and move your library to another PC
 
 **Short description**
 ```
-A lightweight e-book reader for your PC: read EPUB, MOBI, AZW3 and FB2 for free, with highlights and notes right on the page.
+A lightweight e-book reader for your PC: read EPUB, MOBI, AZW3 and FB2, with highlights and notes right on the page.
 ```
 
 **Search terms**
@@ -195,7 +198,7 @@ EPHATA ebooks is a Win32 desktop app (Tauri/Rust + WebView2) packaged as MSIX wi
 
 **Notes for certification** (trang Additional Testing Information — tùy chọn nhưng nên điền)
 ```
-All reading features are free and need no account: open any EPUB/MOBI/AZW3/FB2 file via "Thêm sách" (Add books), then highlight, add notes, bookmark and search.
+All reading features work without a license key or account: open any EPUB/MOBI/AZW3/FB2 file via "Thêm sách" (Add books), then highlight, add notes, bookmark and search.
 
 Pro features (Create EPUB, export highlights/notes, library backup) require a license key sold on Ephata Store (www.ephatastore.com), a non-game app using third-party payment as allowed by policy 10.8. To test Pro: open the ⋯ menu → "Bản quyền" (License) → paste the test key below → "Kích hoạt" (Activate). An internet connection is required for activation.
 

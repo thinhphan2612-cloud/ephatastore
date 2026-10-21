@@ -16,7 +16,8 @@ release/<slug>-<version>/            vd release/gelo-1.2.8/
 │   ├── description.html             mô tả chi tiết (theo description.md)
 │   └── listing.md                   thông tin điền form admin (mẫu ở mục 4)
 ├── privacy-policy.md                ← loại 5 (và app gửi dữ liệu qua mạng): chính sách quyền riêng tư → đăng tại
-│                                       https://www.ephatastore.com/quyen-rieng-tu/<slug> trước khi nộp Store
+│                                       https://www.ephatastore.com/quyen-rieng-tu/<slug> trước khi nộp Store —
+│                                       BẮT BUỘC có bản tiếng Anh ("# Privacy Policy") ở đầu, tiếng Việt ở dưới
 ├── deliverable/                     ← loại 1–4: thứ giao cho Ephata
 │   └── …                            loại 1: file tải về · loại 2: build.zip · loại 3: url.txt · loại 4: feature-key.txt
 ├── installers/                      ← loại 5: bộ cài tải về
@@ -140,6 +141,11 @@ Một file gom **mọi ô phải điền trên Partner Center**, người nộp 
 - **Mỗi ngôn ngữ gói `.msix` khai báo = một mục `## <Tên> (xx-XX)`** (vd `vi-VN`, `en-US`) — Partner Center bắt điền listing
   cho từng ngôn ngữ đó. Ảnh dùng chung, chú thích ảnh viết theo từng ngôn ngữ.
 - **Không ghi số thiết bị / số ngày offline / giá** — viết "số máy theo khung giá trên trang sản phẩm" (trang tự hiện).
+- **Không có "pricing claim" ở Description, Product features, Short description, Search terms** — cấm "miễn phí", "miễn phí
+  hoàn toàn / trọn đời", "không quảng cáo", "free", "completely free", "free forever", "no ads", "ad-free", giá tiền.
+  Microsoft trả về **10.1.4.3** (Trình chiếu Thánh lễ, 19/10/2026): Ephata Store có point / thuê bao nên họ coi sản phẩm
+  "không hoàn toàn miễn phí". Giá Free chỉ đặt ở **Pricing and availability**. App có bản Pro: mô tả tính năng + "cần key Pro
+  mua trên Ephata Store", không nói phần còn lại là "miễn phí". `check` báo **lỗi** khi thấy các chữ này.
 - Không HTML, không link trong Description (link để ở ô Website / Support / Privacy).
 
 ~~~markdown
@@ -164,7 +170,7 @@ Gói `.msix` khai <các ngôn ngữ> → điền đủ các mục ngôn ngữ b�
 ```
 <Đoạn mở 1–2 câu: là gì, cho ai.>
 
-<Nhóm tính năng miễn phí — mỗi ý một dòng bắt đầu bằng •>
+<Nhóm tính năng dùng ngay không cần key — mỗi ý một dòng bắt đầu bằng • (không viết chữ "miễn phí" / "free")>
 
 <Nhóm tính năng Pro (nếu có) + cách mua key trên Ephata Store và nhập key trong app; số máy theo khung giá trên trang sản phẩm.>
 ```
@@ -244,7 +250,7 @@ No elevation, services, drivers or startup tasks.
 
 **Notes for certification** (nên điền)
 ```
-<Phần miễn phí thử thế nào, không cần tài khoản.>
+<Phần không cần key thử thế nào, không cần tài khoản. Nếu không có mua trong app: "No in-app purchases, no subscriptions.">
 Pro features require a license key sold on Ephata Store (www.ephatastore.com), a non-game app using third-party payment
 as allowed by policy 10.8. To test Pro: <menu → License → paste key → Activate>. An internet connection is required for activation.
 Test key: <KEY THỬ — tạo riêng cho người duyệt>
@@ -256,8 +262,10 @@ The user interface is in Vietnamese.
 ~~~
 
 `check` báo **lỗi** khi vượt giới hạn ký tự / số dòng, thiếu Description ở một ngôn ngữ, số chú thích nhiều hơn số ảnh, hoặc
-lời giải trình runFullTrust quá 500 ký tự; **cảnh báo** khi còn chỗ `<…>` chưa điền, Short description dài hơn 270 ký tự,
-thấy số thiết bị / số ngày offline viết cứng, hoặc thiếu `privacy-policy.md`.
+lời giải trình runFullTrust quá 500 ký tự, hoặc có pricing claim ("miễn phí", "free", "không quảng cáo", "no ads", giá tiền)
+trong Description / Product features / Short description / Search terms; **cảnh báo** khi còn chỗ `<…>` chưa điền, Short
+description dài hơn 270 ký tự, thấy số thiết bị / số ngày offline viết cứng, thiếu `privacy-policy.md`, hoặc
+`privacy-policy.md` chưa có bản tiếng Anh ("Privacy Policy").
 
 ## 6. Bàn giao
 
