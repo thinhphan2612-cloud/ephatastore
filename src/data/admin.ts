@@ -64,6 +64,7 @@ export interface AdminProductDetail {
   trial_days: number;
   giaoly_pro_free: boolean;
   uses_wallet: boolean;
+  uses_microphone: boolean;
   /** Đã có khóa bí mật server cho app ngoài (không gửi hash ra client). */
   has_app_secret: boolean;
 }
@@ -85,7 +86,7 @@ export async function adminGetProduct(id: string): Promise<AdminProductDetail | 
   const { data, error } = await supabase
     .from("products")
     .select(
-      "id,slug,title,tagline,description,description_html,type,category_id,publisher_id,price_vnd,original_price_vnd,cover_url,tags,min_plan,released_at,featured,is_new,is_popular,published,active,updated_at,logo_url,gallery,download_path,game_url,game_url_prev,app_url,giaoly_feature_key,license_device_limit,license_offline_days,ms_store_url,tier,price_month,trial,trial_days,giaoly_pro_free,uses_wallet,app_secret_hash"
+      "id,slug,title,tagline,description,description_html,type,category_id,publisher_id,price_vnd,original_price_vnd,cover_url,tags,min_plan,released_at,featured,is_new,is_popular,published,active,updated_at,logo_url,gallery,download_path,game_url,game_url_prev,app_url,giaoly_feature_key,license_device_limit,license_offline_days,ms_store_url,tier,price_month,trial,trial_days,giaoly_pro_free,uses_wallet,uses_microphone,app_secret_hash"
     )
     .eq("id", id)
     .maybeSingle();

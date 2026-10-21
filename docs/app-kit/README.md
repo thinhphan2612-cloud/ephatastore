@@ -1,6 +1,6 @@
 # Ephata App Kit — tạo sản phẩm cho Ephata Store
 
-**Kit v19 · cập nhật 19/10/2026** — số phiên bản ở dòng này; thay đổi từng bản xem mục "Phiên bản kit" cuối file.
+**Kit v21 · cập nhật 21/10/2026** — số phiên bản ở dòng này; thay đổi từng bản xem mục "Phiên bản kit" cuối file.
 
 Bộ chuẩn để làm **bất kỳ sản phẩm nào** bán trên Ephata Store (chợ sản phẩm số Công giáo, ephatastore.com).
 Mở một phiên code mới với AI → đưa kit này vào → AI hỏi ý tưởng, xác định sản phẩm thuộc loại nào trong 5 loại,
@@ -135,6 +135,19 @@ soạn theo `description.md` (đã tự kiểm theo mục "Được dùng" / "Gi
 
 ## Phiên bản kit
 
+- **v21 (21/10/2026)** — bài học từ lần Microsoft Store trả về Trình chiếu Thánh lễ (19/10/2026):
+  **10.1.4.3** — listing Store **không được** có "miễn phí / miễn phí hoàn toàn / không quảng cáo / free / free forever /
+  no ads" hay giá tiền ở Description, Product features, Short description, Search terms (giá Free chỉ đặt ở Pricing and
+  availability); **10.5.1** — trang `/quyen-rieng-tu/<slug>` **phải có tiêu đề "Privacy Policy" + bản tiếng Anh ở đầu**
+  (trang chỉ tiếng Việt bị báo "doesn't display a privacy policy" dù URL mở được). `make-images.mjs check` báo **lỗi** pricing
+  claim trong `store-listing.md` và **cảnh báo** `privacy-policy.md` chưa có tiếng Anh. Mô tả / trang giới thiệu: không ghi
+  "bộ cài có chữ ký số" khi `Get-AuthenticodeSignature` chưa ra `Valid`, không hứa "cập nhật một nút bấm". Mẫu `export.md`
+  và ví dụ `examples/store-listing-ephata-ebooks.md` đã bỏ "miễn phí trọn đời" / "Free forever". Dự án loại 5 đã / sắp nộp
+  Store: chạy lại `check`, sửa listing, thêm tiếng Anh vào trang chính sách (EPHATA ebooks: `/quyen-rieng-tu/ephata-ebooks`
+  hiện chỉ có tiếng Việt).
+- **v20 (21/10/2026)** — **Chạy trên store** có ô **"App cần micro"** (khung Bản build / Ví): tick thì khung chơi `/play` cho phép
+  micro (`allow="…; microphone"`), không tick thì micro bị chặn như trước. Thêm dòng **Micro** vào bảng yêu cầu kỹ thuật của
+  `types/hosted.md`.
 - **v19 (19/10/2026)** — form admin phần mềm có lựa chọn rõ ràng ở khung **Bán**: **"Miễn phí hoàn toàn — không cần key"**
   (mặc định khi tạo mới) / **"Có bản Pro — bán key"** (hiện ô giá + khung Cấp phép). Miễn phí hoàn toàn: trang Sửa ẩn "Key tặng /
   key thử", cấu hình cho app chỉ `PRODUCT` + `API_BASE`; trang sản phẩm ghi nhãn **FREE** (không còn "FREE + PRO"). Đổi phần mềm đã

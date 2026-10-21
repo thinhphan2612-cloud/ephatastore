@@ -585,6 +585,21 @@ export function ProductForm({
               </Hint>
             </span>
           </label>
+          {isHosted && (
+            <>
+              <input type="hidden" name="uses_microphone_field" value="1" />
+              <label className="mt-3 flex items-start gap-2 text-sm text-text">
+                <input type="checkbox" name="uses_microphone" defaultChecked={p?.uses_microphone ?? false} className="mt-0.5 h-4 w-4" />
+                <span>
+                  <b>App cần micro</b> (thu âm trong trình duyệt, vd luyện hát)
+                  <Hint>
+                    Khung chơi cho phép micro; trình duyệt vẫn hỏi người dùng khi app xin. Chỉ tick khi app thật sự dùng micro — mọi
+                    app chạy chung domain play, quyền người dùng đã cấp được nhớ theo domain.
+                  </Hint>
+                </span>
+              </label>
+            </>
+          )}
         </div>
       )}
 

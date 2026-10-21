@@ -227,7 +227,7 @@ async function persistProduct(formData: FormData): Promise<SaveState & { id?: st
     ? await supabase
         .from("products")
         .select(
-          "category_id,cover_url,download_path,slug,title,type,tier,price_month,published,active,giaoly_pro_free,giaoly_feature_key,app_url,game_url,uses_wallet,ms_store_url,updated_at"
+          "category_id,cover_url,download_path,slug,title,type,tier,price_month,published,active,giaoly_pro_free,giaoly_feature_key,app_url,game_url,uses_wallet,uses_microphone,ms_store_url,updated_at"
         )
         .eq("id", id)
         .maybeSingle()
@@ -270,6 +270,8 @@ async function persistProduct(formData: FormData): Promise<SaveState & { id?: st
   }
   // Ô "App trừ point qua Ví Ephata" chỉ có ở form của loại app (đánh dấu bằng uses_wallet_field).
   if (formData.has("uses_wallet_field")) payload.uses_wallet = formData.get("uses_wallet") === "on";
+  // Ô "App cần micro" chỉ có ở form Chạy trên store (đánh dấu bằng uses_microphone_field).
+  if (formData.has("uses_microphone_field")) payload.uses_microphone = formData.get("uses_microphone") === "on";
 
   // File đã được trình duyệt tải thẳng lên Storage (createProductUpload) → chỉ nhận đường dẫn.
   const coverPath = String(formData.get("cover_path") ?? "").trim();
@@ -380,6 +382,7 @@ async function persistProduct(formData: FormData): Promise<SaveState & { id?: st
     app_url: merged.app_url ?? null,
     download_path: merged.download_path ?? null,
     uses_wallet: merged.uses_wallet,
+    uses_microphone: merged.uses_microphone,
     ms_store_url: merged.ms_store_url ?? null,
   };
   const changed = before

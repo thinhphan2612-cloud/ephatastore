@@ -134,6 +134,11 @@ chữ ký đúng + `product` = slug + `deviceId` = máy này + `plan` = `"pro"` 
 
 - Không ký số. Khách Windows gặp "Windows protected your PC" → **More info → Run anyway**.
   Khách macOS: **System Settings → Privacy & Security → Open Anyway** (ghi vào mô tả sản phẩm).
+  **Không bao giờ ghi "bộ cài có chữ ký số"** trong mô tả / trang giới thiệu khi chưa ký thật — kiểm bằng PowerShell
+  `Get-AuthenticodeSignature <file.exe>` (phải ra `Valid`; `NotSigned` = chưa ký). Có chứng thư (OV / EV / Azure Trusted
+  Signing) và ký xong mới được bỏ hướng dẫn "Run anyway".
+- Mô tả chỉ hứa "tự cập nhật" đúng như app làm: theo kit, app **báo bản mới** và mở trang sản phẩm để tải (mục 1.2 ý 6) —
+  không viết "cập nhật bằng một nút bấm" nếu app không tự tải + cài.
 - **`.dmg` chỉ build được trên máy Mac** → dùng GitHub Actions (runner macOS miễn phí phút theo gói GitHub).
 - Ephata nhận tối đa **50MB / file**.
 
@@ -213,8 +218,12 @@ Chuẩn bị trước bằng **`export.md`**: thư mục `release/<slug>-<versio
 3. Store **tự ký lại gói** khi duyệt → không cần mua chứng thư.
 4. Chuẩn bị **`msstore/store-listing.md`** (mẫu ở `export.md` mục 5, ví dụ thật `examples/store-listing-ephata-ebooks.md`):
    mô tả từng ngôn ngữ, từ khóa, chú thích ảnh, ô dùng chung, lời giải trình runFullTrust, ghi chú cho người duyệt + key thử.
+   **Không có pricing claim** ("miễn phí", "free", "không quảng cáo", "no ads", giá) trong listing — Microsoft trả về
+   10.1.4.3 (xem `export.md` mục 5).
    **Chính sách quyền riêng tư** (`privacy-policy.md` ở gốc bộ bàn giao) phải được đăng thành URL công khai
-   `https://www.ephatastore.com/quyen-rieng-tu/<slug>` **trước khi nộp** — gửi file cho Felix để đăng. Ảnh theo **`export.md`**
+   `https://www.ephatastore.com/quyen-rieng-tu/<slug>` **trước khi nộp** — gửi file cho Felix để đăng. Trang **phải có tiêu đề
+   "Privacy Policy" và bản tiếng Anh đầy đủ ở đầu** (tiếng Việt ở dưới): trang chỉ có tiếng Việt bị trả về **10.5.1**
+   ("doesn't display a privacy policy") dù URL mở được. Mẫu: `src/app/quyen-rieng-tu/trinh-chieu-thanh-le/page.tsx`. Ảnh theo **`export.md`**
    (`msstore/listing/`, **tất cả .png**: 1–10 ảnh chụp 1920×1080 kèm chú thích; Store logos: Poster art 720×1080 + Box art
    1080×1080; Store display images: 300×300 / 150×150 / 71×71; hero 1920×1080 tùy chọn — không chữ,
    tránh biểu tượng tôn giáo theo hướng dẫn của Microsoft).
@@ -260,7 +269,8 @@ Gỡ: `Get-AppxPackage *<Tên>* | Remove-AppxPackage`.
 
 ### 5.5 Nộp & nối về Ephata
 **Trước khi nộp** (người duyệt của Microsoft sẽ mở các link): sản phẩm đã **live trên Ephata** (Đang bán + Hiện,
-`https://www.ephatastore.com/product/<slug>` mở được) và trang chính sách `…/quyen-rieng-tu/<slug>` mở được; có **key thử**
+`https://www.ephatastore.com/product/<slug>` mở được) và trang chính sách `…/quyen-rieng-tu/<slug>` mở được **và có bản
+tiếng Anh**; ô Privacy policy URL dán đúng từng ký tự URL đó; có **key thử**
 riêng cho người duyệt: **Admin → Sản phẩm → Sửa → khung "Key tặng / key thử"** (key rời, không gắn tài khoản, không trừ point;
 duyệt xong bấm **Khóa**). Khung này cũng dùng để tặng key cho thành viên / đối tác (nhập email → key hiện ở Thư viện của họ).
 
@@ -282,6 +292,8 @@ sản phẩm trên admin → Lưu. Nút Windows trên Ephata tự chuyển sang 
 - [ ] Upload lên Ephata đúng version; `curl …/latest` ra version mới cho cả windows và macos.
 - [ ] Mua key thật → kích hoạt → tắt mạng mở lại app vẫn Pro → Hủy kích hoạt → máy khác kích hoạt được.
 - [ ] Bản Store: thử `Add-AppxPackage -Register` trước khi nộp.
+- [ ] Listing Store không có "miễn phí / free / không quảng cáo / no ads / giá"; trang `/quyen-rieng-tu/<slug>` có bản tiếng Anh.
+- [ ] Mô tả / trang giới thiệu không ghi "có chữ ký số" khi `Get-AuthenticodeSignature` chưa ra `Valid`.
 
 ## 7. Sự cố thường gặp
 
@@ -298,3 +310,5 @@ sản phẩm trên admin → Lưu. Nút Windows trên Ephata tự chuyển sang 
 | CI Tauri: `failed to import keychain certificate` | Có khai báo `APPLE_*` trong env workflow mà không có chứng thư → xóa. |
 | CI Tauri: `Resource not accessible by integration` | Thiếu `permissions: contents: write` trong workflow. |
 | Upload lên Ephata báo vượt 50MB | Bộ cài quá lớn — báo Felix. |
+| Store trả về **10.1.4.3 App Quality – Description** ("Claims made about pricing…") | Listing có "miễn phí / free / không quảng cáo / no ads". Gỡ khỏi Description, Product features, Short description, Search terms (cả mọi ngôn ngữ), giá Free chỉ đặt ở Pricing and availability → submit lại. |
+| Store trả về **10.5.1 Personal Information – Privacy Policy** ("…doesn't display a privacy policy") | Trang `/quyen-rieng-tu/<slug>` chỉ có tiếng Việt, hoặc ô Privacy policy URL sai. Thêm bản tiếng Anh + tiêu đề "Privacy Policy" lên đầu trang, kiểm URL từng ký tự → submit lại. |

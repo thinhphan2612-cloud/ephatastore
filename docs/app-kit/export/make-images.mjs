@@ -195,6 +195,19 @@ function warnHardcoded(text, where) {
     warn(`${where}: thấy "${[...found].join('", "')}" — số thiết bị / ngày offline tùy cấu hình admin, trang sản phẩm tự hiện → bỏ khỏi bài viết.`);
 }
 
+// Pricing claim trong listing Store → Microsoft trả về 10.1.4.3 (Trình chiếu Thánh lễ, 19/10/2026).
+// Biên chữ bằng \p{L} (không dùng ) để "giá" không dính "giáo", "point" không dính "PowerPoint".
+const PRICING = [
+  /(?<!\p{L})(miễn phí|không quảng cáo|free|freeware|ad[- ]free|no ads|price|pricing)(?!\p{L})/giu,
+  /\d[\d.,]*\s?(đ|vnđ|vnd|usd|\$|point)(?!\p{L})/giu,
+];
+function errPricing(text, where) {
+  const found = new Set();
+  for (const re of PRICING) for (const m of text.matchAll(re)) found.add(m[0].trim());
+  if (found.size)
+    err(`${where}: có "${[...found].join('", "')}" — Microsoft coi là pricing claim (10.1.4.3) → bỏ; giá Free chỉ đặt ở Pricing and availability.`);
+}
+
 // store-listing.md: mỗi mục "## … (xx-XX)" là 1 ngôn ngữ; ô = nhãn **…** + khối ``` ngay sau.
 function checkStoreListing(file, shotCount) {
   const text = fs.readFileSync(file, "utf8").replace(/\r\n/g, "\n");
@@ -239,6 +252,10 @@ function checkStoreListing(file, shotCount) {
       if (shotCount && cl.length > shotCount) err(`${where} [${lang}]: ${cl.length} chú thích nhưng chỉ có ${shotCount} ảnh chụp.`);
       else if (shotCount && cl.length < shotCount) warn(`${where} [${lang}]: ${cl.length} chú thích cho ${shotCount} ảnh chụp — thiếu chú thích.`);
     } else if (shotCount) warn(`${where} [${lang}]: chưa có Screenshot captions.`);
+    for (const [label, re] of [["Description", /^Description/i], ["Product features", /^Product features/i], ["Short description", /^Short description/i], ["Search terms", /^Search terms/i]]) {
+      const x = get(re);
+      if (x) errPricing(x.body, `${where} [${lang}] ${label}`);
+    }
     const sys = get(/^Additional system requirements/i);
     if (sys) {
       const sl = lines(sys.body);
@@ -325,6 +342,8 @@ async function check(dirArg) {
     else checkStoreListing(listingMd, shots.length);
     if (!fs.existsSync(path.join(out, "privacy-policy.md")))
       warn("Không có privacy-policy.md — Partner Center cần URL chính sách quyền riêng tư (đăng tại /quyen-rieng-tu/<slug> trước khi nộp).");
+    else if (!/privacy policy/i.test(fs.readFileSync(path.join(out, "privacy-policy.md"), "utf8")))
+      warn("privacy-policy.md chưa có bản tiếng Anh (\"Privacy Policy\") — trang /quyen-rieng-tu/<slug> chỉ có tiếng Việt bị Microsoft trả về 10.5.1.");
   }
 
   // File tải lên Ephata
