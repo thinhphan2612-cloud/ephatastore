@@ -32,6 +32,7 @@ cần cài đặt/truy cập máy tính (→ Phần mềm bán key).
 | Dung lượng | **html / htm / js / mjs / css / json: mỗi file < 4MB** (các file này được trả qua máy chủ Ephata, Vercel giới hạn ~4.5MB/response — file lớn hơn sẽ trắng màn hình; Ephata chặn ngay lúc tải lên). Bundle lớn → tách chunk (Vite `build.rollupOptions.output.manualChunks`, dynamic `import()`); dữ liệu lớn → đưa ra file nhị phân / ảnh. **Ảnh / âm thanh / video / wasm / font / glb: mỗi file ≤ 50MB.** Số file: gom asset (atlas / sprite sheet) cho ít file — mỗi file tải lên một lượt. |
 | Giao diện | Chạy trong khung cao ~78% màn hình, có nút Toàn màn hình (iframe cho phép `fullscreen; autoplay`). Thiết kế co giãn, dùng được trên điện thoại. |
 | Âm thanh | Chỉ phát sau khi người dùng bấm (chính sách trình duyệt). |
+| Micro | Mặc định khung **chặn micro**. App cần thu âm (vd luyện hát) → tick ô **"App cần micro"** trên admin, khung thêm `microphone` vào `allow`. Chỉ xin micro khi người dùng bấm (`getUserMedia`), và có đường dự phòng khi bị từ chối / bị chặn (vd chọn file ghi âm) — kiểm bằng `document.permissionsPolicy?.allowsFeature("microphone")`. Không có camera / định vị. Game không dùng được micro khi mở từ Giáo Lý Số. |
 
 ## Bảo vệ nội dung (Ephata lo sẵn)
 File bản build nằm ở kho **riêng tư**. Trang chơi chỉ cấp **mã truy cập** (ký, gắn với người chơi, hạn 12 giờ) cho người đã
@@ -99,6 +100,7 @@ Nhận biết đang chạy trên Ephata bằng **đường dẫn** (`/^\/g\/[0-9
 3. Khung **Bán**: game — Miễn phí / Có phí (giá mua vĩnh viễn, giá gốc, ô Pro Giáo Lý Số); công cụ — luôn miễn phí. Tags, ngày
    phát hành (sẵn hôm nay), ảnh bìa, **logo**, ảnh / video minh họa.
 4. Khung **Bản build** → chọn file `.zip` (bắt buộc khi tạo mới). Ô **trừ point qua Ví Ephata** (chỉ tick khi app có gọi `/charge`).
+   Ô **App cần micro** (chỉ tick khi app thu âm — mọi app chung domain play, quyền micro người dùng đã cấp được nhớ theo domain).
    Cờ **Đang bán** + **Hiện trên store** (bật sẵn), **Mới** (tick sẵn), Nổi bật / Phổ biến tùy chọn.
 5. Bấm **Lưu** → Ephata kiểm file (tên, dung lượng) → tải bản build + ảnh → lưu → quay về danh sách sản phẩm. Bật đủ 2 cờ thì
    **hiện trên store ngay**.

@@ -20,7 +20,7 @@ export default async function PlayPage({
   const supabase = createStoreAdminClient();
   const { data: product } = await supabase
     .from("products")
-    .select("id,title,type,tier,price_month,giaoly_pro_free,uses_wallet,game_url,published")
+    .select("id,title,type,tier,price_month,giaoly_pro_free,uses_wallet,uses_microphone,game_url,published")
     .eq("slug", slug)
     .maybeSingle();
 
@@ -92,7 +92,11 @@ export default async function PlayPage({
         </Link>
       </div>
       {/* File host trên store: URL kèm mã truy cập theo người chơi (bucket private). */}
-      <GameFrame src={hostedPlayUrl(product.game_url, user.id) ?? product.game_url} title={product.title} />
+      <GameFrame
+        src={hostedPlayUrl(product.game_url, user.id) ?? product.game_url}
+        title={product.title}
+        microphone={product.uses_microphone}
+      />
     </div>
   );
 }

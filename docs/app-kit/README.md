@@ -1,6 +1,6 @@
 # Ephata App Kit — tạo sản phẩm cho Ephata Store
 
-**Kit v19 · cập nhật 19/10/2026** — số phiên bản ở dòng này; thay đổi từng bản xem mục "Phiên bản kit" cuối file.
+**Kit v20 · cập nhật 21/10/2026** — số phiên bản ở dòng này; thay đổi từng bản xem mục "Phiên bản kit" cuối file.
 
 Bộ chuẩn để làm **bất kỳ sản phẩm nào** bán trên Ephata Store (chợ sản phẩm số Công giáo, ephatastore.com).
 Mở một phiên code mới với AI → đưa kit này vào → AI hỏi ý tưởng, xác định sản phẩm thuộc loại nào trong 5 loại,
@@ -135,6 +135,9 @@ soạn theo `description.md` (đã tự kiểm theo mục "Được dùng" / "Gi
 
 ## Phiên bản kit
 
+- **v20 (21/10/2026)** — **Chạy trên store** có ô **"App cần micro"** (khung Bản build / Ví): tick thì khung chơi `/play` cho phép
+  micro (`allow="…; microphone"`), không tick thì micro bị chặn như trước. Thêm dòng **Micro** vào bảng yêu cầu kỹ thuật của
+  `types/hosted.md`.
 - **v19 (19/10/2026)** — form admin phần mềm có lựa chọn rõ ràng ở khung **Bán**: **"Miễn phí hoàn toàn — không cần key"**
   (mặc định khi tạo mới) / **"Có bản Pro — bán key"** (hiện ô giá + khung Cấp phép). Miễn phí hoàn toàn: trang Sửa ẩn "Key tặng /
   key thử", cấu hình cho app chỉ `PRODUCT` + `API_BASE`; trang sản phẩm ghi nhãn **FREE** (không còn "FREE + PRO"). Đổi phần mềm đã

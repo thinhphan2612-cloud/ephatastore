@@ -2,7 +2,7 @@
 
 import { useRef } from "react";
 
-export function GameFrame({ src, title }: { src: string; title: string }) {
+export function GameFrame({ src, title, microphone = false }: { src: string; title: string; microphone?: boolean }) {
   const ref = useRef<HTMLIFrameElement>(null);
 
   function fullscreen() {
@@ -25,7 +25,8 @@ export function GameFrame({ src, title }: { src: string; title: string }) {
         src={src}
         title={title}
         className="h-[78vh] w-full"
-        allow="fullscreen; autoplay"
+        // Micro chỉ cho app bật "App cần micro" trên admin: mọi app chung origin play → quyền đã cấp dùng chung.
+        allow={microphone ? "fullscreen; autoplay; microphone" : "fullscreen; autoplay"}
         // Code bên thứ ba: không cho tự điều hướng trang store (chỉ khi người dùng bấm, vd link Nạp point).
         sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-modals allow-pointer-lock allow-downloads allow-top-navigation-by-user-activation"
       />
